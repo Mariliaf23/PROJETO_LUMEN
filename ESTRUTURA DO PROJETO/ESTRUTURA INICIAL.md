@@ -40,4 +40,4 @@ database/: Ter um arquivo .sql ajuda muito quem for clonar o seu projeto a enten
 │   └── schema.sql         # Script de criação das tabelas (DUMP)
 ├── main.py                # Ponto de entrada que inicializa o sistema
 ├── requirements.txt       # Lista de dependências (customtkinter, mysql-connector, fpdf)
-└── .gitignore             # Ignora .venv e .env[cite: 2
+└── .gitignore             # Ignora .venv e .env
