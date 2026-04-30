@@ -57,11 +57,24 @@ Seguindo padrões de organização avançada para escalabilidade:
 
 ```text
 PROJETO_LUMEN/
-├── main.py                # Ponto de entrada da aplicação
-├── database_config.py     # Configurações de conexão MySQL
-├── styles.py              # Identidade visual (cores e fontes)
-├── services/              # Business Logic (validações e PDF)
-└── screens/               # Views (Login, Home, Cadastros)
+├── .github/               # Workflows e templates do GitHub
+├── .venv/                 # Ambiente virtual (não versionado)
+├── assets/                # Ícones, imagens e banners do projeto
+├── database/              # Scripts SQL e migrações do banco
+│   └── schema.sql         # Estrutura inicial das tabelas
+├── screens/               # Arquivos .py para cada tela (UI)
+│   ├── login_screen.py
+│   ├── dashboard.py
+│   └── reports_screen.py
+├── services/              # Lógica de negócio e utilitários
+│   ├── validator.py       # Máscaras e validações de campos
+│   └── report_gen.py      # Geração de PDF com FPDF
+├── .gitignore             # Arquivos para o Git ignorar (__pycache__, .env)
+├── database_config.py     # Conexão com MySQL
+├── main.py                # Execução principal do sistema
+├── requirements.txt       # Dependências (customtkinter, mysql-connector, fpdf)
+├── README.md              # Documentação principal
+└── styles.py              # Definições de cores e fontes
 ```
 
 ---
