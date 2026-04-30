@@ -2,10 +2,6 @@
   <img src="assets/LUMEN logo.png" alt="Lumen Logo Original" width="200">
 </p>
 
-
-# PROJETO LUMEN
-
-
 # 💡 PROJETO LUMEN
 
 > **Status do Projeto:** 🚀 Em Desenvolvimento
