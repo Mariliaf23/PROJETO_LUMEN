@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="assets/logo_original.png" alt="Lumen Logo Original" width="200">
+  <img src="assets/LUMEN logo.png" alt="Lumen Logo Original" width="200">
 </p>
+
 
 # PROJETO LUMEN
 
