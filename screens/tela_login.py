@@ -122,7 +122,7 @@ class TelaLogin(tk.Tk):
         
         if resultado:
             nome_usuario = resultado
-            self._toast(f"✓ Bem-vindo, {nome_usuario}!")
+            self._toast(f"✓ Bem-vindo, {usuario}!")
         else:
             self._toast("✕ Usuário não encontrado.")
         
