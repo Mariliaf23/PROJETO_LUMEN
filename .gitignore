@@ -1,1 +1,4 @@
-#nao esquece que tudo que for privado tipo, senhas APIs Keys e etc nao pode ir pro github!!!!!!
+#nao esquece que tudo que for privado tipo, senhas APIs Keys e etc nao pode ir pro github!!!!!! 
+__pycache__/
+.venv/
+.env
