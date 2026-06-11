@@ -13,4 +13,4 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- Inserir usuário admin padrão
-INSERT INTO usuarios (nome,email, senha) VALUES ('admin', 'admin@example.com', '123456789')
+INSERT INTO usuarios (nome,email, senha) VALUES ('adm', 'kkk@example.com', '1234567')

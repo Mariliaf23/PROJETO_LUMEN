@@ -48,7 +48,7 @@ def verificar_login(usuario, senha):
         )
         cursor = conn.cursor()
         
-        cursor.execute("SELECT nome FROM usuarios WHERE email = %s AND senha = %s", (usuario, senha))
+        cursor.execute("SELECT nome FROM usuarios WHERE nome = %s AND senha = %s", (usuario, senha))
         resultado = cursor.fetchone()
         
         conn.close()
