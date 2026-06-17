@@ -1,14 +1,19 @@
-import tkinter as tk
-from tkinter import font as tkfont
-from PIL import Image, ImageTk, ImageFilter, ImageDraw, ImageOps
 import os
+import sys
+import tkinter as tk
+from tkinter import font as tkfont, messagebox
+from PIL import Image, ImageTk, ImageFilter, ImageDraw, ImageOps
+from ..connect import connect_to_database
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database_config import cadastrar_usuario
 
 class LumenLoginApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("LUMEN - Entrar")
         self.root.geometry("1000x700")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
         
         # Cores baseadas na imagem
         self.bg_color = "#2c1f17"
@@ -85,9 +90,9 @@ class LumenLoginApp:
         self.entry_confirm.insert(0, "12345678")
         self.canvas.create_window(510, form_y + 235, window=self.entry_confirm, width=320)
         
-        # Botão Entrar
+        # Botão Cadastrar
         btn_font = tkfont.Font(family="Arial", size=12, weight="bold")
-        self.btn_entrar = tk.Button(self.root, text="Entrar", font=btn_font, 
+        self.btn_entrar = tk.Button(self.root, text="Cadastrar", font=btn_font, 
                                    bg="#8c5a2b", fg="white", activebackground="#a36d3f",
                                    activeforeground="white", relief="flat", height=2,
                                    command=self.on_login)
@@ -98,10 +103,48 @@ class LumenLoginApp:
         self.btn_entrar.bind("<Leave>", lambda e: self.btn_entrar.config(bg="#8c5a2b"))
    
     def on_login(self):
-        nome = self.entry_nome.get()
-        email = self.entry_email.get()
-        print(f"Login attempt - Nome: {nome}, Email: {email}")
-        tk.messagebox.showinfo("LUMEN", "Bem-vindo, João Silva!")
+        nome = self.entry_nome.get().strip()
+        email = self.entry_email.get().strip()
+        senha = self.entry_senha.get().strip()
+        confirm = self.entry_confirm.get().strip()
+
+        if not nome:
+            messagebox.showerror("LUMEN", "Informe o nome.")
+            return
+
+        if not email:
+            messagebox.showerror("LUMEN", "Informe o email.")
+            return
+
+        if not senha:
+            messagebox.showerror("LUMEN", "Informe a senha.")
+            return
+
+        if senha != confirm:
+            messagebox.showerror("LUMEN", "As senhas nao conferem.")
+            return
+
+        sucesso = cadastrar_usuario(nome, email, senha)
+        if sucesso:
+            messagebox.showinfo("LUMEN", "Cadastro realizado com sucesso!")
+        else:
+            messagebox.showerror("LUMEN", "Erro ao salvar no banco de dados.")
+
+
+        dados = (nome, email, senha, confirm)
+
+        cursor = self.conn.cursor()
+        try:
+            # Insere novo registro quando não há id definido.
+            cursor.execute("""
+                 "INSERT INTO funcionario (nome_funcionario, email_funcionario, password_funcionario, funcao) VALUES (%s, %s, %s, %s)"
+                           """),dados
+
+            self.conn.commit()
+            self.carregar()
+            self.limpar()
+        except Exception as e:
+            messagebox.showerror("Erro", str(e))
     
     def run(self):
         self.root.mainloop()
