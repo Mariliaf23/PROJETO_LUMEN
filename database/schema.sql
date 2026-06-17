@@ -98,3 +98,14 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo_has_livro` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS alunos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150),
+    telefone VARCHAR(20),
+    cpf VARCHAR(14) UNIQUE NOT NULL,
+    sala VARCHAR(10),
+    turno VARCHAR(20),
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
