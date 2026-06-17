@@ -57,3 +57,25 @@ def verificar_login(usuario, senha):
     except Error as e:
         print(f"Erro ao verificar login: {e}")
         return None
+
+def cadastrar_aluno(nome, email, telefone, cpf, sala, turno):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'],
+            user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'],
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO alunos (nome, email, telefone, cpf, sala, turno)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (nome, email, telefone, cpf, sala, turno))
+
+        conn.commit()
+        conn.close()
+        return True
+    except Error as e:
+        print(f"Erro ao cadastrar aluno: {e}")
+        raise Exception(e)
