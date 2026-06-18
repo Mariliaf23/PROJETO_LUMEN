@@ -70,7 +70,7 @@ class TelaCadastroAlunos(tk.Toplevel):
 
         self.btn_cadastrar = tk.Button(
             self.canvas,
-            text="Cadastrar Aluno",
+            text="Cadastrar Membro",
             font=("Segoe UI Semibold", 11),
             fg="#b89a72",
             activeforeground="#ffffff",
