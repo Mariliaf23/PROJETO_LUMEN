@@ -17,7 +17,7 @@ class TelaCadastroAlunos(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
         init_db()
-        self.title("Lumen – Cadastro de Alunos")
+        self.title("Lumen – Cadastro de Membros")
         self.geometry("960x680")
         self.minsize(800, 560)
 
@@ -38,6 +38,9 @@ class TelaCadastroAlunos(tk.Toplevel):
         self._construir_ui()
         self.bind("<Configure>", self._ao_redimensionar)
 
+    # ------------------------------------------------------------------ #
+    #  Widgets                                                             #
+    # ------------------------------------------------------------------ #
     def _construir_ui(self):
         estilo = dict(
             font=("Segoe UI", 11),
@@ -79,6 +82,9 @@ class TelaCadastroAlunos(tk.Toplevel):
             command=self._cadastrar,
         )
 
+    # ------------------------------------------------------------------ #
+    #  Redimensionar                                                       #
+    # ------------------------------------------------------------------ #
     def _ao_redimensionar(self, evento=None):
         L = self.winfo_width()
         A = self.winfo_height()
@@ -99,14 +105,17 @@ class TelaCadastroAlunos(tk.Toplevel):
         self._desenhar_sidebar(L, A)
         self._desenhar_painel(L, A)
 
+    # ------------------------------------------------------------------ #
+    #  Sidebar                                                             #
+    # ------------------------------------------------------------------ #
     def _desenhar_sidebar(self, L, A):
         side_x = int(L * _SIDE_R / 2)
 
         itens_nav = [
             ("DASHBOARD",     False),
             ("LIVROS",        False),
-            ("MEMBROS",       False),
-            ("ALUNOS",        True),
+            ("MEMBROS",       True),
+            ("ALUNOS",        False),
             ("EMPRÉSTIMOS",   False),
             ("DEVOLUÇÕES",    False),
             ("CONFIGURAÇÕES", False),
@@ -134,6 +143,9 @@ class TelaCadastroAlunos(tk.Toplevel):
             self.canvas.tag_bind(item, "<Button-1>", lambda e, n=nome: print(f"Navegar: {n}"))
             y_nav += passo
 
+    # ------------------------------------------------------------------ #
+    #  Painel                                                              #
+    # ------------------------------------------------------------------ #
     def _desenhar_painel(self, L, A):
         px1 = int(L * _PX1_R)
         px2 = int(L * _PX2_R)
@@ -145,17 +157,20 @@ class TelaCadastroAlunos(tk.Toplevel):
         mx = px1 + 30
         aw = pw - 60
 
+        # Painel escuro
         self.canvas.create_rectangle(px1, py1, px2, py2, fill="#1e1208", outline="")
         self.canvas.create_line(px1, py1, px2, py1, fill="#b89a72", width=1)
 
+        # Título
         self.canvas.create_text(
             mx, py1 // 2 + A * 0.01,
-            text="Cadastro de Alunos",
+            text="Cadastro de Membros",
             font=("Segoe UI Light", 15),
             fill="#ffffff",
             anchor="w",
         )
 
+        # Botão Voltar
         btn_v = self.canvas.create_text(
             mx, py1 + 28,
             text="← Voltar",
@@ -167,6 +182,7 @@ class TelaCadastroAlunos(tk.Toplevel):
         self.canvas.tag_bind(btn_v, "<Enter>",  lambda e: self.canvas.itemconfig(btn_v, fill="#b89a72"))
         self.canvas.tag_bind(btn_v, "<Leave>",  lambda e: self.canvas.itemconfig(btn_v, fill="#8a7e72"))
 
+        # --- Campos --------------------------------------------------- #
         h_entry  = 34
         espaco_v = int(ph * 0.14)
 
@@ -192,8 +208,8 @@ class TelaCadastroAlunos(tk.Toplevel):
                 height=h_entry,
             )
 
-        campo("Nome",     x1,  y0,            self.entry_nome,     larg_full)
-        campo("Email",    x1,  y0 + espaco_v, self.entry_email,    larg_full)
+        campo("Nome",     x1,  y0,                self.entry_nome,     larg_full)
+        campo("Email",    x1,  y0 + espaco_v,     self.entry_email,    larg_full)
 
         y2 = y0 + espaco_v * 2
         campo("Telefone", x1,  y2, self.entry_telefone, larg_meio)
@@ -203,6 +219,7 @@ class TelaCadastroAlunos(tk.Toplevel):
         campo("Sala",     x1,  y3, self.entry_sala,  larg_meio)
         campo("Turno",    x_r, y3, self.entry_turno, larg_meio)
 
+        # Botão Cadastrar
         self.canvas.create_window(
             px2 - 30, y3 + int(ph * 0.13),
             window=self.btn_cadastrar,
@@ -210,12 +227,15 @@ class TelaCadastroAlunos(tk.Toplevel):
             anchor="e",
         )
 
+    # ------------------------------------------------------------------ #
+    #  Lógica                                                              #
+    # ------------------------------------------------------------------ #
     def _cadastrar(self):
-        nome     = self._valor(self.entry_nome,     "Natalia Baia")
-        email    = self._valor(self.entry_email,    "NataliaBaia@email.com")
-        telefone = self._valor(self.entry_telefone, "(91) 98888-9999")
+        nome     = self._valor(self.entry_nome,     "João Silva")
+        email    = self._valor(self.entry_email,    "joao@email.com")
+        telefone = self._valor(self.entry_telefone, "(91) 99999-9999")
         cpf      = self._valor(self.entry_cpf,      "000.000.000-00")
-        sala     = self._valor(self.entry_sala,      "Ex: 5")
+        sala     = self._valor(self.entry_sala,      "Ex: 3")
         turno    = self._valor(self.entry_turno,    "Manhã / Tarde / Noite")
 
         if not nome:
@@ -248,6 +268,9 @@ class TelaCadastroAlunos(tk.Toplevel):
         finally:
             self.btn_cadastrar.configure(text="Cadastrar Aluno", state="normal")
 
+    # ------------------------------------------------------------------ #
+    #  Utilitários                                                         #
+    # ------------------------------------------------------------------ #
     def _valor(self, entry, placeholder):
         v = entry.get().strip()
         return "" if v == placeholder else v
