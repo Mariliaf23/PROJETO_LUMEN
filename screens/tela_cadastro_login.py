@@ -3,8 +3,6 @@ import sys
 import tkinter as tk
 from tkinter import font as tkfont, messagebox
 from PIL import Image, ImageTk, ImageFilter, ImageDraw, ImageOps
-from ..connect import connect_to_database
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database_config import cadastrar_usuario
 
@@ -127,24 +125,9 @@ class LumenLoginApp:
         sucesso = cadastrar_usuario(nome, email, senha)
         if sucesso:
             messagebox.showinfo("LUMEN", "Cadastro realizado com sucesso!")
+            self.root.destroy()
         else:
             messagebox.showerror("LUMEN", "Erro ao salvar no banco de dados.")
-
-
-        dados = (nome, email, senha, confirm)
-
-        cursor = self.conn.cursor()
-        try:
-            # Insere novo registro quando não há id definido.
-            cursor.execute("""
-                 "INSERT INTO funcionario (nome_funcionario, email_funcionario, password_funcionario, funcao) VALUES (%s, %s, %s, %s)"
-                           """),dados
-
-            self.conn.commit()
-            self.carregar()
-            self.limpar()
-        except Exception as e:
-            messagebox.showerror("Erro", str(e))
     
     def run(self):
         self.root.mainloop()

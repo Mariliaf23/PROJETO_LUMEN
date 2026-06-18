@@ -47,6 +47,27 @@ def init_db():
         return False
 
 
+def cadastrar_usuario(nome, email, senha, telefone='', funcao='bibliotecario'):
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'],
+            user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'],
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO funcionario (nome_funcionario, email_funcionario, password_funcionario, telefone_funcionario, funcao) VALUES (%s, %s, %s, %s, %s)",
+            (nome, email, senha, telefone, funcao)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Error as e:
+        print(f"Erro ao cadastrar usuário: {e}")
+        return False
+
+
 def verificar_login(usuario, senha):
     try:
         conn = mysql.connector.connect(
