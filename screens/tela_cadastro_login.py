@@ -1,9 +1,12 @@
 import os
 import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import tkinter as tk
 from tkinter import font as tkfont, messagebox
 from PIL import Image, ImageTk, ImageFilter, ImageDraw, ImageOps
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from connect import connect_to_database
 from database_config import cadastrar_usuario
 
 class LumenLoginApp:
