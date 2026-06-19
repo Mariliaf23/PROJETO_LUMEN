@@ -39,13 +39,13 @@ ENGINE = InnoDB;
 -- Table `biblioteca`.`alunos`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`alunos` (
-  `id_alunos` INT NOT NULL AUTO_INCREMENT,
+  `cpf` INT NOT NULL AUTO_INCREMENT,
   `nome_aluno` VARCHAR(100) NOT NULL,
   `email_aluno` VARCHAR(100) NOT NULL,
   `password_aluno` VARCHAR(255) NOT NULL,
   `telefone_aluno` CHAR(11) NOT NULL,
-  PRIMARY KEY (`id_alunos`),
-  UNIQUE INDEX `id_alunos_UNIQUE` (`id_alunos` ASC) VISIBLE,
+  PRIMARY KEY (`cpf`),
+  UNIQUE INDEX `cpf_UNIQUE` (`cpf` ASC) VISIBLE,
   UNIQUE INDEX `email_aluno_UNIQUE` (`email_aluno` ASC) VISIBLE,
   UNIQUE INDEX `telefone_aluno_UNIQUE` (`telefone_aluno` ASC) VISIBLE)
 ENGINE = InnoDB;
@@ -100,11 +100,10 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo_has_livro` (
 ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS alunos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    cpf INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
     email VARCHAR(150),
     telefone VARCHAR(20),
-    cpf VARCHAR(14) UNIQUE NOT NULL,
     sala VARCHAR(10),
     turno VARCHAR(20),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
