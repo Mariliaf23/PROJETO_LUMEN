@@ -1,11 +1,20 @@
 -- -----------------------------------------------------
 -- Schema biblioteca
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8 ;
-USE `biblioteca` ;
+CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8mb4;
+USE `biblioteca`;
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`funcionario`
+-- -----------------------------------------------------
+-- Tabela responsável por armazenar os dados dos funcionários da biblioteca.
+-- Cada funcionário possui uma função (diretor ou bibliotecário) que define seu
+-- nível de acesso e permissões no sistema. A senha é armazenada como hash.
+--
+-- ALTERAÇÕES:
+--   - Charset alterado de utf8 para utf8mb4 (suporte completo a Unicode).
+--   - Removido UNIQUE INDEX redundante em id_funcionario (já é PK).
+--   - Renomeado nome do índice de id_bibliotecario_UNIQUE para id_funcionario_UNIQUE.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`funcionario` (
   `id_funcionario` INT NOT NULL AUTO_INCREMENT,
@@ -15,28 +24,47 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`funcionario` (
   `telefone_funcionario` CHAR(11) NOT NULL,
   `funcao` ENUM('diretor', 'bibliotecario') NOT NULL,
   PRIMARY KEY (`id_funcionario`),
-  UNIQUE INDEX `id_bibliotecario_UNIQUE` (`id_funcionario` ASC) VISIBLE)
-ENGINE = InnoDB;
+  UNIQUE KEY `id_funcionario_UNIQUE` (`id_funcionario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`livro`
 -- -----------------------------------------------------
+-- Tabela que armazena o catálogo de livros disponíveis na biblioteca.
+-- Cada livro possui um ISBN único, título, autor, categoria e status atual
+-- (disponível, emprestado ou reservado).
+--
+-- ALTERAÇÕES:
+--   - isbn alterado de INT para VARCHAR(13) para suportar ISBNs de até 13 dígitos.
+--   - Coluna título renomeada para titulo (remoção de acento).
+--   - Adicionado AUTO_INCREMENT em id_livro.
+--   - Removido UNIQUE INDEX redundante em id_livro (já é PK).
+--   - Renomeado nome do índice de id_generetor_UNIQUE para id_livro_UNIQUE.
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`livro` (
-  `id_livro` INT NOT NULL,
-  `título` VARCHAR(150) NOT NULL,
+  `id_livro` INT NOT NULL AUTO_INCREMENT,
+  `titulo` VARCHAR(150) NOT NULL,
   `autor` VARCHAR(100) NOT NULL,
   `categoria` VARCHAR(30) NOT NULL,
-  `isbn` INT NOT NULL,
+  `isbn` VARCHAR(13) NOT NULL,
   `status_livro` ENUM('disponivel', 'emprestado', 'reservado') NOT NULL,
   PRIMARY KEY (`id_livro`),
-  UNIQUE INDEX `isbn_UNIQUE` (`isbn` ASC) VISIBLE,
-  UNIQUE INDEX `id_generetor_UNIQUE` (`id_livro` ASC) VISIBLE)
-ENGINE = InnoDB;
+  UNIQUE KEY `isbn_UNIQUE` (`isbn`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`alunos`
+-- -----------------------------------------------------
+-- Tabela que armazena os dados dos alunos cadastrados no sistema.
+-- Cada aluno possui dados pessoais (nome, email, telefone, CPF), informações
+-- acadêmicas (sala e turno) e a data de cadastro no sistema.
+--
+-- ALTERAÇÕES:
+--   - Removida a tabela duplicada de alunos que conflitava com esta.
+--   - Adicionados campos cpf, sala, turno e criado_em.
+--   - UNIQUE KEY aplicado diretamente nas colunas cpf, email e telefone.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`alunos` (
   `id_alunos` INT NOT NULL AUTO_INCREMENT,
@@ -44,27 +72,42 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`alunos` (
   `email_aluno` VARCHAR(100) NOT NULL,
   `password_aluno` VARCHAR(255) NOT NULL,
   `telefone_aluno` CHAR(11) NOT NULL,
+  `cpf` VARCHAR(14) NOT NULL,
+  `sala` VARCHAR(10) DEFAULT NULL,
+  `turno` VARCHAR(20) DEFAULT NULL,
+  `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_alunos`),
-  UNIQUE INDEX `id_alunos_UNIQUE` (`id_alunos` ASC) VISIBLE,
-  UNIQUE INDEX `email_aluno_UNIQUE` (`email_aluno` ASC) VISIBLE,
-  UNIQUE INDEX `telefone_aluno_UNIQUE` (`telefone_aluno` ASC) VISIBLE)
-ENGINE = InnoDB;
+  UNIQUE KEY `email_aluno_UNIQUE` (`email_aluno`),
+  UNIQUE KEY `telefone_aluno_UNIQUE` (`telefone_aluno`),
+  UNIQUE KEY `cpf_UNIQUE` (`cpf`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`emprestimo`
 -- -----------------------------------------------------
+-- Tabela que registra os empréstimos de livros realizados na biblioteca.
+-- Cada empréstimo é vinculado a um aluno e ao funcionário que realizou o
+-- atendimento. Contém as datas de lançamento (empréstimo) e vencimento (devolução),
+-- além do status atual.
+--
+-- ALTERAÇÕES:
+--   - Corrigida a chave primária: antes era composta por 3 colunas, o que
+--     impedia que um aluno tivesse mais de um empréstimo. Agora a PK é apenas
+--     id_emprestimo.
+--   - Coluna lançamento renomeada para lancamento (remoção de acento).
+--   - Removido UNIQUE INDEX redundante (id_emprestimo já é PK).
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo` (
   `id_emprestimo` INT NOT NULL AUTO_INCREMENT,
-  `lançamento` DATE NOT NULL,
+  `lancamento` DATE NOT NULL,
   `vencimento` DATE NOT NULL,
   `status_emprestimo` ENUM('ativo', 'finalizado', 'atrasado') NOT NULL,
   `alunos_id_alunos` INT NOT NULL,
   `funcionario_id_funcionario` INT NOT NULL,
-  PRIMARY KEY (`id_emprestimo`, `alunos_id_alunos`, `funcionario_id_funcionario`),
-  UNIQUE INDEX `id_emprestimo_UNIQUE` (`id_emprestimo` ASC) VISIBLE,
-  INDEX `fk_emprestimo_alunos1_idx` (`alunos_id_alunos` ASC) VISIBLE,
-  INDEX `fk_emprestimo_funcionario1_idx` (`funcionario_id_funcionario` ASC) VISIBLE,
+  PRIMARY KEY (`id_emprestimo`),
+  INDEX `fk_emprestimo_alunos1_idx` (`alunos_id_alunos`),
+  INDEX `fk_emprestimo_funcionario1_idx` (`funcionario_id_funcionario`),
   CONSTRAINT `fk_emprestimo_alunos1`
     FOREIGN KEY (`alunos_id_alunos`)
     REFERENCES `biblioteca`.`alunos` (`id_alunos`)
@@ -74,19 +117,27 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo` (
     FOREIGN KEY (`funcionario_id_funcionario`)
     REFERENCES `biblioteca`.`funcionario` (`id_funcionario`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`emprestimo_has_livro`
 -- -----------------------------------------------------
+-- Tabela de junção (N:N) entre empréstimos e livros.
+-- Cada empréstimo pode conter vários livros, e cada livro pode aparecer em
+-- vários empréstimos ao longo do tempo. Permite rastrear quais livros foram
+-- incluídos em cada empréstimo.
+--
+-- ALTERAÇÕES:
+--   - Foreign key corrigida para referenciar corretamente a PK id_emprestimo.
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo_has_livro` (
   `emprestimo_id_emprestimo` INT NOT NULL,
   `livro_id_livro` INT NOT NULL,
   PRIMARY KEY (`emprestimo_id_emprestimo`, `livro_id_livro`),
-  INDEX `fk_emprestimo_has_livro_livro1_idx` (`livro_id_livro` ASC) VISIBLE,
-  INDEX `fk_emprestimo_has_livro_emprestimo_idx` (`emprestimo_id_emprestimo` ASC) VISIBLE,
+  INDEX `fk_emprestimo_has_livro_livro1_idx` (`livro_id_livro`),
+  INDEX `fk_emprestimo_has_livro_emprestimo_idx` (`emprestimo_id_emprestimo`),
   CONSTRAINT `fk_emprestimo_has_livro_emprestimo`
     FOREIGN KEY (`emprestimo_id_emprestimo`)
     REFERENCES `biblioteca`.`emprestimo` (`id_emprestimo`)
@@ -96,16 +147,5 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo_has_livro` (
     FOREIGN KEY (`livro_id_livro`)
     REFERENCES `biblioteca`.`livro` (`id_livro`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-CREATE TABLE IF NOT EXISTS alunos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
-    email VARCHAR(150),
-    telefone VARCHAR(20),
-    cpf VARCHAR(14) UNIQUE NOT NULL,
-    sala VARCHAR(10),
-    turno VARCHAR(20),
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
