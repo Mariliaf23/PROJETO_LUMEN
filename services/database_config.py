@@ -64,3 +64,91 @@ def verificar_login(usuario, senha):
     except Error as e:
         print(f"Erro ao verificar login: {e}")
         return None
+
+
+def buscar_stats_dashboard():
+    stats = {'livros': 0, 'emprestimos': 0, 'alunos': 0, 'taxa_retorno': 0}
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'], user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'], database=DB_NAME
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM livro")
+        stats['livros'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM emprestimo")
+        stats['emprestimos'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM alunos")
+        stats['alunos'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM emprestimo WHERE status_emprestimo = 'finalizado'")
+        finalizados = cursor.fetchone()[0]
+        if stats['emprestimos'] > 0:
+            stats['taxa_retorno'] = round((finalizados / stats['emprestimos']) * 100)
+
+        conn.close()
+    except Error:
+        pass
+    return stats
+
+
+def buscar_emprestimos_por_mes():
+    dados = []
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'], user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'], database=DB_NAME
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MONTH(lancamento) as mes, COUNT(*) as total
+            FROM emprestimo
+            GROUP BY MONTH(lancamento)
+            ORDER BY mes
+        """)
+        dados = cursor.fetchall()
+        conn.close()
+    except Error:
+        pass
+    return dados
+
+
+def buscar_livros_por_categoria():
+    dados = []
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'], user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'], database=DB_NAME
+        )
+        cursor = conn.cursor()
+        cursor.execute("SELECT categoria, COUNT(*) as total FROM livro GROUP BY categoria ORDER BY total DESC")
+        dados = cursor.fetchall()
+        conn.close()
+    except Error:
+        pass
+    return dados
+
+
+def buscar_emprestimos_semana():
+    dados = []
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'], user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'], database=DB_NAME
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DAYNAME(lancamento) as dia, COUNT(*) as total
+            FROM emprestimo
+            WHERE YEARWEEK(lancamento) = YEARWEEK(CURDATE())
+            GROUP BY DAYNAME(lancamento), DAYOFWEEK(lancamento)
+            ORDER BY DAYOFWEEK(lancamento)
+        """)
+        dados = cursor.fetchall()
+        conn.close()
+    except Error:
+        pass
+    return dados

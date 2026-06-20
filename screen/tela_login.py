@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.database_config import verificar_login
 from services.conector import init_db
 from screen.tela_cadastro_login import LumenLoginApp
+from screen.dashboard import Dashboard
 
 
 class TelaLogin(tk.Tk):
@@ -140,10 +141,12 @@ class TelaLogin(tk.Tk):
         resultado = verificar_login(usuario, senha)
 
         if resultado:
-            nome_usuario = resultado
-            self._notificacao(f"✓ Bem-vindo, {usuario}!")
+            self.withdraw()
+            dashboard = Dashboard(self)
+            dashboard.wait_window()
+            self.deiconify()
         else:
-            self._notificacao("✕ Usuario nao encontrado.")
+            self._notificacao("Usuario nao encontrado.")
 
         self.btn_entrar.configure(text="Entrar", state="normal")
 
