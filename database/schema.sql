@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`funcionario` (
   `nome_funcionario` VARCHAR(100) NOT NULL,
   `email_funcionario` VARCHAR(100) NOT NULL,
   `password_funcionario` VARCHAR(255) NOT NULL,
-  `telefone_funcionario` CHAR(11) NOT NULL,
+  `telefone_funcionario` CHAR(11) DEFAULT NULL,
   `funcao` ENUM('diretor', 'bibliotecario') NOT NULL,
   PRIMARY KEY (`id_funcionario`),
   UNIQUE KEY `id_funcionario_UNIQUE` (`id_funcionario`)
