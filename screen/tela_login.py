@@ -3,7 +3,7 @@ import tkinter as tk
 from PIL import Image, ImageTk, ImageFilter
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database_config import init_db, verificar_login
+from services.database_config import init_db, verificar_login
 
 
 class TelaLogin(tk.Tk):
