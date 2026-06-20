@@ -1,18 +1,38 @@
 import mysql.connector
+import os
+from mysql.connector import Error
 
-def connect_to_database():
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': ''
+}
+
+DB_NAME = 'biblioteca'
+
+
+def init_db():
     try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='',
-            database='biblioteca'
-        )
-        return connection
-    except mysql.connector.Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
 
-con = connect_to_database()
-if con:
-    print("Connection successful!")    
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+        cursor.execute(f"USE {DB_NAME}")
+
+        schema_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "schema.sql")
+        if os.path.exists(schema_path):
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                schema = f.read()
+                for statement in schema.split(';'):
+                    if statement.strip():
+                        try:
+                            cursor.execute(statement)
+                        except Error:
+                            pass
+
+        conn.commit()
+        conn.close()
+        return True
+    except Error as e:
+        print(f"Erro ao conectar ao MySQL: {e}")
+        return False

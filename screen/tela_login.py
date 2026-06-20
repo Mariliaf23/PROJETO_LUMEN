@@ -3,7 +3,9 @@ import tkinter as tk
 from PIL import Image, ImageTk, ImageFilter
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.database_config import init_db, verificar_login
+from services.database_config import verificar_login
+from services.conector import init_db
+from screen.tela_cadastro_login import LumenLoginApp
 
 
 class TelaLogin(tk.Tk):
@@ -36,19 +38,19 @@ class TelaLogin(tk.Tk):
             relief="flat", bd=0, justify="center", insertbackground="white",
             bg="#120c08"
         )
-        self.entry_usuario.insert(0, "seu.usuario")
-        self.entry_usuario.bind("<FocusIn>", lambda e: self._limpar_marcador(e, "seu.usuario"))
-        self.entry_usuario.bind("<FocusOut>", lambda e: self._definir_marcador(e, "seu.usuario"))
+        self.entry_usuario.insert(0, "Usuario")
+        self.entry_usuario.bind("<FocusIn>", lambda e: self._limpar_marcador(e, "Usuario"))
+        self.entry_usuario.bind("<FocusOut>", lambda e: self._definir_marcador(e, "Usuario"))
 
         # Caixa de senha: Mesma cor de camuflagem para sumir com o bloco marrom claro
         self.entry_senha = tk.Entry(
-            self.canvas, show="*", font=("Segoe UI", 12), fg="#8a7e72",
+            self.canvas, font=("Segoe UI", 12), fg="#8a7e72",
             relief="flat", bd=0, justify="center", insertbackground="white",
             bg="#120c08"
         )
-        self.entry_senha.insert(0, "********")
-        self.entry_senha.bind("<FocusIn>", lambda e: self._limpar_marcador(e, "********"))
-        self.entry_senha.bind("<FocusOut>", lambda e: self._definir_marcador(e, "********"))
+        self.entry_senha.insert(0, "Senha")
+        self.entry_senha.bind("<FocusIn>", lambda e: self._limpar_marcador_senha(e, "Senha"))
+        self.entry_senha.bind("<FocusOut>", lambda e: self._definir_marcador_senha(e, "Senha"))
 
         # Botao Entrar vazado (Fundo da cor do ambiente e borda dourada fina)
         self.btn_entrar = tk.Button(
@@ -56,6 +58,10 @@ class TelaLogin(tk.Tk):
             fg="#b89a72", activeforeground="#ffffff", activebackground="#b89a72",
             bg="#120c08", bd=1, relief="solid", cursor="hand2", command=self._entrar
         )
+        self.btn_entrar.bind("<Enter>", lambda e: self.btn_entrar.config(bg="#b89a72", fg="#120c08"))
+        self.btn_entrar.bind("<Leave>", lambda e: self.btn_entrar.config(bg="#120c08", fg="#b89a72"))
+        self.btn_entrar.bind("<ButtonPress-1>", lambda e: self.btn_entrar.config(bg="#d4b896", fg="#120c08"))
+        self.btn_entrar.bind("<ButtonRelease-1>", lambda e: self.btn_entrar.config(bg="#b89a72", fg="#120c08"))
 
     def _ao_redimensionar(self, evento=None):
         L = self.winfo_width()
@@ -90,7 +96,9 @@ class TelaLogin(tk.Tk):
 
         # Texto clicavel inferior de registro
         rotulo_registrar = self.canvas.create_text(cx, cy + 155, text="Nao tem conta? Registar", font=("Segoe UI", 10), fill="#8a7e72")
-        self.canvas.tag_bind(rotulo_registrar, "<Button-1>", lambda e: print("Navegar para registro"))
+        self.canvas.tag_bind(rotulo_registrar, "<Button-1>", lambda e: self._efeito_clique(rotulo_registrar))
+        self.canvas.tag_bind(rotulo_registrar, "<Enter>", lambda e: self.canvas.itemconfig(rotulo_registrar, fill="#d4b896", font=("Segoe UI", 10, "underline")))
+        self.canvas.tag_bind(rotulo_registrar, "<Leave>", lambda e: self.canvas.itemconfig(rotulo_registrar, fill="#8a7e72", font=("Segoe UI", 10)))
 
     def _limpar_marcador(self, evento, marcador):
         if evento.widget.get() == marcador:
@@ -102,15 +110,26 @@ class TelaLogin(tk.Tk):
             evento.widget.insert(0, marcador)
             evento.widget.configure(fg="#8a7e72")
 
+    def _limpar_marcador_senha(self, evento, marcador):
+        if evento.widget.get() == marcador:
+            evento.widget.delete(0, tk.END)
+            evento.widget.configure(fg="#ffffff", show="*")
+
+    def _definir_marcador_senha(self, evento, marcador):
+        if evento.widget.get() == "":
+            evento.widget.configure(show="")
+            evento.widget.insert(0, marcador)
+            evento.widget.configure(fg="#8a7e72")
+
     def _entrar(self):
         usuario = self.entry_usuario.get()
         senha = self.entry_senha.get()
 
-        if usuario == "seu.usuario" or usuario == "":
+        if usuario == "Usuario" or usuario == "":
             self._notificacao("Informe o usuario.")
             return
 
-        if senha == "********" or senha == "":
+        if senha == "Senha" or senha == "":
             self._notificacao("Informe a senha.")
             return
 
@@ -128,6 +147,17 @@ class TelaLogin(tk.Tk):
 
         self.btn_entrar.configure(text="Entrar", state="normal")
 
+    def _efeito_clique(self, item_id):
+        self.canvas.itemconfig(item_id, fill="#ffffff")
+        self.after(150, lambda: self.canvas.itemconfig(item_id, fill="#d4b896"))
+        self.after(300, self._abrir_cadastro)
+
+    def _abrir_cadastro(self):
+        self.withdraw()
+        cadastro = LumenLoginApp(self)
+        cadastro.wait_window()
+        self.deiconify()
+
     def _notificacao(self, mensagem):
         rotulo = tk.Label(self, text=mensagem, font=("Segoe UI", 11), fg="#ffffff", bg="#3d2c20", padx=20, pady=8)
         rotulo.place(relx=0.5, rely=0.92, anchor="center")
@@ -135,4 +165,5 @@ class TelaLogin(tk.Tk):
 
 
 if __name__ == "__main__":
+    init_db()           
     TelaLogin().mainloop()
