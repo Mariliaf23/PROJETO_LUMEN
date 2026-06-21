@@ -3,184 +3,116 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tkinter as tk
-from tkinter import messagebox
-from PIL import Image, ImageTk, ImageFilter
+import customtkinter as ctk
 from services.conector import init_db
 from services.database_config import cadastrar_aluno
+from services.styles import (
+    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO,
+    criar_entry, criar_botao_preenchido, criar_label, criar_titulo
+)
 
 
-class TelaCadastroAlunos(tk.Toplevel):
-    def __init__(self, master=None):
+class TelaCadastroAlunos(ctk.CTkToplevel):
+    def __init__(self, master=None, maximizado=False):
         super().__init__(master)
         init_db()
-        self.title("Lumen - Cadastro de Alunos")
+        self.title("LUMEN - Cadastro de Alunos")
         self.geometry("960x680")
         self.minsize(800, 580)
+        self.configure(fg_color=COR_BG)
+        if maximizado:
+            self.after(10, self.state, "zoomed")
 
-        self.largura_atual = 0
-        self.altura_atual = 0
-
-        caminho_fundo = os.path.join("assets", "Login.png")
-        self.img_fundo = (
-            Image.open(caminho_fundo).convert("RGB")
-            if os.path.exists(caminho_fundo)
-            else Image.new("RGB", (1920, 1080), "#1c1410")
-        )
-
-        self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#120c08")
-        self.canvas.pack(fill="both", expand=True)
-
-        self._referencias = {}
+        self.after(100, self.lift)
         self._construir_ui()
-        self.bind("<Configure>", self._ao_redimensionar)
 
     def _construir_ui(self):
-        estilo = dict(
-            font=("Segoe UI", 12), fg="#8a7e72",
-            relief="flat", bd=0, justify="center", insertbackground="white",
-            bg="#120c08"
+        container = ctk.CTkFrame(self, fg_color=COR_BG)
+        container.place(relx=0.5, rely=0.5, anchor="center")
+
+        criar_titulo(container, "LUMEN", font=FONTE_TITULO).pack(pady=(0, 5))
+        criar_label(container, "Cadastro de Alunos", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 30))
+
+        self.entry_nome = criar_entry(container, placeholder="Nome completo", width=320, height=42)
+        self.entry_nome.pack(pady=(0, 12))
+
+        self.entry_email = criar_entry(container, placeholder="Email", width=320, height=42)
+        self.entry_email.pack(pady=(0, 12))
+
+        self.entry_telefone = criar_entry(container, placeholder="Telefone", width=320, height=42)
+        self.entry_telefone.pack(pady=(0, 12))
+
+        self.entry_cpf = criar_entry(container, placeholder="CPF", width=320, height=42)
+        self.entry_cpf.pack(pady=(0, 12))
+
+        frame_extras = ctk.CTkFrame(container, fg_color="transparent")
+        frame_extras.pack(pady=(0, 20))
+
+        self.entry_sala = criar_entry(frame_extras, placeholder="Sala", width=150, height=42)
+        self.entry_sala.pack(side="left", padx=(0, 10))
+
+        self.entry_turno = criar_entry(frame_extras, placeholder="Turno", width=150, height=42)
+        self.entry_turno.pack(side="left")
+
+        self.btn_cadastrar = criar_botao_preenchido(
+            container, text="Cadastrar Aluno", command=self._cadastrar,
+            width=320, height=44
         )
+        self.btn_cadastrar.pack(pady=(0, 20))
 
-        self.entry_nome = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_nome, "Nome completo")
+        frame_voltar = ctk.CTkFrame(container, fg_color="transparent")
+        frame_voltar.pack()
 
-        self.entry_email = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_email, "Email")
+        lbl_voltar = criar_label(frame_voltar, "Voltar")
+        lbl_voltar.pack()
+        lbl_voltar.bind("<Button-1>", lambda e: self.destroy())
+        lbl_voltar.configure(cursor="hand2")
 
-        self.entry_telefone = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_telefone, "Telefone")
-
-        self.entry_cpf = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_cpf, "CPF")
-
-        self.entry_sala = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_sala, "Sala")
-
-        self.entry_turno = tk.Entry(self.canvas, **estilo)
-        self._placeholder(self.entry_turno, "Turno")
-
-        self.btn_cadastrar = tk.Button(
-            self.canvas, text="Cadastrar Aluno", font=("Segoe UI Semibold", 12),
-            fg="#b89a72", activeforeground="#ffffff", activebackground="#b89a72",
-            bg="#120c08", bd=1, relief="solid", cursor="hand2", command=self._cadastrar
-        )
-        self.btn_cadastrar.bind("<Enter>", lambda e: self.btn_cadastrar.config(bg="#b89a72", fg="#120c08"))
-        self.btn_cadastrar.bind("<Leave>", lambda e: self.btn_cadastrar.config(bg="#120c08", fg="#b89a72"))
-        self.btn_cadastrar.bind("<ButtonPress-1>", lambda e: self.btn_cadastrar.config(bg="#d4b896", fg="#120c08"))
-        self.btn_cadastrar.bind("<ButtonRelease-1>", lambda e: self.btn_cadastrar.config(bg="#b89a72", fg="#120c08"))
-
-        self.rotulo_voltar = None
-
-    def _ao_redimensionar(self, evento=None):
-        L = self.winfo_width()
-        A = self.winfo_height()
-
-        if L < 100 or A < 100:
-            return
-        if L == self.largura_atual and A == self.altura_atual:
-            return
-        self.largura_atual = L
-        self.altura_atual = A
-
-        fundo = self.img_fundo.resize((L, A), Image.Resampling.LANCZOS)
-        fundo = fundo.filter(ImageFilter.GaussianBlur(radius=8))
-        self._referencias["fundo"] = ImageTk.PhotoImage(fundo)
-
-        self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor="nw", image=self._referencias["fundo"])
-
-        cx, cy = L // 2, A // 2
-
-        self.canvas.create_text(cx, cy - 220, text="LUMEN", font=("Cinzel", 32, "bold"), fill="#b89a72")
-        self.canvas.create_text(cx, cy - 165, text="Cadastro de Alunos", font=("Segoe UI Light", 12), fill="#ffffff")
-
-        self.canvas.create_window(cx, cy - 115, window=self.entry_nome, width=280, height=35)
-        self.canvas.create_window(cx, cy - 75, window=self.entry_email, width=280, height=35)
-        self.canvas.create_window(cx, cy - 35, window=self.entry_telefone, width=280, height=35)
-        self.canvas.create_window(cx, cy + 5, window=self.entry_cpf, width=280, height=35)
-        self.canvas.create_window(cx, cy + 45, window=self.entry_sala, width=280, height=35)
-        self.canvas.create_window(cx, cy + 85, window=self.entry_turno, width=280, height=35)
-        self.canvas.create_window(cx, cy + 135, window=self.btn_cadastrar, width=280, height=40)
-
-        self.rotulo_voltar = self.canvas.create_text(cx, cy + 190, text="Voltar", font=("Segoe UI", 10), fill="#8a7e72")
-        self.canvas.tag_bind(self.rotulo_voltar, "<Button-1>", lambda e: self._efeito_clique_voltar())
-        self.canvas.tag_bind(self.rotulo_voltar, "<Enter>", lambda e: self.canvas.itemconfig(self.rotulo_voltar, fill="#d4b896", font=("Segoe UI", 10, "underline")))
-        self.canvas.tag_bind(self.rotulo_voltar, "<Leave>", lambda e: self.canvas.itemconfig(self.rotulo_voltar, fill="#8a7e72", font=("Segoe UI", 10)))
-
-    def _efeito_clique_voltar(self):
-        self.canvas.itemconfig(self.rotulo_voltar, fill="#ffffff")
-        self.after(150, lambda: self.canvas.itemconfig(self.rotulo_voltar, fill="#d4b896"))
-        self.after(300, self.destroy)
-
-    def _placeholder(self, entry, texto):
-        entry.insert(0, texto)
-        entry.configure(fg="#8a7e72")
-        entry.bind("<FocusIn>", lambda e: self._limpar_marcador(e, texto))
-        entry.bind("<FocusOut>", lambda e: self._definir_marcador(e, texto))
-
-    def _limpar_marcador(self, evento, marcador):
-        if evento.widget.get() == marcador:
-            evento.widget.delete(0, tk.END)
-            evento.widget.configure(fg="#ffffff")
-
-    def _definir_marcador(self, evento, marcador):
-        if evento.widget.get() == "":
-            evento.widget.insert(0, marcador)
-            evento.widget.configure(fg="#8a7e72")
-
-    def _valor(self, entry, placeholder):
-        v = entry.get().strip()
-        return "" if v == placeholder else v
+        self.lbl_notificacao = criar_label(container, "", text_color=COR_TEXTO2)
 
     def _cadastrar(self):
-        nome = self._valor(self.entry_nome, "Nome completo")
-        email = self._valor(self.entry_email, "Email")
-        telefone = self._valor(self.entry_telefone, "Telefone")
-        cpf = self._valor(self.entry_cpf, "CPF")
-        sala = self._valor(self.entry_sala, "Sala")
-        turno = self._valor(self.entry_turno, "Turno")
+        nome = self.entry_nome.get().strip()
+        email = self.entry_email.get().strip()
+        telefone = self.entry_telefone.get().strip()
+        cpf = self.entry_cpf.get().strip()
+        sala = self.entry_sala.get().strip()
+        turno = self.entry_turno.get().strip()
 
         if not nome:
-            self._notificacao("Informe o nome do aluno.")
+            self._notificar("Informe o nome do aluno.")
             return
         if not email:
-            self._notificacao("Informe o e-mail do aluno.")
+            self._notificar("Informe o email do aluno.")
             return
         if not cpf:
-            self._notificacao("Informe o CPF do aluno.")
+            self._notificar("Informe o CPF do aluno.")
             return
 
-        self.btn_cadastrar.configure(text="Carregando...", state="disabled")
+        self.btn_cadastrar.configure(text="Cadastrando...", state="disabled")
         self.after(500, lambda: self._salvar(nome, email, telefone, cpf, sala, turno))
 
     def _salvar(self, nome, email, telefone, cpf, sala, turno):
         sucesso = cadastrar_aluno(nome, email, telefone, cpf, sala, turno)
         if sucesso:
-            self._notificacao("Aluno cadastrado com sucesso!")
+            self._notificar("Aluno cadastrado com sucesso!")
             self._limpar_campos()
         else:
-            self._notificacao("Erro ao cadastrar aluno.")
+            self._notificar("Erro ao cadastrar aluno.")
         self.btn_cadastrar.configure(text="Cadastrar Aluno", state="normal")
 
     def _limpar_campos(self):
-        for entry, ph in [
-            (self.entry_nome, "Nome completo"), (self.entry_email, "Email"),
-            (self.entry_telefone, "Telefone"), (self.entry_cpf, "CPF"),
-            (self.entry_sala, "Sala"), (self.entry_turno, "Turno"),
-        ]:
-            entry.delete(0, tk.END)
-            entry.insert(0, ph)
-            entry.configure(fg="#8a7e72")
+        for entry in [self.entry_nome, self.entry_email, self.entry_telefone,
+                      self.entry_cpf, self.entry_sala, self.entry_turno]:
+            entry.delete(0, "end")
 
-    def _notificacao(self, mensagem):
-        rotulo = tk.Label(self, text=mensagem, font=("Segoe UI", 11), fg="#ffffff", bg="#3d2c20", padx=20, pady=8)
-        rotulo.place(relx=0.5, rely=0.92, anchor="center")
-        self.after(2500, rotulo.destroy)
+    def _notificar(self, mensagem):
+        self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
+        self.lbl_notificacao.pack(pady=(10, 0))
+        self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     root.withdraw()
     app = TelaCadastroAlunos(master=root)
     app.mainloop()
