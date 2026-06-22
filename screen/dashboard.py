@@ -109,6 +109,16 @@ class Dashboard(ctk.CTkFrame):
             ("⚙️  Configurações", False, "configuracoes"),
         ]
 
+        itens_indisponivel = []
+        if tipo_usuario == 'bibliotecario':
+            itens = [
+                ("DASHBOARD", True),
+                ("LIVROS", False),
+                ("EXEMPLARES", False),
+                ("EMPRESTIMOS", False),
+            ]
+            itens_indisponivel = ["GERENCIAR USUARIOS", "CONFIGURACOES"]
+
         self._botoes_nav = []
         for nome, ativo, chave in itens:
             btn = ctk.CTkButton(

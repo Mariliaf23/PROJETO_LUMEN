@@ -1,4 +1,5 @@
 import mysql.connector
+import hashlib
 from mysql.connector import Error
 from services.conector import DB_CONFIG, DB_NAME
 
@@ -14,13 +15,19 @@ def _conectar():
 
 # ======================== AUTENTICACAO ========================
 
+def _hash_senha(senha):
+    return hashlib.sha256(senha.encode('utf-8')).hexdigest()
+
+
 def verificar_login(usuario, senha):
     try:
         conn = _conectar()
         cursor = conn.cursor()
+        senha_hash = _hash_senha(senha)
         cursor.execute(
-            "SELECT id_usuario, nome, tipo_usuario FROM usuario WHERE nome = %s AND senha = %s AND status = 'ativo'",
-            (usuario, senha)
+            """SELECT id_usuario, nome, tipo_usuario FROM usuario
+               WHERE (nome = %s OR email = %s) AND senha = %s AND status = 'ativo'""",
+            (usuario, usuario, senha_hash)
         )
         resultado = cursor.fetchone()
         conn.close()
@@ -35,11 +42,12 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
     try:
         conn = _conectar()
         cursor = conn.cursor()
+        senha_hash = _hash_senha(senha) if senha else ''
         cursor.execute(
             """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
                matricula, sala, turno, funcao)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (nome, email, senha, telefone or None, cpf or None, tipo,
+            (nome, email, senha_hash, telefone or None, cpf or None, tipo,
              matricula or None, sala or None, turno or None, funcao or None)
         )
         conn.commit()
@@ -50,30 +58,23 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
         return False
 
 
-def listar_usuarios(tipo=None):
+def listar_alunos():
     try:
         conn = _conectar()
         cursor = conn.cursor()
-        if tipo:
-            cursor.execute(
-                "SELECT id_usuario, nome, email, tipo_usuario, status FROM usuario WHERE tipo_usuario = %s ORDER BY nome",
-                (tipo,)
-            )
-        else:
-            cursor.execute("SELECT id_usuario, nome, email, tipo_usuario, status FROM usuario ORDER BY nome")
-        dados = cursor.fetchall()
+        cursor.execute(
+            "SELECT id_usuario, nome, email, tipo_usuario, status FROM usuario WHERE tipo_usuario IN ('aluno', 'professor') AND status = 'ativo' ORDER BY nome"
+        )
+        resultados = cursor.fetchall()
         conn.close()
-        return dados
-    except Error:
+        return resultados
+    except Error as e:
+        print(f"Erro ao listar alunos: {e}")
         return []
 
 
-def listar_alunos():
-    return listar_usuarios(tipo='aluno')
-
-
-def listar_funcionarios():
-    return listar_usuarios(tipo='funcionario')
+def listar_bibliotecarios():
+    return listar_usuarios(tipo='bibliotecario')
 
 
 # ======================== CATEGORIA ========================
@@ -416,20 +417,40 @@ def finalizar_emprestimo(id_emprestimo):
         conn = _conectar()
         cursor = conn.cursor()
         cursor.execute(
+            """SELECT id_exemplar FROM emprestimo WHERE id_emprestimo = %s""",
+            (id_emprestimo,)
+        )
+        resultado = cursor.fetchone()
+        id_exemplar = resultado[0] if resultado else None
+
+        cursor.execute(
             "UPDATE emprestimo SET status = 'finalizado', data_devolucao = CURDATE() WHERE id_emprestimo = %s",
             (id_emprestimo,)
         )
         cursor.execute(
-            """UPDATE exemplar SET status_exemplar = 'disponivel'
-               WHERE id_exemplar = (SELECT id_exemplar FROM emprestimo WHERE id_emprestimo = %s)""",
-            (id_emprestimo,)
+            "UPDATE exemplar SET status_exemplar = 'disponivel' WHERE id_exemplar = %s",
+            (id_exemplar,)
         )
+
+        reserva_info = None
+        if id_exemplar:
+            cursor.execute(
+                """SELECT r.id_reserva, u.nome, l.titulo
+                   FROM reserva r
+                   JOIN livro l ON r.id_livro = l.id_livro
+                   JOIN exemplar ex ON ex.id_livro = l.id_livro
+                   WHERE ex.id_exemplar = %s AND r.status = 'ativa'
+                   ORDER BY r.data_reserva ASC LIMIT 1""",
+                (id_exemplar,)
+            )
+            reserva_info = cursor.fetchone()
+
         conn.commit()
         conn.close()
-        return True
+        return reserva_info
     except Error as e:
         print(f"Erro ao finalizar emprestimo: {e}")
-        return False
+        return None
 
 
 def verificar_atrasos():
@@ -669,26 +690,6 @@ def buscar_emprestimos_semana():
     return dados
 
 # ======================== USUARIO — CRUD COMPLETO ========================
-# Adicione estas funções ao seu services/database_config.py
-
-def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', sala='', turno='', funcao=''):
-    try:
-        conn = _conectar()
-        cursor = conn.cursor()
-        cursor.execute(
-            """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
-               matricula, sala, turno, funcao)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (nome, email, senha, telefone or None, cpf or None, tipo,
-             matricula or None, sala or None, turno or None, funcao or None)
-        )
-        conn.commit()
-        conn.close()
-        return True
-    except Error as e:
-        print(f"Erro ao cadastrar usuario: {e}")
-        return False
 
 
 def listar_usuarios(tipo=None, status=None):
@@ -765,13 +766,14 @@ def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno'
 
 
 def atualizar_senha_usuario(id_usuario, nova_senha):
-    """Atualiza apenas a senha de um usuário."""
+    """Atualiza apenas a senha de um usuário (com hash)."""
     try:
         conn = _conectar()
         cursor = conn.cursor()
+        senha_hash = _hash_senha(nova_senha)
         cursor.execute(
             "UPDATE usuario SET senha=%s WHERE id_usuario=%s",
-            (nova_senha, id_usuario)
+            (senha_hash, id_usuario)
         )
         conn.commit()
         alterado = cursor.rowcount > 0
@@ -826,7 +828,8 @@ def buscar_usuarios_por_nome(termo):
         conn = _conectar()
         cursor = conn.cursor()
         cursor.execute(
-            """SELECT id_usuario, nome, email, tipo_usuario, status
+            """SELECT id_usuario, nome, email, telefone, cpf,
+                      tipo_usuario, matricula, sala, turno, funcao, status
                FROM usuario
                WHERE nome LIKE %s
                ORDER BY nome""",
@@ -837,16 +840,3 @@ def buscar_usuarios_por_nome(termo):
         return dados
     except Error:
         return []
-
-
-# Atalhos por tipo (mantém compatibilidade com código existente)
-def listar_alunos():
-    return listar_usuarios(tipo='aluno')
-
-
-def listar_professores():
-    return listar_usuarios(tipo='professor')
-
-
-def listar_funcionarios():
-    return listar_usuarios(tipo='funcionario')

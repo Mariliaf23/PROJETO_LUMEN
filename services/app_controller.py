@@ -3,6 +3,8 @@ from services.styles import COR_BG
 
 
 class AppController:
+    TELAS_BIBLIOTECARIO = {"dashboard", "livros", "exemplares", "emprestimos"}
+
     def __init__(self, root):
         self.root = root
         self.root.title("LUMEN")
@@ -17,8 +19,21 @@ class AppController:
         self._tela_atual = None
         self._historico = []
         self._animando = False
+        self.usuario_logado = None
 
         self._centralizar()
+
+    def verificar_acesso(self, tela):
+        if tela == "login":
+            return True
+        if not self.usuario_logado:
+            return False
+        tipo = self.usuario_logado.get('tipo', '')
+        if tipo == 'diretor':
+            return True
+        if tipo == 'bibliotecario':
+            return tela in self.TELAS_BIBLIOTECARIO
+        return False
 
     def _centralizar(self):
         self.root.update_idletasks()
@@ -39,6 +54,9 @@ class AppController:
             return
 
         if self._tela_atual and self._tela_atual == nome:
+            return
+
+        if not self.verificar_acesso(nome):
             return
 
         if voltavel and self._tela_atual:

@@ -11,7 +11,7 @@ from services.database_config import (
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO,
-    criar_entry, criar_botao_preenchido, criar_label, criar_titulo, criar_combo
+    criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo, criar_combo
 )
 
 
@@ -53,7 +53,7 @@ class JanelaUsuario(ctk.CTkToplevel):
         criar_label(self, titulo, font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 16), **pad)
 
         self.combo_tipo = criar_combo(
-            self, values=["aluno", "professor", "funcionario"], width=340, height=40
+            self, values=["aluno", "professor", "bibliotecario"], width=340, height=40
         )
         self.combo_tipo.set("aluno")
         self.combo_tipo.configure(command=self._tipo_mudou)
@@ -65,27 +65,23 @@ class JanelaUsuario(ctk.CTkToplevel):
         self.combo_status.set("ativo")
         self.combo_status.pack(pady=(0, 10), **pad)
 
-        self.entry_nome     = criar_entry(self, placeholder="Nome completo",     width=340, height=40)
-        self.entry_email    = criar_entry(self, placeholder="Email",              width=340, height=40)
-        self.entry_senha    = criar_entry(self, placeholder="Nova senha (opcional)", width=340, height=40, show="*")
-        self.entry_telefone = criar_entry(self, placeholder="Telefone",           width=340, height=40)
-        self.entry_cpf      = criar_entry(self, placeholder="CPF",               width=340, height=40)
+        self.entry_nome    = criar_entry(self, placeholder="Nome completo",      width=340, height=40)
+        self.entry_contato = criar_entry(self, placeholder="Email ou celular",   width=340, height=40)
 
-        for w in (self.entry_nome, self.entry_email, self.entry_senha,
-                  self.entry_telefone, self.entry_cpf):
+        self.frame_senha = ctk.CTkFrame(self, fg_color="transparent")
+        self.entry_senha = criar_entry(self.frame_senha, placeholder="Senha (obrigatorio)", width=340, height=40, show="*")
+        self.entry_senha.pack()
+
+        for w in (self.entry_nome, self.entry_contato):
             w.pack(pady=(0, 8), **pad)
 
-        # Campos exclusivos de aluno
-        self.frame_aluno = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_aluno.pack(pady=(0, 6), **pad)
-        self.entry_matricula = criar_entry(self.frame_aluno, placeholder="Matrícula", width=150, height=40)
-        self.entry_matricula.pack(side="left", padx=(0, 8))
-        self.entry_sala  = criar_entry(self.frame_aluno, placeholder="Sala",  width=80, height=40)
-        self.entry_sala.pack(side="left", padx=(0, 8))
-        self.entry_turno = criar_entry(self.frame_aluno, placeholder="Turno", width=80, height=40)
-        self.entry_turno.pack(side="left")
+        self.frame_aluno_prof = ctk.CTkFrame(self, fg_color="transparent")
 
-        # Campos exclusivos de funcionário/professor
+        self.entry_sala  = criar_entry(self.frame_aluno_prof, placeholder="Sala (opcional)",  width=160, height=40)
+        self.entry_sala.pack(side="left", padx=(0, 8))
+        self.entry_turma = criar_entry(self.frame_aluno_prof, placeholder="Turma (opcional)", width=160, height=40)
+        self.entry_turma.pack(side="left")
+
         self.frame_func = ctk.CTkFrame(self, fg_color="transparent")
         self.entry_funcao = criar_entry(self.frame_func, placeholder="Função (ex: diretor)", width=340, height=40)
         self.entry_funcao.pack()
@@ -100,11 +96,13 @@ class JanelaUsuario(ctk.CTkToplevel):
 
     # ── lógica de tipo ───────────────────────────────────────────────────────
     def _tipo_mudou(self, tipo):
-        self.frame_aluno.pack_forget()
+        self.frame_senha.pack_forget()
+        self.frame_aluno_prof.pack_forget()
         self.frame_func.pack_forget()
-        if tipo == "aluno":
-            self.frame_aluno.pack(pady=(0, 6), padx=30)
-        elif tipo in ("professor", "funcionario"):
+        if tipo in ("aluno", "professor"):
+            self.frame_aluno_prof.pack(pady=(0, 6), padx=30)
+        elif tipo == "bibliotecario":
+            self.frame_senha.pack(pady=(0, 8), padx=30)
             self.frame_func.pack(pady=(0, 6), padx=30)
 
     # ── preencher campos ao editar ───────────────────────────────────────────
@@ -112,7 +110,6 @@ class JanelaUsuario(ctk.CTkToplevel):
         dados = buscar_usuario_por_id(id_usuario)
         if not dados:
             return
-        # (id, nome, email, telefone, cpf, tipo, matricula, sala, turno, funcao, status)
         _, nome, email, telefone, cpf, tipo, matricula, sala, turno, funcao, status = dados
 
         self.combo_tipo.set(tipo or "aluno")
@@ -123,49 +120,43 @@ class JanelaUsuario(ctk.CTkToplevel):
             entry.delete(0, "end")
             entry.insert(0, valor or "")
 
-        _set(self.entry_nome,     nome)
-        _set(self.entry_email,    email)
-        _set(self.entry_telefone, telefone)
-        _set(self.entry_cpf,      cpf)
-        _set(self.entry_matricula, matricula)
-        _set(self.entry_sala,     sala)
-        _set(self.entry_turno,    turno)
-        _set(self.entry_funcao,   funcao)
+        _set(self.entry_nome,    nome)
+        _set(self.entry_contato, email)
+        _set(self.entry_sala,    sala)
+        _set(self.entry_turma,   turno)
+        _set(self.entry_funcao,  funcao)
 
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
         nome    = self.entry_nome.get().strip()
-        email   = self.entry_email.get().strip()
+        contato = self.entry_contato.get().strip()
         senha   = self.entry_senha.get().strip()
-        telefone = self.entry_telefone.get().strip()
-        cpf     = self.entry_cpf.get().strip()
         tipo    = self.combo_tipo.get()
         status  = self.combo_status.get()
 
-        matricula = self.entry_matricula.get().strip() if tipo == "aluno" else ""
-        sala      = self.entry_sala.get().strip()      if tipo == "aluno" else ""
-        turno     = self.entry_turno.get().strip()     if tipo == "aluno" else ""
-        funcao    = self.entry_funcao.get().strip()    if tipo in ("professor", "funcionario") else ""
+        sala   = self.entry_sala.get().strip()   if tipo in ("aluno", "professor") else ""
+        turma  = self.entry_turma.get().strip()  if tipo in ("aluno", "professor") else ""
+        funcao = self.entry_funcao.get().strip() if tipo == "bibliotecario" else ""
 
         if not nome:
             return self._notificar("Informe o nome.")
-        if not email:
-            return self._notificar("Informe o e-mail.")
+        if not contato:
+            return self._notificar("Informe o email ou celular.")
+        if tipo == "bibliotecario" and not senha:
+            return self._notificar("Senha e obrigatoria para bibliotecario.")
 
         if self.id_usuario:
             ok = atualizar_usuario(
-                self.id_usuario, nome, email, telefone, cpf,
-                tipo, matricula, sala, turno, funcao, status
+                self.id_usuario, nome, contato, '', '',
+                tipo, '', sala, turma, funcao, status
             )
             if ok and senha:
                 atualizar_senha_usuario(self.id_usuario, senha)
-            msg_ok = "Usuário atualizado!"
+            msg_ok = "Usuario atualizado!"
         else:
-            if not senha:
-                return self._notificar("Informe a senha.")
-            ok = cadastrar_usuario(nome, email, senha, telefone, cpf,
-                                   tipo, matricula, sala, turno, funcao)
-            msg_ok = "Usuário cadastrado!"
+            ok = cadastrar_usuario(nome, contato, senha or '', '', '',
+                                   tipo, '', sala, turma, funcao)
+            msg_ok = "Usuario cadastrado!"
 
         if ok:
             self._notificar(msg_ok)
@@ -185,17 +176,16 @@ class LinhaUsuario(ctk.CTkFrame):
     COLUNAS = [
         ("ID",     40),
         ("Nome",  200),
-        ("E-mail",200),
+        ("Contato",200),
         ("Tipo",   90),
         ("Status", 70),
-        ("Ações",  160),
+        ("Acoes",  160),
     ]
 
     def __init__(self, master, dados, indice, on_editar, on_alternar, on_excluir, **kw):
         cor = COR_LINHA_PAR if indice % 2 == 0 else COR_LINHA_IMPAR
         super().__init__(master, fg_color=cor, corner_radius=0, **kw)
 
-        # (id, nome, email, telefone, cpf, tipo, matricula, sala, turno, funcao, status)
         id_u, nome, email, *_, tipo, _m, _s, _t, _f, status = dados
 
         valores = [str(id_u), nome, email, tipo, status]
@@ -293,6 +283,9 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._construir_ui()
         self._carregar()
 
+    def _ao_visitar(self):
+        self._carregar()
+
     # ── construção da UI ──────────────────────────────────────────────────────
     def _construir_ui(self):
         # ── Cabeçalho ──
@@ -322,7 +315,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         self.combo_filtro = criar_combo(
             filtros,
-            values=["Todos", "aluno", "professor", "funcionario"],
+            values=["Todos", "aluno", "professor", "bibliotecario"],
             width=160, height=36
         )
         self.combo_filtro.set("Todos")
@@ -344,15 +337,11 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True, padx=24, pady=(0, 20))
 
-        # ── Rodapé ──
         rodape = ctk.CTkFrame(self, fg_color="transparent")
         rodape.pack(pady=(0, 10))
 
         if self.controller:
-            lbl_voltar = criar_label(rodape, "← Voltar", text_color=COR_DOURADO)
-            lbl_voltar.pack()
-            lbl_voltar.bind("<Button-1>", lambda e: self.controller.voltar())
-            lbl_voltar.configure(cursor="hand2")
+            criar_botao(rodape, text="Voltar", command=self.controller.voltar, width=100, height=35).pack()
 
         self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
         self.lbl_notif.pack(pady=(0, 8))
