@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # This file is like the "Start" button on a video game console. 
 # It tells the computer to open our special toy box!
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # This keeps the door open so we can stay and play.
     app.mainloop()
 
-=======
+
 import sys
 import os
 
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     controller.navegar_para("login", voltavel=False)
 
     root.mainloop()
->>>>>>> 12ec4c008d6bb431d769c5aad89078f3e6cb323a
+
