@@ -45,7 +45,7 @@ class TelaLivros(ctk.CTkFrame):
         # Logo expandida para 85x85 para destaque máximo no topo
         if os.path.exists(logo_path):
             try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(85, 85))
+                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
                 lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
                 lbl_logo.pack(side="left", padx=(0, 15))
             except:
