@@ -36,24 +36,27 @@ def init_db():
                         except Error:
                             pass
 
-        cursor.execute("SELECT COUNT(*) FROM funcionario")
+        cursor.execute("SELECT COUNT(*) FROM usuario")
         total = cursor.fetchone()[0]
 
-        cursor.execute("SELECT nome_funcionario FROM funcionario WHERE nome_funcionario = %s", (DEFAULT_USER,))
+        cursor.execute("SELECT nome FROM usuario WHERE nome = %s", (DEFAULT_USER,))
         existente = cursor.fetchone()
 
         if existente:
             cursor.execute(
-                "UPDATE funcionario SET password_funcionario = %s, funcao = 'admin' WHERE nome_funcionario = %s",
+                "UPDATE usuario SET senha = %s, funcao = 'admin' WHERE nome = %s",
                 (DEFAULT_PASSWORD, DEFAULT_USER)
             )
             print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
         elif total == 0:
             cursor.execute(
-                "INSERT INTO funcionario (nome_funcionario, email_funcionario, password_funcionario, telefone_funcionario, funcao) VALUES (%s, %s, %s, %s, %s)",
-                (DEFAULT_USER, 'admin@lumen.com', DEFAULT_PASSWORD, '', 'admin')
+                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
+                   VALUES (%s, %s, %s, %s, 'bibliotecario', 'admin', 'ativo')""",
+                (DEFAULT_USER, 'admin@lumen.com', DEFAULT_PASSWORD, '')
             )
             print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")
+
+        _inserir_dados_exemplo(cursor)
 
         conn.commit()
         conn.close()
@@ -61,3 +64,34 @@ def init_db():
     except Error as e:
         print(f"Erro ao conectar ao MySQL: {e}")
         return False
+
+
+def _inserir_dados_exemplo(cursor):
+    try:
+        cursor.execute("SELECT COUNT(*) FROM categoria")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        categorias = [
+            ('Ficcao', 'Obras de ficcao e romance'),
+            ('Nao-Ficcao', 'Obras informativas e academicas'),
+            ('Infantil', 'Literatura infantil e juvenil'),
+            ('Tecnico', 'Livros tecnicos e profissionais'),
+            ('Historia', 'Historia e biografias'),
+        ]
+        for nome, desc in categorias:
+            cursor.execute("INSERT IGNORE INTO categoria (nome_categoria, descricao) VALUES (%s, %s)", (nome, desc))
+
+        autores = [
+            ('Machado de Assis', 'Brasileiro'),
+            ('Clarice Lispector', 'Brasileira'),
+            ('Jorge Amado', 'Brasileiro'),
+            ('Paulo Coelho', 'Brasileiro'),
+            ('Monteiro Lobato', 'Brasileiro'),
+        ]
+        for nome, nac in autores:
+            cursor.execute("INSERT IGNORE INTO autor (nome_autor, nacionalidade) VALUES (%s, %s)", (nome, nac))
+
+        print("Dados de exemplo inseridos (categorias e autores)")
+    except Error:
+        pass

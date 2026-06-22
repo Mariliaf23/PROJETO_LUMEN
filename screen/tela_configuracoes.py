@@ -11,20 +11,12 @@ from services.styles import (
     criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo,
     criar_card
 )
-from services.transitions import transicao_sair
 
 
-class TelaConfiguracoes(ctk.CTkToplevel):
-    def __init__(self, master=None, maximizado=False):
-        super().__init__(master)
-        self.title("LUMEN - Configuracoes")
-        self.geometry("1100x700")
-        self.minsize(900, 600)
-        self.configure(fg_color=COR_BG)
-        if maximizado:
-            self.after(10, self.state, "zoomed")
-
-        self.after(100, self.lift)
+class TelaConfiguracoes(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
 
         self._env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
         self._carregar_valores()
@@ -40,6 +32,10 @@ class TelaConfiguracoes(ctk.CTkToplevel):
             'DEFAULT_USER': os.getenv('DEFAULT_USER', 'admin'),
             'DEFAULT_PASSWORD': os.getenv('DEFAULT_PASSWORD', 'admin123'),
         }
+
+    def _ao_visitar(self):
+        self._carregar_valores()
+        self._reconstruir()
 
     def _construir_ui(self):
         container = ctk.CTkFrame(self, fg_color="transparent")
@@ -113,6 +109,11 @@ class TelaConfiguracoes(ctk.CTkToplevel):
 
         self.lbl_notificacao = criar_label(scroll, "", text_color=COR_TEXTO2)
 
+    def _reconstruir(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+        self._construir_ui()
+
     def _salvar(self):
         novos_valores = {
             'DB_HOST': self.entry_db_host.get().strip(),
@@ -130,17 +131,9 @@ class TelaConfiguracoes(ctk.CTkToplevel):
         self._notificar("Configuracoes salvas! Reinicie o sistema.")
 
     def _voltar(self):
-        transicao_sair(self, callback=self.destroy)
+        self.controller.voltar()
 
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.pack(pady=(10, 0))
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.withdraw()
-    app = TelaConfiguracoes(master=root)
-    app.mainloop()
-    root.destroy()
