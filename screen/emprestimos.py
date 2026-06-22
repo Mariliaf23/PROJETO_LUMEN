@@ -5,12 +5,13 @@ from PIL import Image
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
+from datetime import date
 from services.database_config import (
     cadastrar_emprestimo, listar_emprestimos, finalizar_emprestimo,
     listar_alunos, listar_exemplares_disponiveis, verificar_atrasos,
     cadastrar_reserva, listar_reservas, cancelar_reserva,
     listar_multas, pagar_multa, usuario_tem_multa_pendente,
-    listar_livros
+    listar_livros, gerar_multa, listar_emprestimos_ativos
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
@@ -22,6 +23,51 @@ from services.styles import (
 COR_AZUL_PRINCIPAL = "#1E3A8A"
 COR_AZUL_HOVER = "#1D4ED8"
 COR_AZUL_CLARO = "#3B82F6"
+
+class DetalheEmprestimo(ctk.CTkToplevel):
+    def __init__(self, master, dados):
+        super().__init__(master)
+        self.title("Detalhes do Emprestimo")
+        self.geometry("400x350")
+        self.resizable(False, False)
+        self.configure(fg_color=COR_BG)
+        self.grab_set()
+
+        criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold")).pack(pady=(20, 5))
+        criar_label(self, "Detalhes do Emprestimo", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 20))
+
+        card = criar_card(self)
+        card.pack(fill="x", padx=30, pady=(0, 10))
+
+        id_emp, aluno, exemplar, livro, data_emp, data_prev, data_dev, status = dados
+
+        campos = [
+            ("ID", str(id_emp)),
+            ("Aluno", str(aluno)),
+            ("Livro", str(livro)),
+            ("Exemplar", str(exemplar)),
+            ("Data Emprestimo", str(data_emp)),
+            ("Data Prevista", str(data_prev)),
+            ("Data Devolucao", str(data_dev) if data_dev else "Pendente"),
+            ("Status", str(status)),
+        ]
+
+        for rotulo, valor in campos:
+            linha = ctk.CTkFrame(card, fg_color="transparent")
+            linha.pack(fill="x", padx=15, pady=4)
+            criar_label(linha, f"{rotulo}:", font=FONTE_LABEL, text_color=COR_DOURADO).pack(side="left")
+            cor_valor = COR_TEXTO
+            if rotulo == "Status":
+                if valor == "atrasado":
+                    cor_valor = "#8a4040"
+                elif valor == "finalizado":
+                    cor_valor = "#4a8a4a"
+                elif valor == "ativo":
+                    cor_valor = "#d4b896"
+            criar_label(linha, valor, font=FONTE_LABEL, text_color=cor_valor).pack(side="right")
+
+        criar_botao_preenchido(self, text="Fechar", command=self.destroy, width=120, height=36).pack(pady=15)
+
 
 class TelaEmprestimos(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
@@ -189,7 +235,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             width=160, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
             hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
         )
-        self.btn_finalizar.pack(side="left")
+        self.btn_detalhes.pack(side="left", padx=(10, 0))
 
         # Tabela
         lista_card = criar_card(frame)
@@ -297,7 +343,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.lista_multas = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_multas.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-    def _recarregar_emprestimos(self):
+    def _recarregar_emprestimos(self, emprestimos_filtrados=None):
         for widget in self.lista_emprestimos.winfo_children():
             widget.destroy()
         self._itens_lista = []
@@ -305,25 +351,45 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         alunos = listar_alunos()
         self._alunos_map = {}
+        nomes_alunos = []
         for a in alunos:
             texto = f"{a[0]} - {a[1]}"
             self._alunos_map[texto] = a[0]
-        self.combo_aluno.configure(values=list(self._alunos_map.keys()))
-        if self._alunos_map:
-            self.combo_aluno.set(list(self._alunos_map.keys())[0])
+            nomes_alunos.append(texto)
+        self.combo_aluno.configure(values=nomes_alunos if nomes_alunos else [" Selecione..."])
+        if nomes_alunos:
+            self.combo_aluno.set(nomes_alunos[0])
+        else:
+            self.combo_aluno.set(" Selecione...")
 
         exemplares = listar_exemplares_disponiveis()
         self._exemplares_map = {}
+        nomes_exemplares = []
         for e in exemplares:
-            texto = f"{e[0]} - {e[1]}"
+            texto = f"{e[2]} ({e[1]})"
             self._exemplares_map[texto] = e[0]
-        self.combo_exemplar.configure(values=list(self._exemplares_map.keys()))
-        if self._exemplares_map:
-            self.combo_exemplar.set(list(self._exemplares_map.keys())[0])
+            nomes_exemplares.append(texto)
+        self.combo_exemplar.configure(values=nomes_exemplares if nomes_exemplares else [" Selecione..."])
+        if nomes_exemplares:
+            self.combo_exemplar.set(nomes_exemplares[0])
+        else:
+            self.combo_exemplar.set(" Selecione...")
 
-        emprestimos = listar_emprestimos()
+        if emprestimos_filtrados is not None:
+            emprestimos = emprestimos_filtrados
+        else:
+            emprestimos = listar_emprestimos()
         for emp in emprestimos:
             self._criar_item_emp(emp)
+
+    def _buscar_emprestimos(self):
+        termo = self.entry_busca_emp.get().strip().lower()
+        if not termo:
+            self._recarregar_emprestimos()
+            return
+        todos = listar_emprestimos()
+        filtrados = [e for e in todos if termo in str(e[1]).lower() or termo in str(e[3]).lower()]
+        self._recarregar_emprestimos(filtrados)
 
     def _criar_item_emp(self, emp):
         item = ctk.CTkFrame(self.lista_emprestimos, fg_color=self.cor_card, corner_radius=8, height=42)
@@ -354,6 +420,12 @@ class TelaEmprestimos(ctk.CTkFrame):
                 item.configure(fg_color=self.cor_card)
         self._selecionado = emp
 
+    def _abrir_detalhes(self):
+        if not self._selecionado:
+            self._notificar("Selecione um emprestimo para ver detalhes.")
+            return
+        DetalheEmprestimo(self, self._selecionado)
+
     def _cadastrar_emprestimo(self):
         aluno_sel = self.combo_aluno.get()
         exemplar_sel = self.combo_exemplar.get()
@@ -374,7 +446,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         id_funcionario = self.controller.usuario_logado['id'] if self.controller and hasattr(self.controller, 'usuario_logado') else 1
 
         if usuario_tem_multa_pendente(id_usuario):
-            self._notificar("Aluno com multa pendente! Regularize primeiro.")
+            self._notificar("Usuario com multa pendente! Regularize primeiro.")
             return
 
         self.btn_cadastrar.configure(text="Processando...", state="disabled")
@@ -390,7 +462,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar("Erro operacional ao salvar empréstimo.")
         self.btn_cadastrar.configure(text="Confirmar Empréstimo", state="normal")
 
-    def _finalizar_emprestimo(self):
+    def _devolver(self):
         if not self._selecionado:
             self._notificar("Selecione um registro na listagem abaixo.")
             return
@@ -411,21 +483,29 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         alunos = listar_alunos()
         self._reserva_alunos_map = {}
+        nomes_alunos = []
         for a in alunos:
             texto = f"{a[0]} - {a[1]}"
             self._reserva_alunos_map[texto] = a[0]
-        self.combo_reserva_aluno.configure(values=list(self._reserva_alunos_map.keys()))
-        if self._reserva_alunos_map:
-            self.combo_reserva_aluno.set(list(self._reserva_alunos_map.keys())[0])
+            nomes_alunos.append(texto)
+        self.combo_reserva_aluno.configure(values=nomes_alunos if nomes_alunos else [" Selecione..."])
+        if nomes_alunos:
+            self.combo_reserva_aluno.set(nomes_alunos[0])
+        else:
+            self.combo_reserva_aluno.set(" Selecione...")
 
         livros = listar_livros()
         self._reserva_livros_map = {}
+        nomes_livros = []
         for l in livros:
             texto = f"{l[1]} ({l[2]})"
             self._reserva_livros_map[texto] = l[0]
-        self.combo_reserva_livro.configure(values=list(self._reserva_livros_map.keys()))
-        if self._reserva_livros_map:
-            self.combo_reserva_livro.set(list(self._reserva_livros_map.keys())[0])
+            nomes_livros.append(texto)
+        self.combo_reserva_livro.configure(values=nomes_livros if nomes_livros else [" Selecione..."])
+        if nomes_livros:
+            self.combo_reserva_livro.set(nomes_livros[0])
+        else:
+            self.combo_reserva_livro.set(" Selecione...")
 
         reservas = listar_reservas(status="ativa")
         for r in reservas:

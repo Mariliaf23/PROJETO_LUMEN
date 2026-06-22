@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
   `senha` VARCHAR(255) NOT NULL,
   `telefone` CHAR(11) DEFAULT NULL,
   `cpf` VARCHAR(14) DEFAULT NULL,
-  `tipo_usuario` ENUM('aluno', 'professor', 'funcionario', 'bibliotecario') NOT NULL,
+  `tipo_usuario` ENUM('diretor', 'bibliotecario', 'aluno', 'professor') NOT NULL,
   `matricula` VARCHAR(20) DEFAULT NULL,
   `sala` VARCHAR(10) DEFAULT NULL,
   `turno` VARCHAR(20) DEFAULT NULL,
@@ -246,6 +246,4 @@ INSERT INTO `biblioteca`.`categoria` (`nome_categoria`) VALUE
 ('Inclusão e Acessibilidade'),
 ('Romance'),
 ('Literatura classica');
-
-DELETE FROM categoria WHERE nome_categoria = 'TESTE'; 
 

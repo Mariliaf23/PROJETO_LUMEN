@@ -157,12 +157,13 @@ class TelaExemplares(ctk.CTkFrame):
         else:
             self.combo_livro.set("Selecione o livro")
 
-    def _carregar_tabela(self):
+    def _carregar_tabela(self, exemplares=None):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
         self._itens_lista.clear()
 
-        exemplares = listar_exemplares()
+        if exemplares is None:
+            exemplares = listar_exemplares()
         for exc in exemplares:
             self._criar_item(exc)
 

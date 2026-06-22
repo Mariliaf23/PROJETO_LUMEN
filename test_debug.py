@@ -28,7 +28,7 @@ from services.conector import init_db, DB_CONFIG, DB_NAME
 testar("init_db()", init_db)
 
 from services.database_config import (
-    cadastrar_funcionario, cadastrar_aluno, verificar_login,
+    cadastrar_usuario, verificar_login,
     buscar_stats_dashboard, buscar_emprestimos_por_mes,
     buscar_livros_por_categoria, buscar_emprestimos_semana,
     cadastrar_livro, listar_livros, listar_livros_disponiveis,
@@ -36,7 +36,7 @@ from services.database_config import (
     listar_emprestimos, listar_emprestimos_ativos, finalizar_emprestimo
 )
 
-testar("cadastrar_funcionario()", lambda: cadastrar_funcionario("test_debug", "debug@test.com", "123", "", "bibliotecario"))
+testar("cadastrar_usuario()", lambda: cadastrar_usuario("test_debug", "debug@test.com", "123", tipo='bibliotecario'))
 testar("verificar_login()", lambda: verificar_login("admin", "admin123"))
 testar("buscar_stats_dashboard()", lambda: buscar_stats_dashboard())
 testar("buscar_emprestimos_por_mes()", lambda: buscar_emprestimos_por_mes())
@@ -51,10 +51,7 @@ testar("listar_emprestimos_ativos()", lambda: listar_emprestimos_ativos())
 
 print("\n[3] Importando telas...")
 from screen.tela_login import TelaLogin
-from screen.tela_cadastro_login import LumenLoginApp
 from screen.dashboard import Dashboard
-from screen.cadastro_alunos import TelaCadastroAlunos
-from screen.cadastro_membros import TelaCadastroMembros
 from screen.tela_livros import TelaLivros
 from screen.emprestimos import TelaEmprestimos
 from screen.tela_devolucoes import TelaDevolucoes
@@ -66,39 +63,13 @@ root = ctk.CTk()
 root.withdraw()
 
 testar("TelaLogin()", lambda: None)
-testar("LumenLoginApp()", lambda: None)
 testar("Dashboard()", lambda: None)
-testar("TelaCadastroAlunos()", lambda: None)
-testar("TelaCadastroMembros()", lambda: None)
 testar("TelaLivros()", lambda: None)
 testar("TelaEmprestimos()", lambda: None)
 testar("TelaDevolucoes()", lambda: None)
 testar("TelaConfiguracoes()", lambda: None)
 
 print("\n[5] Testando instancias reais...")
-try:
-    tela = LumenLoginApp(master=root)
-    print("  [OK] LumenLoginApp instanciada")
-    tela.destroy()
-except Exception as e:
-    print(f"  [ERRO] LumenLoginApp: {e}")
-    erros.append(("LumenLoginApp instance", str(e)))
-
-try:
-    tela = TelaCadastroAlunos(master=root)
-    print("  [OK] TelaCadastroAlunos instanciada")
-    tela.destroy()
-except Exception as e:
-    print(f"  [ERRO] TelaCadastroAlunos: {e}")
-    erros.append(("TelaCadastroAlunos instance", str(e)))
-
-try:
-    tela = TelaCadastroMembros(master=root)
-    print("  [OK] TelaCadastroMembros instanciada")
-    tela.destroy()
-except Exception as e:
-    print(f"  [ERRO] TelaCadastroMembros: {e}")
-    erros.append(("TelaCadastroMembros instance", str(e)))
 
 try:
     tela = TelaLivros(master=root)

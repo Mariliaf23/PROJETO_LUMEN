@@ -145,10 +145,8 @@ class TelaCadastroUsuario(ctk.CTkFrame):
 
     def _cadastrar(self):
         nome = self.entry_nome.get().strip()
-        email = self.entry_email.get().strip()
+        contato = self.entry_contato.get().strip()
         senha = self.entry_senha.get().strip()
-        telefone = self.entry_telefone.get().strip()
-        cpf = self.entry_cpf.get().strip()
         tipo = self.combo_tipo.get()
 
         if not nome or not email or not senha:
@@ -165,9 +163,9 @@ class TelaCadastroUsuario(ctk.CTkFrame):
             nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao
         ))
 
-    def _salvar(self, nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao):
+    def _salvar(self, nome, contato, senha, tipo, sala, turma, funcao):
         sucesso = cadastrar_usuario(
-            nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao
+            nome, contato, senha or '', '', '', tipo, '', sala, turma, funcao
         )
         if sucesso:
             self._notificar("Usuário registrado com sucesso!")
@@ -179,6 +177,9 @@ class TelaCadastroUsuario(ctk.CTkFrame):
     def _voltar(self):
         if self.controller:
             self.controller.voltar()
+
+    def _voltar(self):
+        self.controller.voltar()
 
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color=COR_DOURADO, font=("Segoe UI", 15, "bold"))
