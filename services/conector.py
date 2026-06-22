@@ -74,7 +74,7 @@ def _inserir_dados_exemplo(cursor):
 
         categorias = [
             ('Ficcao', 'Obras de ficcao e romance'),
-            ('Nao-Ficcao', 'Obras informativas e academicas'),
+            ('matematica', 'obras de matematica e ciencias exatas'),
             ('Infantil', 'Literatura infantil e juvenil'),
             ('Tecnico', 'Livros tecnicos e profissionais'),
             ('Historia', 'Historia e biografias'),

@@ -219,3 +219,33 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`multa` (
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Dados iniciais: categorias
+-- -----------------------------------------------------
+INSERT INTO `biblioteca`.`categoria` (`nome_categoria`) VALUE
+('Matemática'),
+('Português'),
+('Ciências'),
+('História'),
+('Geografia'),
+('Literatura Infantil'),
+('Literatura Juvenil'),
+('Literatura Brasileira'),
+('Informática'),
+('Dicionários'),
+('Enciclopédias'),
+('Artes'),
+('Educação Física'),
+('Filosofia'),
+('Sociologia'),
+('Cultura Paraense'),
+('Amazônia'),
+('Educação Financeira'),
+('Inclusão e Acessibilidade'),
+('Romance'),
+('Literatura classica');
+
+DELETE FROM categoria WHERE nome_categoria = 'TESTE'; 
+
