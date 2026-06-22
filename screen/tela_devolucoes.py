@@ -1,24 +1,35 @@
 import os
 import sys
+from PIL import Image
+from datetime import date
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from datetime import date
 from services.database_config import (
     listar_emprestimos_ativos, finalizar_emprestimo, gerar_multa, verificar_atrasos
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     FONTE_TITULO, FONTE_SUBTITULO, FONTE_LABEL,
-    criar_botao_preenchido, criar_label, criar_titulo,
-    criar_card, criar_scroll_frame
+    criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame
 )
 
+# Definição das cores padrão azul corporativo (sem tons pastel)
+COR_AZUL_PRINCIPAL = "#1E3A8A"
+COR_AZUL_HOVER = "#1D4ED8"
+COR_AZUL_CLARO = "#3B82F6"
 
 class TelaDevolucoes(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        self.cor_bg = str(COR_BG)
+        self.cor_card = str(COR_CARD)
+        self.cor_dourado = str(COR_DOURADO)
+        self.cor_texto = str(COR_TEXTO)
+        self.cor_texto2 = str(COR_TEXTO2)
+        self.cor_border = str(COR_INPUT_BORDER)
+
+        super().__init__(master, fg_color=self.cor_bg)
         self.controller = controller
         self._itens_lista = []
         self._selecionado = None
@@ -32,33 +43,52 @@ class TelaDevolucoes(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-        # --- HEADER PRINCIPAL ---
+        # === HEADER PADRONIZADO (LOGO MAIOR E SEM TEXTO LUMEN) ===
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
 
-        # Adicionado o padrão do logo e barra vertical das telas anteriores
-        criar_titulo(header, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left")
-        criar_label(header, "|  Devoluções Pendentes", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(side="left", padx=(10, 0))
+        header_left = ctk.CTkFrame(header, fg_color="transparent")
+        header_left.pack(side="left", fill="y")
 
-        btn_voltar = criar_botao_preenchido(header, text="Voltar", command=self._voltar, width=100, height=35)
+        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
+        
+        if os.path.exists(logo_path):
+            try:
+                # Logo no tamanho maior (60x60) idêntico ao cadastro de usuários
+                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
+                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
+                lbl_logo.pack(side="left", padx=(0, 15))
+            except:
+                pass
+        
+        # Título da tela ao lado do logo
+        criar_titulo(header_left, "Devoluções Pendentes", font=("Segoe UI", 20, "bold")).pack(side="left")
+
+        btn_voltar = ctk.CTkButton(
+            header, text="Voltar", command=self._voltar, 
+            width=100, height=35, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 12, "bold")
+        )
         btn_voltar.pack(side="right")
 
-        # --- CARD DE AÇÕES ---
+        # === CARD DE AÇÕES (AZUL CORPORATIVO) ===
         acoes_card = criar_card(self)
         acoes_card.grid(row=1, column=0, sticky="ew", padx=30, pady=(10, 10))
 
         acoes_frame = ctk.CTkFrame(acoes_card, fg_color="transparent")
         acoes_frame.pack(fill="x", padx=20, pady=15)
 
-        self.btn_devolver = criar_botao_preenchido(
+        self.btn_devolver = ctk.CTkButton(
             acoes_frame, text="Registrar Devolução", command=self._devolver,
-            width=220, height=42
+            width=220, height=42, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 12, "bold")
         )
         self.btn_devolver.pack(side="left")
 
         criar_label(acoes_frame, "Selecione um empréstimo na lista abaixo", font=FONTE_LABEL).pack(side="left", padx=(20, 0))
 
-        # --- CARD DA TABELA/LISTA ---
+        # === CARD DA TABELA/LISTA ===
         lista_card = criar_card(self)
         lista_card.grid(row=2, column=0, sticky="nsew", padx=30, pady=(10, 20))
 
@@ -66,18 +96,17 @@ class TelaDevolucoes(ctk.CTkFrame):
         header_lista.pack(fill="x", padx=15, pady=(10, 5))
         header_lista.pack_propagate(False)
 
-        # Ajuste no alinhamento do Cabeçalho para bater estritamente com os itens posicionados por relx
         colunas_larguras = [("ID", 0.06), ("Aluno", 0.2), ("Exemplar", 0.15), ("Livro", 0.2), ("Empréstimo", 0.12), ("Previsto", 0.12), ("Status", 0.1)]
         x_header = 0
         for txt, pct in colunas_larguras:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_DOURADO, anchor="w")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_AZUL_CLARO, anchor="w")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=self.cor_texto2)
 
     def _carregar_tabela(self):
         for widget in self.lista_frame.winfo_children():
@@ -85,7 +114,7 @@ class TelaDevolucoes(ctk.CTkFrame):
         self._itens_lista.clear()
         self._selecionado = None
 
-        emprestimos = listar_emprestimos_actifs() if hasattr(self, '_mock') else listar_emprestimos_ativos()
+        emprestimos = listar_emprestimos_ativos()
         
         for emp in emprestimos:
             self._criar_item(emp)
@@ -96,20 +125,19 @@ class TelaDevolucoes(ctk.CTkFrame):
             criar_label(empty, "Nenhuma devolução pendente", font=FONTE_LABEL).pack(expand=True)
 
     def _criar_item(self, emp):
-        item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=8, height=42)
+        item = ctk.CTkFrame(self.lista_frame, fg_color=self.cor_card, corner_radius=8, height=42)
         item.pack(fill="x", pady=2)
         item.pack_propagate(False)
-
         item.bind("<Button-1>", lambda e, v=emp: self._selecionar(v))
 
         colunas = [0.06, 0.2, 0.15, 0.2, 0.12, 0.12, 0.1]
         x = 0
         for i, (texto, pct) in enumerate(zip(emp, colunas)):
-            cor = COR_TEXTO
+            cor = self.cor_texto
             if i == 6 and str(texto).lower() == "atrasado":
-                cor = "#ea9999"  # Vermelho suave para legibilidade no tema escuro
+                cor = "#EF4444"  # Vermelho corporativo vivo/limpo (removido pastel)
             elif i == 6 and str(texto).lower() in ["ativo", "disponível", "disponivel"]:
-                cor = COR_DOURADO
+                cor = COR_AZUL_CLARO
                 
             lbl = ctk.CTkLabel(item, text=str(texto) if texto else "-", font=("Segoe UI", 10), text_color=cor, anchor="w")
             lbl.place(relx=x + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
@@ -121,9 +149,9 @@ class TelaDevolucoes(ctk.CTkFrame):
     def _selecionar(self, emp):
         for item, e in self._itens_lista:
             if e == emp:
-                item.configure(fg_color="#2a1a08")  # Mantém a cor de seleção ativa padrão ouro escuro
+                item.configure(fg_color="#1E293B")  # Seleção em tom azul/cinza escuro corporativo
             else:
-                item.configure(fg_color=COR_CARD)
+                item.configure(fg_color=self.cor_card)
         self._selecionado = emp
 
     def _devolver(self):
@@ -162,6 +190,6 @@ class TelaDevolucoes(ctk.CTkFrame):
         self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_DOURADO)
+        self.lbl_notificacao.configure(text=mensagem, text_color=COR_AZUL_CLARO)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))

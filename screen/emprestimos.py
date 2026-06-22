@@ -110,7 +110,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         if os.path.exists(logo_path):
             try:
                 # Logo no tamanho maior (60x60) idêntico ao cadastro de usuários
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(60, 60))
+                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
                 lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
                 lbl_logo.pack(side="left", padx=(0, 15))
             except:
