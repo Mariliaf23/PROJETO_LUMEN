@@ -667,3 +667,186 @@ def buscar_emprestimos_semana():
     except Error:
         pass
     return dados
+
+# ======================== USUARIO — CRUD COMPLETO ========================
+# Adicione estas funções ao seu services/database_config.py
+
+def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
+                      matricula='', sala='', turno='', funcao=''):
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
+               matricula, sala, turno, funcao)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (nome, email, senha, telefone or None, cpf or None, tipo,
+             matricula or None, sala or None, turno or None, funcao or None)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Error as e:
+        print(f"Erro ao cadastrar usuario: {e}")
+        return False
+
+
+def listar_usuarios(tipo=None, status=None):
+    """Retorna lista de usuários com filtros opcionais por tipo e status."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+
+        base = """SELECT id_usuario, nome, email, telefone, cpf,
+                         tipo_usuario, matricula, sala, turno, funcao, status
+                  FROM usuario"""
+        condicoes = []
+        valores = []
+
+        if tipo:
+            condicoes.append("tipo_usuario = %s")
+            valores.append(tipo)
+        if status:
+            condicoes.append("status = %s")
+            valores.append(status)
+
+        if condicoes:
+            base += " WHERE " + " AND ".join(condicoes)
+        base += " ORDER BY nome"
+
+        cursor.execute(base, valores)
+        dados = cursor.fetchall()
+        conn.close()
+        return dados
+    except Error:
+        return []
+
+
+def buscar_usuario_por_id(id_usuario):
+    """Retorna todos os campos de um usuário pelo ID."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """SELECT id_usuario, nome, email, telefone, cpf,
+                      tipo_usuario, matricula, sala, turno, funcao, status
+               FROM usuario WHERE id_usuario = %s""",
+            (id_usuario,)
+        )
+        dado = cursor.fetchone()
+        conn.close()
+        return dado
+    except Error:
+        return None
+
+
+def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno',
+                      matricula='', sala='', turno='', funcao='', status='ativo'):
+    """Atualiza todos os campos editáveis de um usuário (exceto senha)."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE usuario
+               SET nome=%s, email=%s, telefone=%s, cpf=%s, tipo_usuario=%s,
+                   matricula=%s, sala=%s, turno=%s, funcao=%s, status=%s
+               WHERE id_usuario=%s""",
+            (nome, email, telefone or None, cpf or None, tipo,
+             matricula or None, sala or None, turno or None, funcao or None,
+             status, id_usuario)
+        )
+        conn.commit()
+        alterado = cursor.rowcount > 0
+        conn.close()
+        return alterado
+    except Error as e:
+        print(f"Erro ao atualizar usuario: {e}")
+        return False
+
+
+def atualizar_senha_usuario(id_usuario, nova_senha):
+    """Atualiza apenas a senha de um usuário."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE usuario SET senha=%s WHERE id_usuario=%s",
+            (nova_senha, id_usuario)
+        )
+        conn.commit()
+        alterado = cursor.rowcount > 0
+        conn.close()
+        return alterado
+    except Error as e:
+        print(f"Erro ao atualizar senha: {e}")
+        return False
+
+
+def alternar_status_usuario(id_usuario):
+    """Alterna o status do usuário entre 'ativo' e 'inativo'."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE usuario
+               SET status = CASE WHEN status='ativo' THEN 'inativo' ELSE 'ativo' END
+               WHERE id_usuario=%s""",
+            (id_usuario,)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Error as e:
+        print(f"Erro ao alternar status: {e}")
+        return False
+
+
+def excluir_usuario(id_usuario):
+    """
+    Remove o usuário permanentemente.
+    Use com cuidado: prefira alternar_status_usuario para desativar.
+    Falha se o usuário possuir empréstimos vinculados (FK).
+    """
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuario WHERE id_usuario=%s", (id_usuario,))
+        conn.commit()
+        removido = cursor.rowcount > 0
+        conn.close()
+        return removido
+    except Error as e:
+        print(f"Erro ao excluir usuario: {e}")
+        return False
+
+
+def buscar_usuarios_por_nome(termo):
+    """Busca usuários cujo nome contenha o termo informado (case-insensitive)."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """SELECT id_usuario, nome, email, tipo_usuario, status
+               FROM usuario
+               WHERE nome LIKE %s
+               ORDER BY nome""",
+            (f"%{termo}%",)
+        )
+        dados = cursor.fetchall()
+        conn.close()
+        return dados
+    except Error:
+        return []
+
+
+# Atalhos por tipo (mantém compatibilidade com código existente)
+def listar_alunos():
+    return listar_usuarios(tipo='aluno')
+
+
+def listar_professores():
+    return listar_usuarios(tipo='professor')
+
+
+def listar_funcionarios():
+    return listar_usuarios(tipo='funcionario')
