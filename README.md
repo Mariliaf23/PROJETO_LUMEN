@@ -6,7 +6,7 @@
 
 > **Status do Projeto:** 🚀 Em Desenvolvimento
 
-O **Projeto Lumen** é uma aplicação desktop multiplataforma focada no gerenciamento centralizado de processos empresariais. O sistema automatiza o controle de acessos, cadastro de ativos e gestão de clientes, garantindo segurança e integridade através de um banco de dados relacional.
+O **Projeto Lumen** é uma aplicação desktop multiplataforma focada no gerenciamento de uma biblioteca. O sistema automatiza o cadastro de livros, exemplares, empréstimos e devoluções, garantindo segurança e integridade através de um banco de dados relacional.
 
 ---
 
@@ -17,7 +17,10 @@ O projeto utiliza tecnologias modernas de desenvolvimento Python para garantir p
 *   **Linguagem:** `Python 3.x`
 *   **Interface Gráfica:** `CustomTkinter` (Interface moderna com suporte nativo a Dark Mode)
 *   **Banco de Dados:** `MySQL`
-*   **Relatórios:** `FPDF` (Exportação profissional em PDF)
+*   **Relatórios:** `FPDF2` (Exportação profissional em PDF)
+*   **Gráficos:** `Matplotlib`
+*   **Imagens:** `Pillow`
+*   **Variáveis de Ambiente:** `python-dotenv`
 
 ---
 
@@ -25,19 +28,19 @@ O projeto utiliza tecnologias modernas de desenvolvimento Python para garantir p
 
 ### 🔒 Segurança e Acesso
 *   **Módulo de Login:** Autenticação segura com diferenciação entre níveis de permissão (**Administrador** vs. **Operador**).
-*   **Gestão de Acessos:** CRUD completo para controle de usuários do sistema.
+*   **Gestão de Acessos:** Cadastro e gerenciamento de usuários do sistema.
 
-### 👥 Gestão de Negócio
-*   **CRM (Clientes):** Ciclo completo de cadastro, consulta, edição e exclusão de clientes.
-*   **Inventário:** Gestão de produtos e serviços comercializados.
-*   **Operacional:** Sistema de **Ordens de Serviço** ou **Vendas**, vinculando clientes a produtos/serviços de forma dinâmica.
+### 📚 Gestão Bibliotecária
+*   **Livros:** Cadastro, consulta, edição e exclusão de livros.
+*   **Exemplares:** Gestão de exemplares físicos de cada livro.
+*   **Empréstimos:** Registro e acompanhamento de empréstimos realizados.
+*   **Devoluções:** Controle de devoluções com validação de prazos.
 
-### 📄 Inteligência de Dados
-*   **Gerador de Relatórios:** Interface dedicada para filtragem de dados e exportação automatizada.
-*   **Validações Rigorosas:**
-    *   Impedimento de campos vazios.
-    *   Máscaras para e-mail e telefone.
-    *   Bloqueio de registros duplicados via Banco de Dados.
+### ⚙️ Configurações
+*   **Configurações do Sistema:** Painel de configurações gerais da aplicação.
+
+### 📄 Relatórios
+*   **Gerador de Relatórios:** Interface dedicada para filtragem de dados e exportação automatizada em PDF.
 
 ---
 
@@ -46,39 +49,64 @@ O projeto utiliza tecnologias modernas de desenvolvimento Python para garantir p
 O design foi planejado para uma navegação fluida dividida em:
 
 1.  **Tela de Login:** Portal de acesso restrito.
-2.  **Dashboard Central:** Menu lateral intuitivo com acesso rápido aos módulos e indicadores.
-3.  **Módulo de Relatórios:** Painel focado em exportação e análise de dados.
+2.  **Dashboard Central:** Menu intuitivo com acesso rápido aos módulos.
+3.  **Módulos Operacionais:** Telas dedicadas para livros, exemplares, empréstimos e devoluções.
 
 ---
 
 ## 📂 Estrutura do Repositório
 
-Seguindo padrões de organização avançada para escalabilidade:
-
 ```text
 PROJETO_LUMEN/
-├── .github/               # Workflows e templates do GitHub
-├── .venv/                 # Ambiente virtual (não versionado)
 ├── assets/                # Ícones, imagens e banners do projeto
 ├── database/              # Scripts SQL e migrações do banco
 │   └── schema.sql         # Estrutura inicial das tabelas
-├── screens/               # Arquivos .py para cada tela (UI)
-│   ├── login_screen.py
+├── screen/                # Arquivos .py para cada tela (UI)
 │   ├── dashboard.py
-│   └── reports_screen.py
+│   ├── emprestimos.py
+│   ├── tela_cadastro_login.py
+│   ├── tela_cadastro_usuario.py
+│   ├── tela_configuracoes.py
+│   ├── tela_devolucoes.py
+│   ├── tela_exemplares.py
+│   ├── tela_livros.py
+│   └── tela_login.py
 ├── services/              # Lógica de negócio e utilitários
-│   ├── validator.py       # Máscaras e validações de campos
-│   └── report_gen.py      # Geração de PDF com FPDF
+│   ├── app_controller.py  # Controlador de navegação entre telas
+│   ├── conector.py        # Conexão com o banco de dados
+│   ├── database_config.py # Configurações do banco de dados
+│   ├── report_gen.py      # Geração de PDF com FPDF2
+│   ├── styles.py          # Definições de cores e fontes
+│   ├── transitions.py     # Transições entre telas
+│   └── validador.py       # Máscaras e validações de campos
+├── .env                   # Variáveis de ambiente (não versionado)
 ├── .gitignore             # Arquivos para o Git ignorar (__pycache__, .env)
-├── database_config.py     # Conexão com MySQL
 ├── main.py                # Execução principal do sistema
-├── requirements.txt       # Dependências (customtkinter, mysql-connector, fpdf)
-├── README.md              # Documentação principal
-└── styles.py              # Definições de cores e fontes
+├── requirements.txt       # Dependências do projeto
+└── README.md              # Documentação principal
 ```
 
 ---
 
-## 🚀 Como Executar (Em breve)
+## 🚀 Como Executar
 
-*Instruções para instalação de dependências e configuração do banco de dados.*
+1.  **Crie um ambiente virtual:**
+    ```bash
+    python -m venv .venv
+    .venv\Scripts\activate  # Windows
+    ```
+
+2.  **Instale as dependências:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Configure o banco de dados:**
+    *   Crie um banco de dados MySQL
+    *   Execute o script `database/schema.sql` para criar as tabelas
+    *   Configure as credenciais no arquivo `.env`
+
+4.  **Execute o sistema:**
+    ```bash
+    python main.py
+    ```
