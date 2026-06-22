@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from services.conector import init_db
 from services.database_config import (
     buscar_stats_dashboard, buscar_emprestimos_por_mes,
     buscar_livros_por_categoria, buscar_emprestimos_semana
@@ -20,13 +19,6 @@ from services.styles import (
     COR_INPUT_BORDER, COR_ATIVO, FONTE_TITULO, FONTE_NAV, FONTE_LABEL,
     criar_label, criar_titulo, criar_card
 )
-from services.transitions import transicao_entrar, transicao_sair
-from screen.cadastro_alunos import TelaCadastroAlunos
-from screen.cadastro_membros import TelaCadastroMembros
-from screen.tela_livros import TelaLivros
-from screen.emprestimos import TelaEmprestimos
-from screen.tela_devolucoes import TelaDevolucoes
-from screen.tela_configuracoes import TelaConfiguracoes
 
 COR_GRAF1 = "#b89a72"
 COR_GRAF2 = "#d4b896"
@@ -38,15 +30,10 @@ MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out
 DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
 
 
-class Dashboard(ctk.CTkToplevel):
-    def __init__(self, master=None, maximizado=False):
-        super().__init__(master)
-        self.title("LUMEN - Dashboard")
-        self.geometry("1100x700")
-        self.minsize(900, 600)
-        self.configure(fg_color=COR_BG)
-        if maximizado:
-            self.after(10, self.state, "zoomed")
+class Dashboard(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
 
         plt.rcParams.update({
             'figure.facecolor': COR_CARD,
@@ -64,6 +51,10 @@ class Dashboard(ctk.CTkToplevel):
 
         self._carregar_dados()
         self._construir_ui()
+
+    def _ao_visitar(self):
+        self._carregar_dados()
+        self._recriar_conteudo()
 
     def _carregar_dados(self):
         self._stats = buscar_stats_dashboard()
@@ -91,8 +82,8 @@ class Dashboard(ctk.CTkToplevel):
         itens = [
             ("DASHBOARD", True),
             ("LIVROS", False),
-            ("CADASTRO ALUNOS", False),
-            ("CADASTRO MEMBROS", False),
+            ("EXEMPLARES", False),
+            ("CADASTRO USUARIO", False),
             ("EMPRESTIMOS", False),
             ("DEVOLUCOES", False),
             ("CONFIGURACOES", False),
@@ -112,17 +103,28 @@ class Dashboard(ctk.CTkToplevel):
             self._botoes_nav.append((btn, nome))
 
     def _criar_conteudo(self):
-        conteudo = ctk.CTkFrame(self, fg_color="transparent")
-        conteudo.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
-        conteudo.grid_columnconfigure(0, weight=1)
-        conteudo.grid_rowconfigure(2, weight=1)
+        self._conteudo = ctk.CTkFrame(self, fg_color="transparent")
+        self._conteudo.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self._conteudo.grid_columnconfigure(0, weight=1)
+        self._conteudo.grid_rowconfigure(2, weight=1)
 
-        header = ctk.CTkFrame(conteudo, fg_color="transparent")
+        header = ctk.CTkFrame(self._conteudo, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", pady=(0, 15))
         criar_label(header, "Dashboard", font=("Segoe UI Light", 22), text_color=COR_TEXTO).pack(anchor="w")
 
-        self._criar_cards(conteudo)
-        self._criar_graficos(conteudo)
+        self._criar_cards(self._conteudo)
+        self._criar_graficos(self._conteudo)
+
+    def _recriar_conteudo(self):
+        for widget in self._conteudo.winfo_children():
+            widget.destroy()
+
+        header = ctk.CTkFrame(self._conteudo, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        criar_label(header, "Dashboard", font=("Segoe UI Light", 22), text_color=COR_TEXTO).pack(anchor="w")
+
+        self._criar_cards(self._conteudo)
+        self._criar_graficos(self._conteudo)
 
     def _criar_cards(self, parent):
         cards_frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -132,7 +134,7 @@ class Dashboard(ctk.CTkToplevel):
         cards = [
             ("Total de Livros", str(self._stats['livros']), COR_DOURADO),
             ("Emprestimos", str(self._stats['emprestimos']), COR_TEXTO2),
-            ("Alunos", str(self._stats['alunos']), "#6b5a48"),
+            ("Alunos", str(self._stats['usuarios']), "#6b5a48"),
             ("Taxa de Retorno", f"{self._stats['taxa_retorno']}%", "#4a3a28"),
         ]
 
@@ -291,32 +293,13 @@ class Dashboard(ctk.CTkToplevel):
 
     def _navegar(self, nome):
         telas = {
-            "LIVROS": TelaLivros,
-            "CADASTRO ALUNOS": TelaCadastroAlunos,
-            "CADASTRO MEMBROS": TelaCadastroMembros,
-            "EMPRESTIMOS": TelaEmprestimos,
-            "DEVOLUCOES": TelaDevolucoes,
-            "CONFIGURACOES": TelaConfiguracoes,
+            "LIVROS": "livros",
+            "EXEMPLARES": "exemplares",
+            "CADASTRO USUARIO": "cadastro_usuario",
+            "EMPRESTIMOS": "emprestimos",
+            "DEVOLUCOES": "devolucoes",
+            "CONFIGURACOES": "configuracoes",
         }
-        classe = telas.get(nome)
-        if classe:
-            maximizado = self.state() == "zoomed"
-
-            def abrir():
-                tela = classe(master=self, maximizado=maximizado)
-                tela.wait_window()
-                if self.winfo_exists():
-                    self.deiconify()
-                    transicao_entrar(self)
-                    self._carregar_dados()
-                    self._criar_conteudo()
-
-            transicao_sair(self, callback=abrir)
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.withdraw()
-    app = Dashboard(master=root)
-    app.mainloop()
-    root.destroy()
+        tela = telas.get(nome)
+        if tela:
+            self.controller.navegar_para(tela)
