@@ -82,8 +82,8 @@ class Dashboard(ctk.CTkFrame):
         itens = [
             ("DASHBOARD", True),
             ("LIVROS", False),
-            ("CADASTRO ALUNOS", False),
-            ("CADASTRO MEMBROS", False),
+            ("EXEMPLARES", False),
+            ("CADASTRO USUARIO", False),
             ("EMPRESTIMOS", False),
             ("DEVOLUCOES", False),
             ("CONFIGURACOES", False),
@@ -134,7 +134,7 @@ class Dashboard(ctk.CTkFrame):
         cards = [
             ("Total de Livros", str(self._stats['livros']), COR_DOURADO),
             ("Emprestimos", str(self._stats['emprestimos']), COR_TEXTO2),
-            ("Alunos", str(self._stats['alunos']), "#6b5a48"),
+            ("Alunos", str(self._stats['usuarios']), "#6b5a48"),
             ("Taxa de Retorno", f"{self._stats['taxa_retorno']}%", "#4a3a28"),
         ]
 
@@ -294,8 +294,8 @@ class Dashboard(ctk.CTkFrame):
     def _navegar(self, nome):
         telas = {
             "LIVROS": "livros",
-            "CADASTRO ALUNOS": "cadastro_alunos",
-            "CADASTRO MEMBROS": "cadastro_membros",
+            "EXEMPLARES": "exemplares",
+            "CADASTRO USUARIO": "cadastro_usuario",
             "EMPRESTIMOS": "emprestimos",
             "DEVOLUCOES": "devolucoes",
             "CONFIGURACOES": "configuracoes",

@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from services.database_config import cadastrar_funcionario
+from services.database_config import cadastrar_usuario
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO, FONTE_LABEL,
     criar_entry, criar_botao_preenchido, criar_label, criar_titulo
@@ -75,7 +75,7 @@ class LumenLoginApp(ctk.CTkFrame):
         self.after(500, lambda: self._salvar(nome, email, senha))
 
     def _salvar(self, nome, email, senha):
-        sucesso = cadastrar_funcionario(nome, email, senha)
+        sucesso = cadastrar_usuario(nome, email, senha, tipo='bibliotecario')
         if sucesso:
             self._notificar("Conta criada com sucesso!")
             self.after(1500, lambda: self.controller.voltar())

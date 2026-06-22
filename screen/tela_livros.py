@@ -5,13 +5,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
 from services.database_config import (
-    cadastrar_livro, listar_livros, excluir_livro
+    cadastrar_livro, listar_livros, excluir_livro,
+    listar_categorias, cadastrar_categoria
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     FONTE_TITULO, FONTE_SUBTITULO, FONTE_LABEL,
     criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo,
-    criar_card, criar_scroll_frame
+    criar_card, criar_scroll_frame, criar_combo
 )
 
 
@@ -24,6 +25,7 @@ class TelaLivros(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
+        self._carregar_categorias()
         self._carregar_tabela()
 
     def _construir_ui(self):
@@ -34,7 +36,7 @@ class TelaLivros(ctk.CTkFrame):
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
 
         criar_titulo(header, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left")
-        criar_label(header, "Cadastro de Livros", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(side="left", padx=(15, 0))
+        criar_label(header, "Catalogo de Livros", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(side="left", padx=(15, 0))
 
         btn_voltar = criar_botao(header, text="Voltar", command=self._voltar, width=100, height=35)
         btn_voltar.pack(side="right")
@@ -48,19 +50,33 @@ class TelaLivros(ctk.CTkFrame):
         form_frame.grid_columnconfigure((0, 1), weight=1)
 
         self.entry_titulo = criar_entry(form_frame, placeholder="Titulo", height=38)
-        self.entry_titulo.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="ew")
-
-        self.entry_autor = criar_entry(form_frame, placeholder="Autor", height=38)
-        self.entry_autor.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="ew")
-
-        self.entry_categoria = criar_entry(form_frame, placeholder="Categoria", height=38)
-        self.entry_categoria.grid(row=1, column=0, padx=(0, 10), pady=5, sticky="ew")
+        self.entry_titulo.grid(row=0, column=0, padx=(0, 10), pady=3, sticky="ew")
 
         self.entry_isbn = criar_entry(form_frame, placeholder="ISBN", height=38)
-        self.entry_isbn.grid(row=1, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.entry_isbn.grid(row=0, column=1, padx=(10, 0), pady=3, sticky="ew")
+
+        self.combo_categoria = criar_combo(form_frame, width=200, height=38, values=[])
+        self.combo_categoria.grid(row=1, column=0, padx=(0, 10), pady=3, sticky="ew")
+        self.combo_categoria.set("Categoria")
+
+        btn_add_cat = ctk.CTkButton(
+            form_frame, text="+", width=38, height=38,
+            fg_color=COR_DOURADO, text_color=COR_BG,
+            hover_color="#c9a96c", command=self._adicionar_categoria
+        )
+        btn_add_cat.grid(row=1, column=1, padx=(10, 0), pady=3, sticky="e")
+
+        self.entry_editora = criar_entry(form_frame, placeholder="Editora", height=38)
+        self.entry_editora.grid(row=2, column=0, padx=(0, 10), pady=3, sticky="ew")
+
+        self.entry_ano = criar_entry(form_frame, placeholder="Ano publicacao", height=38)
+        self.entry_ano.grid(row=2, column=1, padx=(10, 0), pady=3, sticky="ew")
+
+        self.entry_sinopse = criar_entry(form_frame, placeholder="Sinopse (opcional)", height=38)
+        self.entry_sinopse.grid(row=3, column=0, columnspan=2, pady=3, sticky="ew")
 
         botoes_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        botoes_frame.grid(row=2, column=0, columnspan=2, pady=(10, 0))
+        botoes_frame.grid(row=4, column=0, columnspan=2, pady=(8, 0))
 
         self.btn_cadastrar = criar_botao_preenchido(
             botoes_frame, text="Cadastrar Livro", command=self._cadastrar,
@@ -80,13 +96,28 @@ class TelaLivros(ctk.CTkFrame):
         header_lista = ctk.CTkFrame(lista_card, fg_color="transparent")
         header_lista.pack(fill="x", padx=15, pady=(10, 5))
 
-        for col, txt in [("Titulo", 0.3), ("Autor", 0.25), ("Categoria", 0.2), ("ISBN", 0.15), ("Status", 0.1)]:
+        for col, txt in [("Titulo", 0.3), ("ISBN", 0.15), ("Categoria", 0.15), ("Editora", 0.15), ("Ano", 0.08), ("Status", 0.1)]:
             criar_label(header_lista, txt, font=("Segoe UI", 10, "bold"), text_color=COR_DOURADO).pack(side="left", expand=True, fill="x")
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
         self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+
+    def _carregar_categorias(self):
+        cats = listar_categorias()
+        valores = [c[1] for c in cats]
+        self._cat_map = {c[1]: c[0] for c in cats}
+        self.combo_categoria.configure(values=valores)
+        if valores:
+            self.combo_categoria.set(valores[0])
+
+    def _adicionar_categoria(self):
+        dialog = ctk.CTkInputDialog(text="Nome da nova categoria:", title="Nova Categoria")
+        nome = dialog.get_input()
+        if nome and nome.strip():
+            cadastrar_categoria(nome.strip())
+            self._carregar_categorias()
 
     def _carregar_tabela(self):
         for widget in self.lista_frame.winfo_children():
@@ -106,9 +137,10 @@ class TelaLivros(ctk.CTkFrame):
         for child in item.winfo_children():
             child.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
 
-        for i, (texto, pct) in enumerate(zip(livro, [0.3, 0.25, 0.2, 0.15, 0.1])):
-            lbl = ctk.CTkLabel(item, text=str(texto), font=("Segoe UI", 10), text_color=COR_TEXTO, anchor="w")
-            lbl.place(relx=sum([0.3, 0.25, 0.2, 0.15, 0.1][:i]) + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
+        colunas = [0.3, 0.15, 0.15, 0.15, 0.08, 0.1]
+        for i, (texto, pct) in enumerate(zip(livro, colunas)):
+            lbl = ctk.CTkLabel(item, text=str(texto) if texto else "-", font=("Segoe UI", 10), text_color=COR_TEXTO, anchor="w")
+            lbl.place(relx=sum(colunas[:i]) + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             lbl.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
 
         self._itens_lista.append((item, livro))
@@ -123,25 +155,30 @@ class TelaLivros(ctk.CTkFrame):
 
     def _cadastrar(self):
         titulo = self.entry_titulo.get().strip()
-        autor = self.entry_autor.get().strip()
-        categoria = self.entry_categoria.get().strip()
         isbn = self.entry_isbn.get().strip()
+        cat_nome = self.combo_categoria.get()
+        editora = self.entry_editora.get().strip()
+        ano = self.entry_ano.get().strip()
+        sinopse = self.entry_sinopse.get().strip()
 
         if not titulo:
             self._notificar("Informe o titulo do livro.")
             return
-        if not autor:
-            self._notificar("Informe o autor do livro.")
-            return
         if not isbn:
             self._notificar("Informe o ISBN do livro.")
             return
+        if not cat_nome or cat_nome not in self._cat_map:
+            self._notificar("Selecione uma categoria valida.")
+            return
+
+        id_categoria = self._cat_map[cat_nome]
+        ano_pub = int(ano) if ano.isdigit() else None
 
         self.btn_cadastrar.configure(text="Cadastrando...", state="disabled")
-        self.after(500, lambda: self._salvar(titulo, autor, categoria, isbn))
+        self.after(500, lambda: self._salvar(titulo, isbn, id_categoria, editora, ano_pub, sinopse))
 
-    def _salvar(self, titulo, autor, categoria, isbn):
-        sucesso = cadastrar_livro(titulo, autor, categoria, isbn)
+    def _salvar(self, titulo, isbn, id_categoria, editora, ano_pub, sinopse):
+        sucesso = cadastrar_livro(titulo, isbn, id_categoria, editora, ano_pub, sinopse)
         if sucesso:
             self._notificar("Livro cadastrado com sucesso!")
             self._limpar_campos()
@@ -151,11 +188,11 @@ class TelaLivros(ctk.CTkFrame):
         self.btn_cadastrar.configure(text="Cadastrar Livro", state="normal")
 
     def _excluir_selecionado(self):
-        if not hasattr(self, '_selecionado') or not self._selecionado:
+        if not self._selecionado:
             self._notificar("Selecione um livro para excluir.")
             return
-        isbn = self._selecionado[3]
-        sucesso = excluir_livro(isbn)
+        id_livro = self._selecionado[0]
+        sucesso = excluir_livro(id_livro)
         if sucesso:
             self._notificar("Livro excluido.")
             self._selecionado = None
@@ -164,7 +201,7 @@ class TelaLivros(ctk.CTkFrame):
             self._notificar("Erro ao excluir livro.")
 
     def _limpar_campos(self):
-        for entry in [self.entry_titulo, self.entry_autor, self.entry_categoria, self.entry_isbn]:
+        for entry in [self.entry_titulo, self.entry_isbn, self.entry_editora, self.entry_ano, self.entry_sinopse]:
             entry.delete(0, "end")
 
     def _voltar(self):

@@ -16,6 +16,7 @@ class TelaLogin(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
         super().__init__(master, fg_color=COR_BG)
         self.controller = controller
+        self._usuario_logado = None
         self._construir_ui()
 
     def _construir_ui(self):
@@ -65,6 +66,12 @@ class TelaLogin(ctk.CTkFrame):
         resultado = verificar_login(usuario, senha)
 
         if resultado:
+            self._usuario_logado = {
+                'id': resultado[0],
+                'nome': resultado[1],
+                'tipo': resultado[2]
+            }
+            self.controller.usuario_logado = self._usuario_logado
             self.controller.navegar_para("dashboard", voltavel=False)
         else:
             self._mostrar_erro("Usuario nao encontrado.")
