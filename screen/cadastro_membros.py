@@ -4,7 +4,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from services.conector import init_db
 from services.database_config import cadastrar_funcionario
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO,
@@ -12,18 +11,10 @@ from services.styles import (
 )
 
 
-class TelaCadastroMembros(ctk.CTkToplevel):
-    def __init__(self, master=None, maximizado=False):
-        super().__init__(master)
-        init_db()
-        self.title("LUMEN - Cadastro de Membros")
-        self.geometry("960x680")
-        self.minsize(800, 580)
-        self.configure(fg_color=COR_BG)
-        if maximizado:
-            self.after(10, self.state, "zoomed")
-
-        self.after(100, self.lift)
+class TelaCadastroMembros(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
         self._construir_ui()
 
     def _construir_ui(self):
@@ -65,7 +56,7 @@ class TelaCadastroMembros(ctk.CTkToplevel):
 
         lbl_voltar = criar_label(frame_voltar, "Voltar")
         lbl_voltar.pack()
-        lbl_voltar.bind("<Button-1>", lambda e: self.destroy())
+        lbl_voltar.bind("<Button-1>", lambda e: self.controller.voltar())
         lbl_voltar.configure(cursor="hand2")
 
         self.lbl_notificacao = criar_label(container, "", text_color=COR_TEXTO2)
@@ -109,11 +100,3 @@ class TelaCadastroMembros(ctk.CTkToplevel):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.pack(pady=(10, 0))
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.withdraw()
-    app = TelaCadastroMembros(master=root)
-    app.mainloop()
-    root.destroy()

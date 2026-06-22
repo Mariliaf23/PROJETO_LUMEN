@@ -4,35 +4,19 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from services.conector import init_db
 from services.database_config import verificar_login
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     FONTE_TITULO, FONTE_SUBTITULO, FONTE_INPUT, FONTE_BOTAO, FONTE_LABEL,
     criar_entry, criar_botao_preenchido, criar_label, criar_titulo
 )
-from services.transitions import transicao_entrar, transicao_sair
 
 
-class TelaLogin(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        init_db()
-        self.title("LUMEN")
-        self.geometry("960x680")
-        self.minsize(800, 580)
-        self.configure(fg_color=COR_BG)
-
-        self._centralizar()
+class TelaLogin(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
         self._construir_ui()
-
-    def _centralizar(self):
-        self.update_idletasks()
-        L = self.winfo_width()
-        A = self.winfo_height()
-        x = (self.winfo_screenwidth() - L) // 2
-        y = (self.winfo_screenheight() - A) // 2
-        self.geometry(f"+{x}+{y}")
 
     def _construir_ui(self):
         container = ctk.CTkFrame(self, fg_color=COR_BG)
@@ -58,7 +42,7 @@ class TelaLogin(ctk.CTk):
 
         lbl_registrar = criar_label(frame_registrar, "Nao tem conta? Registar", font=FONTE_LABEL)
         lbl_registrar.pack()
-        lbl_registrar.bind("<Button-1>", lambda e: self._abrir_cadastro())
+        lbl_registrar.bind("<Button-1>", lambda e: self.controller.navegar_para("cadastro_login"))
         lbl_registrar.configure(cursor="hand2")
 
         self.lbl_erro = criar_label(container, "", text_color=COR_TEXTO2, font=FONTE_LABEL)
@@ -81,37 +65,13 @@ class TelaLogin(ctk.CTk):
         resultado = verificar_login(usuario, senha)
 
         if resultado:
-            def abrir_dashboard():
-                from screen.dashboard import Dashboard
-                dashboard = Dashboard(self)
-                dashboard.wait_window()
-                if self.winfo_exists():
-                    self.deiconify()
-                    transicao_entrar(self)
-
-            transicao_sair(self, callback=abrir_dashboard)
+            self.controller.navegar_para("dashboard", voltavel=False)
         else:
             self._mostrar_erro("Usuario nao encontrado.")
 
         self.btn_entrar.configure(text="Entrar", state="normal")
 
-    def _abrir_cadastro(self):
-        def abrir():
-            from screen.tela_cadastro_login import LumenLoginApp
-            cadastro = LumenLoginApp(self)
-            cadastro.wait_window()
-            if self.winfo_exists():
-                self.deiconify()
-                transicao_entrar(self)
-
-        transicao_sair(self, callback=abrir)
-
     def _mostrar_erro(self, mensagem):
         self.lbl_erro.configure(text=mensagem, text_color="#d4b896")
         self.lbl_erro.pack(pady=(5, 0))
         self.after(3000, lambda: self.lbl_erro.configure(text=""))
-
-
-if __name__ == "__main__":
-    app = TelaLogin()
-    app.mainloop()

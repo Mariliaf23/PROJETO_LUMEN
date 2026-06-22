@@ -4,7 +4,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from services.conector import init_db
 from services.database_config import (
     listar_emprestimos_ativos, finalizar_emprestimo
 )
@@ -14,24 +13,17 @@ from services.styles import (
     criar_botao_preenchido, criar_botao, criar_label, criar_titulo,
     criar_card, criar_scroll_frame
 )
-from services.transitions import transicao_sair
 
 
-class TelaDevolucoes(ctk.CTkToplevel):
-    def __init__(self, master=None, maximizado=False):
-        super().__init__(master)
-        init_db()
-        self.title("LUMEN - Devolucoes")
-        self.geometry("1100x700")
-        self.minsize(900, 600)
-        self.configure(fg_color=COR_BG)
-        if maximizado:
-            self.after(10, self.state, "zoomed")
-
-        self.after(100, self.lift)
+class TelaDevolucoes(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
         self._itens_lista = []
         self._selecionado = None
         self._construir_ui()
+
+    def _ao_visitar(self):
         self._carregar_tabela()
 
     def _construir_ui(self):
@@ -136,17 +128,9 @@ class TelaDevolucoes(ctk.CTkToplevel):
         self.btn_devolver.configure(text="Registrar Devolucao", state="normal")
 
     def _voltar(self):
-        transicao_sair(self, callback=self.destroy)
+        self.controller.voltar()
 
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.withdraw()
-    app = TelaDevolucoes(master=root)
-    app.mainloop()
-    root.destroy()

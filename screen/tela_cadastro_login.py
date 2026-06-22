@@ -11,15 +11,10 @@ from services.styles import (
 )
 
 
-class LumenLoginApp(ctk.CTkToplevel):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.title("LUMEN - Cadastrar")
-        self.geometry("960x680")
-        self.minsize(800, 580)
-        self.configure(fg_color=COR_BG)
-
-        self.after(100, self.lift)
+class LumenLoginApp(ctk.CTkFrame):
+    def __init__(self, master=None, controller=None):
+        super().__init__(master, fg_color=COR_BG)
+        self.controller = controller
         self._construir_ui()
 
     def _construir_ui(self):
@@ -52,7 +47,7 @@ class LumenLoginApp(ctk.CTkToplevel):
 
         lbl_voltar = criar_label(frame_voltar, "Voltar", font=FONTE_LABEL)
         lbl_voltar.pack()
-        lbl_voltar.bind("<Button-1>", lambda e: self._voltar())
+        lbl_voltar.bind("<Button-1>", lambda e: self.controller.voltar())
         lbl_voltar.configure(cursor="hand2")
 
         self.lbl_notificacao = criar_label(container, "", text_color=COR_TEXTO2)
@@ -83,23 +78,12 @@ class LumenLoginApp(ctk.CTkToplevel):
         sucesso = cadastrar_funcionario(nome, email, senha)
         if sucesso:
             self._notificar("Conta criada com sucesso!")
-            self.after(1500, self._voltar)
+            self.after(1500, lambda: self.controller.voltar())
         else:
             self._notificar("Erro ao criar conta.")
         self.btn_cadastrar.configure(text="Cadastrar", state="normal")
-
-    def _voltar(self):
-        self.destroy()
 
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.pack(pady=(10, 0))
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.withdraw()
-    app = LumenLoginApp(master=root)
-    app.mainloop()
-    root.destroy()
