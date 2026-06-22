@@ -1,14 +1,20 @@
 import mysql.connector
 import os
+from dotenv import load_dotenv
 from mysql.connector import Error
 
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': ''
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', '')
 }
 
-DB_NAME = 'biblioteca'
+DB_NAME = os.getenv('DB_NAME', 'biblioteca')
+
+DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')
+DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD', 'admin123')
 
 
 def init_db():
@@ -29,6 +35,25 @@ def init_db():
                             cursor.execute(statement)
                         except Error:
                             pass
+
+        cursor.execute("SELECT COUNT(*) FROM funcionario")
+        total = cursor.fetchone()[0]
+
+        cursor.execute("SELECT nome_funcionario FROM funcionario WHERE nome_funcionario = %s", (DEFAULT_USER,))
+        existente = cursor.fetchone()
+
+        if existente:
+            cursor.execute(
+                "UPDATE funcionario SET password_funcionario = %s, funcao = 'admin' WHERE nome_funcionario = %s",
+                (DEFAULT_PASSWORD, DEFAULT_USER)
+            )
+            print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
+        elif total == 0:
+            cursor.execute(
+                "INSERT INTO funcionario (nome_funcionario, email_funcionario, password_funcionario, telefone_funcionario, funcao) VALUES (%s, %s, %s, %s, %s)",
+                (DEFAULT_USER, 'admin@lumen.com', DEFAULT_PASSWORD, '', 'admin')
+            )
+            print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")
 
         conn.commit()
         conn.close()
