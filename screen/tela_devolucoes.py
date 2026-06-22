@@ -32,15 +32,18 @@ class TelaDevolucoes(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
+        # --- HEADER PRINCIPAL ---
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
 
+        # Adicionado o padrão do logo e barra vertical das telas anteriores
         criar_titulo(header, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left")
-        criar_label(header, "Devolucoes Pendentes", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(side="left", padx=(15, 0))
+        criar_label(header, "|  Devoluções Pendentes", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(side="left", padx=(10, 0))
 
         btn_voltar = criar_botao_preenchido(header, text="Voltar", command=self._voltar, width=100, height=35)
         btn_voltar.pack(side="right")
 
+        # --- CARD DE AÇÕES ---
         acoes_card = criar_card(self)
         acoes_card.grid(row=1, column=0, sticky="ew", padx=30, pady=(10, 10))
 
@@ -48,21 +51,28 @@ class TelaDevolucoes(ctk.CTkFrame):
         acoes_frame.pack(fill="x", padx=20, pady=15)
 
         self.btn_devolver = criar_botao_preenchido(
-            acoes_frame, text="Registrar Devolucao", command=self._devolver,
+            acoes_frame, text="Registrar Devolução", command=self._devolver,
             width=220, height=42
         )
         self.btn_devolver.pack(side="left")
 
-        criar_label(acoes_frame, "Selecione um emprestimo na lista abaixo", font=FONTE_LABEL).pack(side="left", padx=(20, 0))
+        criar_label(acoes_frame, "Selecione um empréstimo na lista abaixo", font=FONTE_LABEL).pack(side="left", padx=(20, 0))
 
+        # --- CARD DA TABELA/LISTA ---
         lista_card = criar_card(self)
         lista_card.grid(row=2, column=0, sticky="nsew", padx=30, pady=(10, 20))
 
-        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent")
+        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=30)
         header_lista.pack(fill="x", padx=15, pady=(10, 5))
+        header_lista.pack_propagate(False)
 
-        for col, txt in [("ID", 0.06), ("Aluno", 0.2), ("Exemplar", 0.15), ("Livro", 0.2), ("Emprestimo", 0.12), ("Previsto", 0.12), ("Status", 0.1)]:
-            criar_label(header_lista, txt, font=("Segoe UI", 9, "bold"), text_color=COR_DOURADO).pack(side="left", expand=True, fill="x")
+        # Ajuste no alinhamento do Cabeçalho para bater estritamente com os itens posicionados por relx
+        colunas_larguras = [("ID", 0.06), ("Aluno", 0.2), ("Exemplar", 0.15), ("Livro", 0.2), ("Empréstimo", 0.12), ("Previsto", 0.12), ("Status", 0.1)]
+        x_header = 0
+        for txt, pct in colunas_larguras:
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_DOURADO, anchor="w")
+            lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
+            x_header += pct
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
@@ -75,14 +85,15 @@ class TelaDevolucoes(ctk.CTkFrame):
         self._itens_lista.clear()
         self._selecionado = None
 
-        emprestimos = listar_emprestimos_ativos()
+        emprestimos = listar_emprestimos_actifs() if hasattr(self, '_mock') else listar_emprestimos_ativos()
+        
         for emp in emprestimos:
             self._criar_item(emp)
 
         if not emprestimos:
             empty = ctk.CTkFrame(self.lista_frame, fg_color="transparent")
             empty.pack(fill="both", expand=True)
-            criar_label(empty, "Nenhuma devolucao pendente", font=FONTE_LABEL).pack(expand=True)
+            criar_label(empty, "Nenhuma devolução pendente", font=FONTE_LABEL).pack(expand=True)
 
     def _criar_item(self, emp):
         item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=8, height=42)
@@ -95,10 +106,11 @@ class TelaDevolucoes(ctk.CTkFrame):
         x = 0
         for i, (texto, pct) in enumerate(zip(emp, colunas)):
             cor = COR_TEXTO
-            if i == 6 and str(texto) == "atrasado":
-                cor = "#8a4040"
-            elif i == 6 and str(texto) == "ativo":
-                cor = "#d4b896"
+            if i == 6 and str(texto).lower() == "atrasado":
+                cor = "#ea9999"  # Vermelho suave para legibilidade no tema escuro
+            elif i == 6 and str(texto).lower() in ["ativo", "disponível", "disponivel"]:
+                cor = COR_DOURADO
+                
             lbl = ctk.CTkLabel(item, text=str(texto) if texto else "-", font=("Segoe UI", 10), text_color=cor, anchor="w")
             lbl.place(relx=x + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             lbl.bind("<Button-1>", lambda e, v=emp: self._selecionar(v))
@@ -109,14 +121,14 @@ class TelaDevolucoes(ctk.CTkFrame):
     def _selecionar(self, emp):
         for item, e in self._itens_lista:
             if e == emp:
-                item.configure(fg_color="#2a1a08")
+                item.configure(fg_color="#2a1a08")  # Mantém a cor de seleção ativa padrão ouro escuro
             else:
                 item.configure(fg_color=COR_CARD)
         self._selecionado = emp
 
     def _devolver(self):
         if not self._selecionado:
-            self._notificar("Selecione um emprestimo para devolver.")
+            self._notificar("Selecione um empréstimo para devolver.")
             return
         emp_id = self._selecionado[0]
         self.btn_devolver.configure(text="Processando...", state="disabled")
@@ -132,24 +144,24 @@ class TelaDevolucoes(ctk.CTkFrame):
 
             if dias_atraso > 0:
                 gerar_multa(emp_id, dias_atraso, 'atraso')
-                self._notificar(f"Devolucao registrada! Multa gerada: {dias_atraso} dias de atraso.")
+                self._notificar(f"Devolução registrada! Multa gerada: {dias_atraso} dias de atraso.")
             else:
-                self._notificar("Devolucao registrada com sucesso!")
+                self._notificar("Devolução registrada com sucesso!")
         except Exception:
-            self._notificar("Devolucao registrada com sucesso!")
+            self._notificar("Devolução registrada com sucesso!")
 
         sucesso = finalizar_emprestimo(emp_id)
         if sucesso:
             self._selecionado = None
             self._carregar_tabela()
         else:
-            self._notificar("Erro ao finalizar emprestimo.")
-        self.btn_devolver.configure(text="Registrar Devolucao", state="normal")
+            self._notificar("Erro ao finalizar empréstimo.")
+        self.btn_devolver.configure(text="Registrar Devolução", state="normal")
 
     def _voltar(self):
         self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
+        self.lbl_notificacao.configure(text=mensagem, text_color=COR_DOURADO)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))

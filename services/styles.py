@@ -3,20 +3,17 @@ import customtkinter as ctk
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-COR_BG = "#0f0a06"
-COR_CARD = "#1a1208"
-COR_SIDEBAR = "#120c08"
-COR_DOURADO = "#b89a72"
-COR_DOURADO_CLARO = "#d4b896"
-COR_TEXTO = "#ffffff"
-COR_TEXTO2 = "#8a7e72"
-COR_INPUT_BG = "#1e1610"
-COR_INPUT_BORDER = "#2a1a08"
-COR_HOVER = "#c4a882"
-COR_ATIVO = "#2a1a08"
-COR_SUCESSO = "#4a8a4a"
-COR_ERRO = "#8a4040"
-COR_AVISO = "#8a7a40"
+COR_BG = "#0B1220"
+COR_CARD = "#111827"
+COR_SIDEBAR = "#0F172A"
+COR_DOURADO = "#D4A373"
+COR_DOURADO_CLARO = "#E6C79C"
+COR_TEXTO = "#F8FAFC"
+COR_TEXTO2 = "#94A3B8"
+COR_INPUT_BG = "#1E293B"
+COR_INPUT_BORDER = "#334155"
+COR_HOVER = "#E6C79C"
+COR_ATIVO = "#1E293B"
 
 FONTE_TITULO = ("Cinzel", 26, "bold")
 FONTE_SUBTITULO = ("Segoe UI Light", 13)
@@ -113,7 +110,7 @@ def criar_titulo(parent, text, **kwargs):
 def criar_card(parent, **kwargs):
     defaults = dict(
         fg_color=COR_CARD,
-        corner_radius=12,
+        corner_radius=20,      # mais moderno
         border_width=1,
         border_color=COR_INPUT_BORDER,
     )
