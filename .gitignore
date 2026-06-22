@@ -48,4 +48,10 @@ secrets.toml
 *.swp
 *.swo
 .DS_Store
+<<<<<<< HEAD
 1781931839859-crisp-canyon.md
+=======
+.mimocode\
+1781931839859-crisp-canyon.md
+
+>>>>>>> f2efac9f37f99fde9b74e23d1cca3473731e39f2
