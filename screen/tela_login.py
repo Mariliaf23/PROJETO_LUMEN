@@ -38,14 +38,6 @@ class TelaLogin(ctk.CTkFrame):
         )
         self.btn_entrar.pack(pady=(0, 20))
 
-        frame_registrar = ctk.CTkFrame(container, fg_color="transparent")
-        frame_registrar.pack()
-
-        lbl_registrar = criar_label(frame_registrar, "Nao tem conta? Registar", font=FONTE_LABEL)
-        lbl_registrar.pack()
-        lbl_registrar.bind("<Button-1>", lambda e: self.controller.navegar_para("cadastro_login"))
-        lbl_registrar.configure(cursor="hand2")
-
         self.lbl_erro = criar_label(container, "", text_color=COR_TEXTO2, font=FONTE_LABEL)
 
     def _entrar(self):

@@ -80,6 +80,16 @@ class TelaExemplares(ctk.CTkFrame):
         header_lista = ctk.CTkFrame(lista_card, fg_color="transparent")
         header_lista.pack(fill="x", padx=15, pady=(10, 5))
 
+        self.entry_busca = criar_entry(header_lista, placeholder="Buscar por patrimonio ou livro...", width=250, height=32)
+        self.entry_busca.pack(side="left", padx=(0, 10))
+        self.entry_busca.bind("<Return>", lambda e: self._buscar())
+
+        ctk.CTkButton(
+            header_lista, text="Buscar", width=70, height=32,
+            fg_color=COR_DOURADO, text_color="#000",
+            command=self._buscar
+        ).pack(side="left", padx=(0, 10))
+
         for col, txt in [("Patrimonio", 0.2), ("Livro", 0.3), ("Status", 0.15), ("Localizacao", 0.2)]:
             criar_label(header_lista, txt, font=("Segoe UI", 10, "bold"), text_color=COR_DOURADO).pack(side="left", expand=True, fill="x")
 
@@ -100,19 +110,29 @@ class TelaExemplares(ctk.CTkFrame):
         if valores:
             self.combo_livro.set(valores[0])
 
-    def _carregar_tabela(self):
+    def _carregar_tabela(self, exemplares=None):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
         self._itens_lista.clear()
 
-        exemplares = listar_exemplares()
+        if exemplares is None:
+            exemplares = listar_exemplares()
         for exc in exemplares:
             self._criar_item(exc)
 
         if not exemplares:
             empty = ctk.CTkFrame(self.lista_frame, fg_color="transparent")
             empty.pack(fill="both", expand=True)
-            criar_label(empty, "Nenhum exemplar cadastrado", font=FONTE_LABEL).pack(expand=True)
+            criar_label(empty, "Nenhum exemplar encontrado", font=FONTE_LABEL).pack(expand=True)
+
+    def _buscar(self):
+        termo = self.entry_busca.get().strip().lower()
+        if not termo:
+            self._carregar_tabela()
+            return
+        todos = listar_exemplares()
+        filtrados = [e for e in todos if termo in str(e[0]).lower() or termo in str(e[4]).lower()]
+        self._carregar_tabela(filtrados)
 
     def _criar_item(self, exc):
         item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=8, height=42)

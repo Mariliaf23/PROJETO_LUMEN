@@ -79,15 +79,26 @@ class Dashboard(ctk.CTkFrame):
         separador = ctk.CTkFrame(sidebar, fg_color=COR_INPUT_BORDER, height=1)
         separador.pack(fill="x", padx=20, pady=(5, 20))
 
+        tipo_usuario = self.controller.usuario_logado.get('tipo', '') if self.controller.usuario_logado else ''
+
         itens = [
             ("DASHBOARD", True),
             ("LIVROS", False),
             ("EXEMPLARES", False),
-            ("CADASTRO USUARIO", False),
+            ("GERENCIAR USUARIOS", False),
             ("EMPRESTIMOS", False),
-            ("DEVOLUCOES", False),
             ("CONFIGURACOES", False),
         ]
+
+        itens_indisponivel = []
+        if tipo_usuario == 'bibliotecario':
+            itens = [
+                ("DASHBOARD", True),
+                ("LIVROS", False),
+                ("EXEMPLARES", False),
+                ("EMPRESTIMOS", False),
+            ]
+            itens_indisponivel = ["GERENCIAR USUARIOS", "CONFIGURACOES"]
 
         self._botoes_nav = []
         for nome, ativo in itens:
@@ -101,6 +112,28 @@ class Dashboard(ctk.CTkFrame):
             )
             btn.pack(fill="x", padx=15, pady=2)
             self._botoes_nav.append((btn, nome))
+
+        for nome in itens_indisponivel:
+            frame_btn = ctk.CTkFrame(
+                sidebar, fg_color="#1a1008", corner_radius=8, height=38
+            )
+            frame_btn.pack(fill="x", padx=15, pady=2)
+            frame_btn.pack_propagate(False)
+
+            ctk.CTkLabel(
+                frame_btn, text=f"{nome}  (Indisponivel)", font=FONTE_NAV,
+                text_color="#5a4030", anchor="w"
+            ).pack(side="left", padx=12, fill="both", expand=True)
+
+        separador_final = ctk.CTkFrame(sidebar, fg_color=COR_INPUT_BORDER, height=1)
+        separador_final.pack(fill="x", padx=20, pady=(20, 10))
+
+        ctk.CTkButton(
+            sidebar, text="Sair da Conta", font=FONTE_NAV,
+            fg_color="transparent", text_color="#8a4040",
+            hover_color="#2a1010", anchor="w", height=38,
+            command=self._logout
+        ).pack(fill="x", padx=15, pady=2)
 
     def _criar_conteudo(self):
         self._conteudo = ctk.CTkFrame(self, fg_color="transparent")
@@ -295,11 +328,14 @@ class Dashboard(ctk.CTkFrame):
         telas = {
             "LIVROS": "livros",
             "EXEMPLARES": "exemplares",
-            "CADASTRO USUARIO": "cadastro_usuario",
+            "GERENCIAR USUARIOS": "gerenciar_usuarios",
             "EMPRESTIMOS": "emprestimos",
-            "DEVOLUCOES": "devolucoes",
             "CONFIGURACOES": "configuracoes",
         }
         tela = telas.get(nome)
         if tela:
             self.controller.navegar_para(tela)
+
+    def _logout(self):
+        self.controller.usuario_logado = None
+        self.controller.voltar_ao_inicio()

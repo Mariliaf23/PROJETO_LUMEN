@@ -22,7 +22,7 @@ if __name__ == "__main__":
     from screen.emprestimos import TelaEmprestimos
     from screen.tela_devolucoes import TelaDevolucoes
     from screen.tela_configuracoes import TelaConfiguracoes
-    from screen.tela_cadastro_login import LumenLoginApp
+    from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios
 
     controller.registrar_tela("login", TelaLogin)
     controller.registrar_tela("dashboard", Dashboard)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     controller.registrar_tela("emprestimos", TelaEmprestimos)
     controller.registrar_tela("devolucoes", TelaDevolucoes)
     controller.registrar_tela("configuracoes", TelaConfiguracoes)
-    controller.registrar_tela("cadastro_login", LumenLoginApp)
+    controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios)
 
     controller.navegar_para("login", voltavel=False)
 

@@ -123,7 +123,7 @@ def criar_card(parent, **kwargs):
 
 def criar_combo(parent, values=None, **kwargs):
     defaults = dict(
-        values=values or [],
+        values=values or [" Selecione..."],
         font=FONTE_INPUT,
         fg_color=COR_INPUT_BG,
         button_color=COR_DOURADO,

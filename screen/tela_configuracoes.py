@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
+from tkinter import filedialog
 from dotenv import load_dotenv
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
@@ -107,6 +108,29 @@ class TelaConfiguracoes(ctk.CTkFrame):
         )
         self.btn_salvar.pack(pady=(10, 20))
 
+        report_card = criar_card(scroll)
+        report_card.pack(fill="x", pady=(0, 20))
+
+        criar_titulo(report_card, "Relatorios", font=("Cinzel", 16, "bold")).pack(anchor="w", padx=20, pady=(15, 10))
+
+        report_frame = ctk.CTkFrame(report_card, fg_color="transparent")
+        report_frame.pack(fill="x", padx=20, pady=(0, 15))
+
+        criar_botao_preenchido(
+            report_frame, text="Relatorio de Livros", command=lambda: self._gerar_relatorio('livros'),
+            width=200, height=38
+        ).pack(side="left", padx=(0, 10))
+
+        criar_botao_preenchido(
+            report_frame, text="Relatorio de Emprestimos", command=lambda: self._gerar_relatorio('emprestimos'),
+            width=220, height=38
+        ).pack(side="left", padx=(0, 10))
+
+        criar_botao_preenchido(
+            report_frame, text="Relatorio de Multas", command=lambda: self._gerar_relatorio('multas'),
+            width=200, height=38
+        ).pack(side="left")
+
         self.lbl_notificacao = criar_label(scroll, "", text_color=COR_TEXTO2)
 
     def _reconstruir(self):
@@ -132,6 +156,28 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
     def _voltar(self):
         self.controller.voltar()
+
+    def _gerar_relatorio(self, tipo):
+        from services.report_gen import (
+            gerar_relatorio_livros, gerar_relatorio_emprestimos, gerar_relatorio_multas
+        )
+        caminho = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            title=f"Salvar Relatorio de {tipo.title()}"
+        )
+        if not caminho:
+            return
+        try:
+            if tipo == 'livros':
+                gerar_relatorio_livros(caminho)
+            elif tipo == 'emprestimos':
+                gerar_relatorio_emprestimos(caminho)
+            elif tipo == 'multas':
+                gerar_relatorio_multas(caminho)
+            self._notificar(f"Relatorio salvo em: {caminho}")
+        except Exception as e:
+            self._notificar(f"Erro ao gerar relatorio: {e}")
 
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")

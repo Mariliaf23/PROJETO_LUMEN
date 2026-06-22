@@ -5,8 +5,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
 from services.database_config import (
-    cadastrar_livro, listar_livros, excluir_livro,
-    listar_categorias, cadastrar_categoria
+    cadastrar_livro, listar_livros, excluir_livro, buscar_livro_por_id,
+    listar_categorias, cadastrar_categoria,
+    listar_autores, listar_autores_livro, associar_autor_livro, desassociar_autor_livro
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
@@ -80,13 +81,25 @@ class TelaLivros(ctk.CTkFrame):
 
         self.btn_cadastrar = criar_botao_preenchido(
             botoes_frame, text="Cadastrar Livro", command=self._cadastrar,
-            width=180, height=38
+            width=160, height=38
         )
         self.btn_cadastrar.pack(side="left", padx=(0, 10))
 
+        self.btn_editar = criar_botao(
+            botoes_frame, text="Editar", command=self._editar_selecionado,
+            width=100, height=38
+        )
+        self.btn_editar.pack(side="left", padx=(0, 10))
+
+        self.btn_autores = criar_botao(
+            botoes_frame, text="Autores", command=self._gerenciar_autores,
+            width=100, height=38
+        )
+        self.btn_autores.pack(side="left", padx=(0, 10))
+
         self.btn_excluir = criar_botao(
-            botoes_frame, text="Excluir Selecionado", command=self._excluir_selecionado,
-            width=180, height=38, border_color="#8a4040", text_color="#8a4040"
+            botoes_frame, text="Excluir", command=self._excluir_selecionado,
+            width=100, height=38, border_color="#8a4040", text_color="#8a4040"
         )
         self.btn_excluir.pack(side="left")
 
@@ -200,6 +213,71 @@ class TelaLivros(ctk.CTkFrame):
         else:
             self._notificar("Erro ao excluir livro.")
 
+    def _editar_selecionado(self):
+        if not self._selecionado:
+            self._notificar("Selecione um livro para editar.")
+            return
+        id_livro = self._selecionado[0]
+        dados = buscar_livro_por_id(id_livro)
+        if not dados:
+            self._notificar("Livro nao encontrado.")
+            return
+        _, titulo, isbn, id_cat, editora, ano, sinopse = dados
+        self._limpar_campos()
+        self.entry_titulo.insert(0, titulo or '')
+        self.entry_isbn.insert(0, isbn or '')
+        self.entry_editora.insert(0, editora or '')
+        self.entry_ano.insert(0, str(ano) if ano else '')
+        self.entry_sinopse.insert(0, sinopse or '')
+        for nome, cid in self._cat_map.items():
+            if cid == id_cat:
+                self.combo_categoria.set(nome)
+                break
+        self.btn_cadastrar.configure(text="Salvar Alteracoes", command=self._salvar_edicao)
+        self._editando_id = id_livro
+
+    def _salvar_edicao(self):
+        titulo = self.entry_titulo.get().strip()
+        isbn = self.entry_isbn.get().strip()
+        cat_nome = self.combo_categoria.get()
+        editora = self.entry_editora.get().strip()
+        ano = self.entry_ano.get().strip()
+        sinopse = self.entry_sinopse.get().strip()
+
+        if not titulo or not isbn:
+            self._notificar("Titulo e ISBN sao obrigatorios.")
+            return
+        if cat_nome not in self._cat_map:
+            self._notificar("Selecione uma categoria valida.")
+            return
+
+        from services.database_config import _conectar
+        from mysql.connector import Error
+        try:
+            conn = _conectar()
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE livro SET titulo=%s, isbn=%s, id_categoria=%s,
+                   editora=%s, ano_publicacao=%s, sinopse=%s WHERE id_livro=%s""",
+                (titulo, isbn, self._cat_map[cat_nome], editora or None,
+                 int(ano) if ano.isdigit() else None, sinopse or None, self._editando_id)
+            )
+            conn.commit()
+            conn.close()
+            self._notificar("Livro atualizado!")
+            self._limpar_campos()
+            self.btn_cadastrar.configure(text="Cadastrar Livro", command=self._cadastrar)
+            self._editando_id = None
+            self._carregar_tabela()
+        except Error as e:
+            self._notificar(f"Erro ao atualizar: {e}")
+
+    def _gerenciar_autores(self):
+        if not self._selecionado:
+            self._notificar("Selecione um livro primeiro.")
+            return
+        JanelaAutoresLivro(self, self._selecionado[0], self._selecionado[1])
+
     def _limpar_campos(self):
         for entry in [self.entry_titulo, self.entry_isbn, self.entry_editora, self.entry_ano, self.entry_sinopse]:
             entry.delete(0, "end")
@@ -211,3 +289,67 @@ class TelaLivros(ctk.CTkFrame):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
+
+
+class JanelaAutoresLivro(ctk.CTkToplevel):
+    def __init__(self, master, id_livro, titulo_livro):
+        super().__init__(master)
+        self.title(f"Autores - {titulo_livro}")
+        self.geometry("400x400")
+        self.configure(fg_color=COR_BG)
+        self.grab_set()
+
+        criar_titulo(self, "Gerenciar Autores", font=FONTE_TITULO).pack(pady=(20, 5))
+        criar_label(self, titulo_livro, font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 15))
+
+        self._id_livro = id_livro
+
+        frame_add = ctk.CTkFrame(self, fg_color="transparent")
+        frame_add.pack(fill="x", padx=20, pady=(0, 10))
+
+        self.combo_autores = criar_combo(frame_add, width=220, height=36)
+        self.combo_autores.pack(side="left", padx=(0, 10))
+
+        ctk.CTkButton(
+            frame_add, text="+ Adicionar", width=100, height=36,
+            fg_color="#4a8a4a", text_color="#fff",
+            command=self._adicionar
+        ).pack(side="left")
+
+        self.lista_autores = ctk.CTkScrollableFrame(self, fg_color=COR_CARD, corner_radius=8)
+        self.lista_autores.pack(fill="both", expand=True, padx=20, pady=(0, 15))
+
+        self._carregar()
+
+    def _carregar(self):
+        for w in self.lista_autores.winfo_children():
+            w.destroy()
+
+        todos = listar_autores()
+        vinculados = listar_autores_livro(self._id_livro)
+        ids_vinculados = {a[0] for a in vinculados}
+        self._autores_map = {a[1]: a[0] for a in todos}
+
+        self.combo_autores.configure(values=[a[1] for a in todos if a[0] not in ids_vinculados])
+
+        for id_a, nome in vinculados:
+            linha = ctk.CTkFrame(self.lista_autores, fg_color="transparent")
+            linha.pack(fill="x", pady=2)
+            criar_label(linha, nome, font=FONTE_LABEL, text_color=COR_TEXTO).pack(side="left", padx=10)
+            ctk.CTkButton(
+                linha, text="X", width=28, height=28,
+                fg_color="#8a4040", text_color="#fff",
+                command=lambda aid=id_a: self._remover(aid)
+            ).pack(side="right", padx=10)
+
+    def _adicionar(self):
+        nome = self.combo_autores.get()
+        if not nome or nome not in self._autores_map:
+            return
+        id_autor = self._autores_map[nome]
+        associar_autor_livro(self._id_livro, id_autor)
+        self._carregar()
+
+    def _remover(self, id_autor):
+        desassociar_autor_livro(self._id_livro, id_autor)
+        self._carregar()
