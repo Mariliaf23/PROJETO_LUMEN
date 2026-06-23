@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/LUMEN logo.png" alt="Lumen Logo Original" width="200">
+  <img src="assets/logo_lumen.png" alt="Lumen Logo" width="200">
 </p>
 
 # 💡 PROJETO LUMEN
@@ -18,7 +18,7 @@ O projeto utiliza tecnologias modernas de desenvolvimento Python para garantir p
 *   **Interface Gráfica:** `CustomTkinter` (Interface moderna com suporte nativo a Dark Mode)
 *   **Banco de Dados:** `MySQL`
 *   **Relatórios:** `FPDF2` (Exportação profissional em PDF)
-*   **Gráficos:** `Matplotlib`
+*   **Gráficos:** `Canvas nativo do Tkinter`
 *   **Imagens:** `Pillow`
 *   **Variáveis de Ambiente:** `python-dotenv`
 
