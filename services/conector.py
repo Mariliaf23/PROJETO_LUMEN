@@ -47,13 +47,14 @@ def init_db():
 
         if existente:
             cursor.execute(
-                "UPDATE usuario SET senha = %s, funcao = 'admin' WHERE nome = %s",
+                "UPDATE usuario SET senha = %s, tipo_usuario = 'diretor', funcao = 'admin' WHERE nome = %s",
                 (senha_hash, DEFAULT_USER)
             )
             print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
         elif total == 0:
             cursor.execute(
-                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status) VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
+                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
+                   VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
                 (DEFAULT_USER, 'admin@lumen.com', senha_hash, '')
             )
             print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")

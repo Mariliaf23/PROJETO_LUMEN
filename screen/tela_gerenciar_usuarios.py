@@ -1,5 +1,6 @@
 import os
 import sys
+from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -10,7 +11,7 @@ from services.database_config import (
     buscar_usuarios_por_nome, cadastrar_usuario
 )
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO,
+    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_INPUT_BORDER, FONTE_TITULO, FONTE_SUBTITULO,
     criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo, criar_combo
 )
 
@@ -290,9 +291,25 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
     def _construir_ui(self):
         # ── Cabeçalho ──
         topo = ctk.CTkFrame(self, fg_color="transparent")
-        topo.pack(fill="x", padx=24, pady=(20, 10))
+        topo.pack(fill="x", padx=30, pady=(20, 10))
 
-        criar_titulo(topo, "Usuários", font=FONTE_TITULO).pack(side="left")
+        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
+
+        header_left = ctk.CTkFrame(topo, fg_color="transparent")
+        header_left.pack(side="left", fill="y")
+
+        if os.path.exists(logo_path):
+            try:
+                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
+                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
+                lbl_logo.pack(side="left", padx=(0, 15))
+            except:
+                criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
+        else:
+            criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
+
+        criar_label(header_left, "Gerenciar Usuários", font=FONTE_TITULO, text_color=COR_TEXTO).pack(side="left")
 
         criar_botao_preenchido(
             topo, text="+ Novo Usuário", command=self._abrir_cadastro,
@@ -301,7 +318,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         # ── Filtros ──
         filtros = ctk.CTkFrame(self, fg_color="transparent")
-        filtros.pack(fill="x", padx=24, pady=(0, 10))
+        filtros.pack(fill="x", padx=30, pady=(0, 10))
 
         self.entry_busca = criar_entry(filtros, placeholder="Buscar por nome…", width=260, height=36)
         self.entry_busca.pack(side="left", padx=(0, 10))
@@ -332,16 +349,21 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self.lbl_total.pack(side="right")
 
         # ── Tabela (scroll) ──
-        CabecalhoTabela(self).pack(fill="x", padx=24)
+        CabecalhoTabela(self).pack(fill="x", padx=30)
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.scroll.pack(fill="both", expand=True, padx=24, pady=(0, 20))
+        self.scroll.pack(fill="both", expand=True, padx=30, pady=(0, 20))
 
         rodape = ctk.CTkFrame(self, fg_color="transparent")
-        rodape.pack(pady=(0, 10))
+        rodape.pack(pady=(0, 10), padx=30)
 
         if self.controller:
-            criar_botao(rodape, text="Voltar", command=self.controller.voltar, width=100, height=35).pack()
+            btn_voltar = ctk.CTkButton(
+                rodape, text="Voltar", command=self.controller.voltar, width=130, height=45,
+                fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+                hover_color="#1E293B", font=("Segoe UI", 16, "bold")
+            )
+            btn_voltar.pack()
 
         self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
         self.lbl_notif.pack(pady=(0, 8))

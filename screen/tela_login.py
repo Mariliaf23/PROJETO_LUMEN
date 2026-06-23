@@ -122,20 +122,23 @@ class TelaLogin(ctk.CTkFrame):
         self.after(500, lambda: self._verificar(usuario, senha))
 
     def _verificar(self, usuario, senha):
-        resultado = verificar_login(usuario, senha)
+        try:
+            resultado = verificar_login(usuario, senha)
 
-        if resultado:
-            self._usuario_logado = {
-                'id': resultado[0],
-                'nome': resultado[1],
-                'tipo': resultado[2]
-            }
-            self.controller.usuario_logado = self._usuario_logado
-            self.controller.navegar_para("dashboard", voltavel=False)
-        else:
-            self._mostrar_erro("Usuário não encontrado.")
-
-        self.btn_entrar.configure(text="Entrar no Sistema", state="normal")
+            if resultado:
+                self._usuario_logado = {
+                    'id': resultado[0],
+                    'nome': resultado[1],
+                    'tipo': resultado[2]
+                }
+                self.controller.usuario_logado = self._usuario_logado
+                self.controller.navegar_para("dashboard", voltavel=False)
+            else:
+                self._mostrar_erro("Usuário ou senha incorretos.")
+        except Exception as e:
+            self._mostrar_erro(f"Erro de conexão: {e}")
+        finally:
+            self.btn_entrar.configure(text="Entrar no Sistema", state="normal")
 
     def _mostrar_erro(self, mensagem):
         self.lbl_erro.configure(text=mensagem, text_color="#d4b896")

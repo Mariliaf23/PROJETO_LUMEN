@@ -1,15 +1,11 @@
 import os
 import sys
+import math
 from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-import matplotlib
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
 
 from services.database_config import (
     buscar_stats_dashboard, buscar_emprestimos_por_mes,
@@ -21,7 +17,6 @@ from services.styles import (
     criar_label, criar_card
 )
 
-# Paleta refinada e alinhada com a identidade Lumen
 COR_GRAF_AZUL = "#0091FF"
 COR_GRAF_DOURADO = "#D4A373"
 COR_GRAF_CLARO = "#E6C79C"
@@ -29,6 +24,104 @@ COR_GRAF_MUTED = "#334155"
 
 MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+CORES_PIZZA = [COR_GRAF_AZUL, COR_GRAF_DOURADO, COR_GRAF_CLARO, COR_GRAF_MUTED, "#1E293B"]
+
+
+class GraficoBarras(ctk.CTkCanvas):
+    def __init__(self, master, dados, labels, cor_normal=COR_GRAF_MUTED, cor_destaque=COR_GRAF_AZUL, **kw):
+        super().__init__(master, bg=COR_CARD, highlightthickness=0, **kw)
+        self.dados = dados
+        self.labels = labels
+        self.cor_normal = cor_normal
+        self.cor_destaque = cor_destaque
+        self.bind("<Configure>", self._desenhar)
+
+    def _desenhar(self, event=None):
+        self.delete("all")
+        w = self.winfo_width()
+        h = self.winfo_height()
+        if not self.dados or w < 50 or h < 50:
+            return
+
+        max_val = max(self.dados) if max(self.dados) > 0 else 1
+        n = len(self.dados)
+        margem_esq, margem_dir, margem_topo, margem_base = 10, 10, 30, 40
+        largura_util = w - margem_esq - margem_dir
+        altura_util = h - margem_topo - margem_base
+        espaco = largura_util / n
+        largura_barra = espaco * 0.55
+
+        for i, (valor, label) in enumerate(zip(self.dados, self.labels)):
+            x_center = margem_esq + espaco * i + espaco / 2
+            barra_h = (valor / max_val) * altura_util if max_val > 0 else 0
+            x0 = x_center - largura_barra / 2
+            y0 = h - margem_base
+            x1 = x_center + largura_barra / 2
+            y1 = y0 - barra_h
+
+            cor = self.cor_destaque if valor == max(self.dados) else self.cor_normal
+            self.create_rectangle(x0, y0, x1, y1, fill=cor, outline="", width=0)
+
+            if valor > 0:
+                self.create_text(x_center, y1 - 8, text=str(valor),
+                                 fill=COR_TEXTO, font=("Segoe UI", 9, "bold"))
+
+            self.create_text(x_center, h - margem_base + 15, text=label,
+                             fill=COR_TEXTO2, font=("Segoe UI", 9))
+
+        for i in range(1, 5):
+            y = h - margem_base - (altura_util * i / 4)
+            self.create_line(margem_esq, y, w - margem_dir, y,
+                             fill=COR_INPUT_BORDER, dash=(3, 5))
+
+
+class GraficoPizza(ctk.CTkCanvas):
+    def __init__(self, master, dados, **kw):
+        super().__init__(master, bg=COR_CARD, highlightthickness=0, **kw)
+        self.dados = dados
+        self.bind("<Configure>", self._desenhar)
+
+    def _desenhar(self, event=None):
+        self.delete("all")
+        w = self.winfo_width()
+        h = self.winfo_height()
+        if not self.dados or w < 50 or h < 50:
+            return
+
+        total = sum(v for _, v in self.dados)
+        if total == 0:
+            return
+
+        cx, cy = w / 2, h / 2
+        raio = min(w, h) / 2 - 20
+        raio_externo = raio
+        raio_interno = raio * 0.55
+
+        angulo_inicio = -90
+        for i, (cat, valor) in enumerate(self.dados):
+            fatia = (valor / total) * 360
+            angulo_fim = angulo_inicio + fatia
+            cor = CORES_PIZZA[i % len(CORES_PIZZA)]
+
+            pontos = []
+            for grau in range(int(angulo_inicio), int(angulo_fim) + 1):
+                rad = math.radians(grau)
+                pontos.append(cx + raio_externo * math.cos(rad))
+                pontos.append(cy + raio_externo * math.sin(rad))
+            for grau in range(int(angulo_fim), int(angulo_inicio) - 1, -1):
+                rad = math.radians(grau)
+                pontos.append(cx + raio_interno * math.cos(rad))
+                pontos.append(cy + raio_interno * math.sin(rad))
+
+            if len(pontos) >= 6:
+                self.create_polygon(pontos, fill=cor, outline=COR_CARD, width=2)
+
+            angulo_inicio = angulo_fim
+
+        self.create_text(cx, cy - 8, text=str(total), fill=COR_TEXTO,
+                         font=("Segoe UI", 12, "bold"))
+        self.create_text(cx, cy + 10, text="100%", fill=COR_TEXTO2,
+                         font=("Segoe UI", 9))
 
 
 class Dashboard(ctk.CTkFrame):
@@ -36,27 +129,13 @@ class Dashboard(ctk.CTkFrame):
         super().__init__(master, fg_color=COR_BG)
         self.controller = controller
 
-        # Configuração profissional para os gráficos Matplotlib
-        plt.rcParams.update({
-            'figure.facecolor': COR_CARD,
-            'axes.facecolor': COR_CARD,
-            'axes.edgecolor': 'none',
-            'axes.labelcolor': COR_TEXTO2,
-            'text.color': COR_TEXTO,
-            'xtick.color': COR_TEXTO2,
-            'ytick.color': COR_TEXTO2,
-            'grid.color': COR_INPUT_BORDER,
-            'grid.alpha': 0.15,
-            'font.family': 'Segoe UI',
-            'font.size': 11,
-        })
-
         self._carregar_dados()
         self._construir_ui()
 
     def _ao_visitar(self):
         self._carregar_dados()
         self._recriar_conteudo()
+        self._recriar_sidebar()
 
     def _carregar_dados(self):
         self._stats = buscar_stats_dashboard()
@@ -68,22 +147,24 @@ class Dashboard(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+        self.sidebar_container = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, width=260, corner_radius=0)
+        self.sidebar_container.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_container.grid_propagate(False)
+
         self._criar_sidebar()
         self._criar_conteudo()
 
-    def _criar_sidebar(self):
-        sidebar = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, width=260, corner_radius=0)
-        sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_propagate(False)
+    def _recriar_sidebar(self):
+        for widget in self.sidebar_container.winfo_children():
+            widget.destroy()
+        self._criar_sidebar()
 
-        # === TOPO COM LOGO ===
-        topo = ctk.CTkFrame(sidebar, fg_color="transparent")
+    def _criar_sidebar(self):
+        topo = ctk.CTkFrame(self.sidebar_container, fg_color="transparent")
         topo.pack(fill="x", pady=(25, 5), padx=10)
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "logo_lumen.png")
-        if not os.path.exists(logo_path):
-            logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
+        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
 
         if os.path.exists(logo_path):
             try:
@@ -95,35 +176,31 @@ class Dashboard(ctk.CTkFrame):
         else:
             ctk.CTkLabel(topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=COR_DOURADO).pack()
 
-        separador = ctk.CTkFrame(sidebar, fg_color=COR_INPUT_BORDER, height=1)
+        separador = ctk.CTkFrame(self.sidebar_container, fg_color=COR_INPUT_BORDER, height=1)
         separador.pack(fill="x", padx=25, pady=(15, 20))
 
-        # === MENU DE NAVEGAÇÃO ===
+        tipo_usuario = None
+        if self.controller and hasattr(self.controller, 'usuario_logado') and self.controller.usuario_logado:
+            tipo_usuario = self.controller.usuario_logado.get('tipo', '').lower()
+
         itens = [
-            ("🏠  Dashboard", True, "dashboard"),
-            ("📚  Livros", False, "livros"),
-            ("📦  Exemplares", False, "exemplares"),
-            ("👨  Usuários", False, "cadastro_usuario"),
-            ("🔄  Empréstimos", False, "emprestimos"),
-            ("↩️  Devoluções", False, "devolucoes"),
-            ("⚙️  Configurações", False, "configuracoes"),
+            ("🏠   Dashboard", True, "dashboard"),
+            ("📚   Livros", False, "livros"),
         ]
 
-        tipo_usuario = self.controller.usuario_logado.get('tipo', '') if self.controller and self.controller.usuario_logado else ''
-        itens_indisponivel = []
-        if tipo_usuario == 'bibliotecario':
-            itens = [
-                ("🏠  Dashboard", True, "dashboard"),
-                ("📚  Livros", False, "livros"),
-                ("📦  Exemplares", False, "exemplares"),
-                ("🔄  Empréstimos", False, "emprestimos"),
-            ]
-            itens_indisponivel = ["gerenciar_usuarios", "configuracoes"]
+        if tipo_usuario in ('admin', 'diretor'):
+            itens.extend([
+                ("📦   Exemplares", False, "exemplares"),
+                ("🔄   Empréstimos", False, "emprestimos"),
+                ("↩️   Devoluções", False, "devolucoes"),
+                ("👨   Usuários", False, "gerenciar_usuarios"),
+                ("⚙️   Configurações", False, "configuracoes"),
+            ])
 
         self._botoes_nav = []
         for nome, ativo, chave in itens:
             btn = ctk.CTkButton(
-                sidebar,
+                self.sidebar_container,
                 text=nome,
                 font=("Segoe UI", 15, "bold" if ativo else "normal"),
                 fg_color=COR_ATIVO if ativo else "transparent",
@@ -137,8 +214,8 @@ class Dashboard(ctk.CTkFrame):
             btn.pack(fill="x", padx=15, pady=5)
             self._botoes_nav.append((btn, nome))
 
-        # Rodapé corporativo
-        ctk.CTkLabel(sidebar, text="v1.0 • LUMEN SYSTEM", font=("Segoe UI", 11), text_color=COR_INPUT_BORDER).pack(side="bottom", pady=20)
+        ctk.CTkLabel(self.sidebar_container, text="v1.0 • LUMEN SYSTEM",
+                     font=("Segoe UI", 11), text_color=COR_INPUT_BORDER).pack(side="bottom", pady=20)
 
     def _criar_conteudo(self):
         self._conteudo = ctk.CTkScrollableFrame(self, fg_color="transparent", corner_radius=0)
@@ -190,7 +267,7 @@ class Dashboard(ctk.CTkFrame):
             card = criar_card(cards_frame)
             card.grid(row=0, column=i, padx=8, pady=0, sticky="nsew")
 
-            criar_label(card, titulo, font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO2).pack(anchor="center", pady=(20, 2))
+            criar_label(card, titulo, font=("Segoe UI", 13, "bold"), text_color=COR_TEXTO2).pack(anchor="center", pady=(20, 2))
             ctk.CTkLabel(card, text=valor, font=("Segoe UI", 58, "bold"), text_color=cor_valor).pack(anchor="center")
             criar_label(card, subtitulo, font=("Segoe UI", 12), text_color=COR_INPUT_BORDER).pack(anchor="center", pady=(0, 20))
 
@@ -199,50 +276,31 @@ class Dashboard(ctk.CTkFrame):
         graficos_frame.grid(row=2, column=0, sticky="nsew", padx=10)
         graficos_frame.grid_columnconfigure((0, 1), weight=1)
 
-        self._criar_grafico_barras_matplotlib(graficos_frame, "Movimentação Mensal", self._emp_mes, 0, 0)
-        self._criar_grafico_pizza_matplotlib(graficos_frame, "Distribuição por Categoria", self._cat_livros, 0, 1)
-        self._criar_grafico_semana_matplotlib(graficos_frame, "Fluxo de Empréstimos Diários", self._emp_semana, 1, 0, 2)
+        self._criar_grafico_barras(graficos_frame, "Movimentação Mensal", self._emp_mes, 0, 0)
+        self._criar_grafico_pizza(graficos_frame, "Distribuição por Categoria", self._cat_livros, 0, 1)
+        self._criar_grafico_semana(graficos_frame, "Fluxo de Empréstimos Diários", self._emp_semana, 1, 0, 2)
 
-    def _criar_grafico_barras_matplotlib(self, parent, titulo, dados, row, col):
+    def _criar_grafico_barras(self, parent, titulo, dados, row, col):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         if not dados:
             criar_label(card, "Sem movimentações registradas neste período.", font=("Segoe UI", 12)).pack(expand=True, pady=80)
             return
 
-        fig = Figure(figsize=(5.0, 3.8), dpi=100)
-        ax = fig.add_subplot(111)
-
-        meses = [MESES[m] for m, _ in dados]
+        labels = [MESES[m] for m, _ in dados]
         valores = [v for _, v in dados]
 
-        cores = [COR_GRAF_AZUL if v == max(valores) else COR_GRAF_MUTED for v in valores]
-        barras = ax.bar(meses, valores, color=cores, width=0.55, edgecolor='none')
+        canvas = GraficoBarras(card, valores, labels, height=260)
+        canvas.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
-        for barra, valor in zip(barras, valores):
-            ax.text(barra.get_x() + barra.get_width()/2., barra.get_height() + (max(valores)*0.02),
-                    str(valor), ha='center', va='bottom', color=COR_TEXTO, fontsize=9, fontweight='bold')
-
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.tick_params(bottom=False, left=False, colors=COR_TEXTO2, labelsize=9)
-        ax.set_ylim(0, max(valores) * 1.25 if max(valores) > 0 else 1)
-        ax.grid(axis='y', alpha=0.1, color=COR_TEXTO2)
-
-        fig.tight_layout()
-        canvas = FigureCanvasTkAgg(fig, master=card)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        plt.close(fig)
-
-    def _criar_grafico_pizza_matplotlib(self, parent, titulo, dados, row, col):
+    def _criar_grafico_pizza(self, parent, titulo, dados, row, col):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 5))
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 5))
 
         if not dados:
             criar_label(card, "Nenhum livro categorizado encontrado.", font=("Segoe UI", 12)).pack(expand=True, pady=80)
@@ -254,64 +312,30 @@ class Dashboard(ctk.CTkFrame):
         area_grafico = ctk.CTkFrame(layout_container, fg_color="transparent")
         area_grafico.pack(side="left", fill="both", expand=True)
 
-        # CONFIGURAÇÃO DE TAMANHO SEGURO: Proporção retangular controlada para não esmagar verticalmente
-        fig = Figure(figsize=(3.0, 2.5), dpi=100)
-        ax = fig.add_subplot(111)
-        
-        # Margem de segurança explícita para evitar cortes nas extremidades do canvas
-        fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.10)
-
-        categorias = [c for c, _ in dados]
-        valores = [v for _, v in dados]
-        cores = [COR_GRAF_AZUL, COR_GRAF_DOURADO, COR_GRAF_CLARO, COR_GRAF_MUTED, "#1E293B"]
-
-        # AJUSTE NO RAIO (De 1.0 para 0.7): Reduz o tamanho do círculo para que caiba com folga no card vertical
-        wedges, _ = ax.pie(
-            valores, 
-            colors=cores[:len(categorias)], 
-            startangle=90, 
-            radius=0.7,
-            wedgeprops=dict(width=0.18, edgecolor=COR_CARD, linewidth=2)
-        )
-
-        canvas = FigureCanvasTkAgg(fig, master=area_grafico)
-        canvas.draw()
-        canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor="center")
-        plt.close(fig)
-
-        total = sum(valores)
-        lbl_centro = ctk.CTkLabel(
-            area_grafico, 
-            text=f"TOTAL\n{total}\n100%", 
-            font=("Segoe UI", 11, "bold"), 
-            text_color=COR_TEXTO,
-            justify="center"
-        )
-        lbl_centro.place(relx=0.5, rely=0.5, anchor="center")
+        canvas = GraficoPizza(area_grafico, dados)
+        canvas.pack(fill="both", expand=True)
 
         area_legenda = ctk.CTkFrame(layout_container, fg_color="transparent")
         area_legenda.pack(side="right", fill="y", padx=(10, 15), pady=25)
-        
+
         ctk.CTkLabel(area_legenda, text="Categorias", font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO2).pack(anchor="w", pady=(0, 8))
 
+        categorias = [c for c, _ in dados]
         for idx, cat in enumerate(categorias):
             item_frame = ctk.CTkFrame(area_legenda, fg_color="transparent")
             item_frame.pack(anchor="w", pady=4)
 
-            marcador = ctk.CTkFrame(item_frame, width=12, height=12, fg_color=cores[idx % len(cores)], corner_radius=2)
+            marcador = ctk.CTkFrame(item_frame, width=12, height=12, fg_color=CORES_PIZZA[idx % len(CORES_PIZZA)], corner_radius=2)
             marcador.pack(side="left", padx=(0, 8))
             marcador.pack_propagate(False)
 
             ctk.CTkLabel(item_frame, text=cat, font=("Segoe UI", 12), text_color=COR_TEXTO).pack(side="left")
 
-    def _criar_grafico_semana_matplotlib(self, parent, titulo, dados, row, col, colspan):
+    def _criar_grafico_semana(self, parent, titulo, dados, row, col, colspan):
         card = criar_card(parent)
         card.grid(row=row, column=col, columnspan=colspan, padx=8, pady=12, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
-
-        fig = Figure(figsize=(10, 3.6), dpi=100)
-        ax = fig.add_subplot(111)
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         dados_map = {d: 0 for d in DIAS}
         for dia, total in dados:
@@ -319,27 +343,9 @@ class Dashboard(ctk.CTkFrame):
                 dados_map[dia] = total
 
         valores = [dados_map[d] for d in DIAS]
-        max_val = max(valores) if valores else 1
-
-        cores = [COR_GRAF_DOURADO if v == max_val and v > 0 else COR_GRAF_MUTED for v in valores]
-        barras = ax.bar(DIAS, valores, color=cores, width=0.45, edgecolor='none')
-
-        for barra, valor in zip(barras, valores):
-            if valor > 0:
-                ax.text(barra.get_x() + barra.get_width()/2., barra.get_height() + (max_val*0.03),
-                        str(valor), ha='center', va='bottom', color=COR_TEXTO, fontsize=9, fontweight='bold')
-
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.tick_params(bottom=False, left=False, colors=COR_TEXTO2, labelsize=9)
-        ax.set_ylim(0, max_val * 1.3 if max_val > 0 else 1)
-        ax.grid(axis='y', alpha=0.1, color=COR_TEXTO2)
-
-        fig.tight_layout()
-        canvas = FigureCanvasTkAgg(fig, master=card)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        plt.close(fig)
+        canvas = GraficoBarras(card, valores, DIAS,
+                               cor_normal=COR_GRAF_MUTED, cor_destaque=COR_GRAF_DOURADO, height=240)
+        canvas.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
     def _navegar(self, nome):
         telas = {
@@ -349,6 +355,7 @@ class Dashboard(ctk.CTkFrame):
             "emprestimos": "emprestimos",
             "devolucoes": "devolucoes",
             "configuracoes": "configuracoes",
+            "gerenciar_usuarios": "gerenciar_usuarios",
         }
         if nome in telas:
             self.controller.navegar_para(telas[nome])

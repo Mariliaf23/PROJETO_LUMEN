@@ -55,7 +55,7 @@ class TelaExemplares(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         # Título com fonte aumentada para 26
-        criar_label(header_left, "|  Gerenciar Exemplares", font=("Segoe UI", 26, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Gerenciar Exemplares", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
 
         # Botão voltar azul escuro sólido com texto branco
         btn_voltar = ctk.CTkButton(

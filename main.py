@@ -1,6 +1,7 @@
 import sys
 import os
 
+# Configura o caminho para importar os módulos
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import customtkinter as ctk
@@ -8,12 +9,14 @@ from services.app_controller import AppController
 from services.conector import init_db
 
 if __name__ == "__main__":
-    init_db()
+    if not init_db():
+        print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
 
     root = ctk.CTk()
     controller = AppController(root)
     controller.usuario_logado = None
 
+    # Importação das telas
     from screen.tela_login import TelaLogin
     from screen.dashboard import Dashboard
     from screen.tela_livros import TelaLivros
@@ -24,6 +27,7 @@ if __name__ == "__main__":
     from screen.tela_configuracoes import TelaConfiguracoes
     from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios
 
+    # Registro das telas no controller
     controller.registrar_tela("login", TelaLogin)
     controller.registrar_tela("dashboard", Dashboard)
     controller.registrar_tela("livros", TelaLivros)
@@ -34,6 +38,7 @@ if __name__ == "__main__":
     controller.registrar_tela("configuracoes", TelaConfiguracoes)
     controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios)
 
+    # Inicia na tela de login
     controller.navegar_para("login", voltavel=False)
 
     root.mainloop()

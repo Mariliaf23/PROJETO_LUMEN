@@ -1,8 +1,9 @@
 import os
 import sys
 from PIL import Image
-from tkinter import filedialog
 from dotenv import load_dotenv
+import tkinter as tk
+from tkinter import filedialog
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -73,12 +74,14 @@ class TelaConfiguracoes(ctk.CTkFrame):
                 pass
         
         # Título da tela ao lado do logo
-        criar_titulo(header_left, "Configurações do Sistema", font=("Segoe UI", 20, "bold")).pack(side="left")
+        titulo = criar_titulo(header_left, "Configurações do Sistema", font=("Segoe UI", 38, "bold"))
+        titulo.configure(text_color="white")   # ou "#FFFFFF"
+        titulo.pack(side="left")
 
         btn_voltar = ctk.CTkButton(
-            header, text="Voltar", command=self._voltar, 
-            width=100, height=35, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 12, "bold")
+            header, text="Voltar", command=self._voltar, width=130, height=45,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 
@@ -89,51 +92,60 @@ class TelaConfiguracoes(ctk.CTkFrame):
         db_card = criar_card(scroll)
         db_card.pack(fill="x", pady=(0, 20))
 
-        criar_titulo(db_card, "Banco de Dados", font=("Segoe UI", 14, "bold"), text_color=COR_AZUL_CLARO).pack(anchor="w", padx=20, pady=(15, 10))
+        criar_titulo(db_card,"Banco de Dados",font=("Segoe UI", 20, "bold"),     text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))# Branco suave / off-white
 
         db_frame = ctk.CTkFrame(db_card, fg_color="transparent")
         db_frame.pack(fill="x", padx=20, pady=(0, 15))
-        db_frame.grid_columnconfigure((0, 1), weight=1)
+        db_frame.grid_columnconfigure((0, 1), weight=1,uniform="col")
 
-        criar_label(db_frame, "Host", font=FONTE_LABEL).grid(row=0, column=0, sticky="w", pady=(0, 3))
+        criar_label(db_frame, "Host", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=0, column=0, sticky="w", padx=20, pady=(0, 3))
         self.entry_db_host = criar_entry(db_frame, height=38)
         self.entry_db_host.insert(0, self.valores['DB_HOST'])
-        self.entry_db_host.grid(row=1, column=0, padx=(0, 10), sticky="ew")
+        self.entry_db_host.grid(row=1, column=0, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Usuário", font=FONTE_LABEL).grid(row=0, column=1, sticky="w", pady=(0, 3))
+        criar_label(db_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=0, column=1, sticky="w", padx=20, pady=(0, 3))
         self.entry_db_user = criar_entry(db_frame, height=38)
         self.entry_db_user.insert(0, self.valores['DB_USER'])
-        self.entry_db_user.grid(row=1, column=1, padx=(10, 0), sticky="ew")
+        self.entry_db_user.grid(row=1, column=1, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Senha", font=FONTE_LABEL).grid(row=2, column=0, sticky="w", pady=(10, 3))
+        criar_label(db_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=2, column=0, sticky="w", padx=20, pady=(12, 3))
         self.entry_db_password = criar_entry(db_frame, height=38, show="*")
         self.entry_db_password.insert(0, self.valores['DB_PASSWORD'])
-        self.entry_db_password.grid(row=3, column=0, padx=(0, 10), sticky="ew")
+        self.entry_db_password.grid(row=3, column=0, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Banco", font=FONTE_LABEL).grid(row=2, column=1, sticky="w", pady=(10, 3))
+        criar_label(db_frame, "Banco", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=2, column=1, sticky="w", padx=20, pady=(12, 3))
         self.entry_db_name = criar_entry(db_frame, height=38)
         self.entry_db_name.insert(0, self.valores['DB_NAME'])
-        self.entry_db_name.grid(row=3, column=1, padx=(10, 0), sticky="ew")
+        self.entry_db_name.grid(row=3, column=1, padx=20, sticky="ew")
 
         # === CARD: USUÁRIO PADRÃO ===
         user_card = criar_card(scroll)
         user_card.pack(fill="x", pady=(0, 20))
 
-        criar_titulo(user_card, "Usuário Padrão (Administrador)", font=("Segoe UI", 14, "bold"), text_color=COR_AZUL_CLARO).pack(anchor="w", padx=20, pady=(15, 10))
+        criar_titulo(user_card, "Usuário Padrão (Administrador)", font=("Segoe UI", 20, "bold"), text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))
 
         user_frame = ctk.CTkFrame(user_card, fg_color="transparent")
         user_frame.pack(fill="x", padx=20, pady=(0, 15))
-        user_frame.grid_columnconfigure((0, 1), weight=1)
+        user_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
 
-        criar_label(user_frame, "Usuário", font=FONTE_LABEL).grid(row=0, column=0, sticky="w", pady=(0, 3))
+        # ==================== LINHA 1 ====================
+        criar_label(user_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=0, column=0, sticky="w", padx=20, pady=(0, 3))
+
         self.entry_default_user = criar_entry(user_frame, height=38)
         self.entry_default_user.insert(0, self.valores['DEFAULT_USER'])
-        self.entry_default_user.grid(row=1, column=0, padx=(0, 10), sticky="ew")
+        self.entry_default_user.grid(row=1, column=0, padx=20, sticky="ew")
 
-        criar_label(user_frame, "Senha", font=FONTE_LABEL).grid(row=0, column=1, sticky="w", pady=(0, 3))
+        criar_label(user_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        row=0, column=1, sticky="w", padx=20, pady=(0, 3))
+
         self.entry_default_password = criar_entry(user_frame, height=38, show="*")
         self.entry_default_password.insert(0, self.valores['DEFAULT_PASSWORD'])
-        self.entry_default_password.grid(row=1, column=1, padx=(10, 0), sticky="ew")
+        self.entry_default_password.grid(row=1, column=1, padx=20, sticky="ew")
 
         # === BOTÃO DE SALVAR (AZUL CORPORATIVO) ===
         self.btn_salvar = ctk.CTkButton(

@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+# This file is like a "Gatekeeper" or a "Teacher".
+# It checks if the information we typed is correct, like checking if we did our homework right!
+=======
 import re
 
 
@@ -44,3 +48,4 @@ def validar_senha(senha, minimo=4):
 
 def campo_obrigatorio(valor):
     return bool(valor and valor.strip())
+>>>>>>> 12ec4c008d6bb431d769c5aad89078f3e6cb323a

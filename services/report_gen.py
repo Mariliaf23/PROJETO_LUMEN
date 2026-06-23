@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+# This file is like a "Storybook Writer".
+# It gathers information and writes a nice report for us to read.
+=======
 import os
 from datetime import date
 from fpdf import FPDF
@@ -168,3 +172,4 @@ def gerar_relatorio_geral(caminho):
 
     pdf.output(caminho)
     return caminho
+>>>>>>> 12ec4c008d6bb431d769c5aad89078f3e6cb323a
