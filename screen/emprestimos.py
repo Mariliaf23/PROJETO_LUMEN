@@ -5,36 +5,36 @@ from PIL import Image
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from datetime import date
 from services.database_config import (
     cadastrar_emprestimo, listar_emprestimos, finalizar_emprestimo,
     listar_alunos, listar_exemplares_disponiveis, verificar_atrasos,
     cadastrar_reserva, listar_reservas, cancelar_reserva,
     listar_multas, pagar_multa, usuario_tem_multa_pendente,
-    listar_livros, gerar_multa, listar_emprestimos_ativos
+    listar_livros
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame, criar_combo,
-    criar_botao_preenchido
+    criar_botao_preenchido, FONTE_LABEL, FONTE_SUBTITULO
 )
 
-# Definição das cores padrão azul corporativo (sem tons pastel)
+# Definição das cores padrão azul corporativo
 COR_AZUL_PRINCIPAL = "#1E3A8A"
 COR_AZUL_HOVER = "#1D4ED8"
 COR_AZUL_CLARO = "#3B82F6"
 
+
 class DetalheEmprestimo(ctk.CTkToplevel):
     def __init__(self, master, dados):
         super().__init__(master)
-        self.title("Detalhes do Emprestimo")
+        self.title("Detalhes do Empréstimo")
         self.geometry("400x350")
         self.resizable(False, False)
         self.configure(fg_color=COR_BG)
         self.grab_set()
 
         criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold")).pack(pady=(20, 5))
-        criar_label(self, "Detalhes do Emprestimo", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 20))
+        criar_label(self, "Detalhes do Empréstimo", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 20))
 
         card = criar_card(self)
         card.pack(fill="x", padx=30, pady=(0, 10))
@@ -46,9 +46,9 @@ class DetalheEmprestimo(ctk.CTkToplevel):
             ("Aluno", str(aluno)),
             ("Livro", str(livro)),
             ("Exemplar", str(exemplar)),
-            ("Data Emprestimo", str(data_emp)),
+            ("Data Empréstimo", str(data_emp)),
             ("Data Prevista", str(data_prev)),
-            ("Data Devolucao", str(data_dev) if data_dev else "Pendente"),
+            ("Data Devolução", str(data_dev) if data_dev else "Pendente"),
             ("Status", str(status)),
         ]
 
@@ -58,12 +58,12 @@ class DetalheEmprestimo(ctk.CTkToplevel):
             criar_label(linha, f"{rotulo}:", font=FONTE_LABEL, text_color=COR_DOURADO).pack(side="left")
             cor_valor = COR_TEXTO
             if rotulo == "Status":
-                if valor == "atrasado":
-                    cor_valor = "#8a4040"
-                elif valor == "finalizado":
-                    cor_valor = "#4a8a4a"
-                elif valor == "ativo":
-                    cor_valor = "#d4b896"
+                if str(valor).lower() == "atrasado":
+                    cor_valor = "#EF4444"
+                elif str(valor).lower() == "finalizado":
+                    cor_valor = "#10B981"
+                elif str(valor).lower() == "ativo":
+                    cor_valor = COR_AZUL_CLARO
             criar_label(linha, valor, font=FONTE_LABEL, text_color=cor_valor).pack(side="right")
 
         criar_botao_preenchido(self, text="Fechar", command=self.destroy, width=120, height=36).pack(pady=15)
@@ -97,7 +97,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-        # === HEADER PADRONIZADO (LOGO MAIOR E SEM TEXTO LUMEN) ===
+        # HEADER
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
 
@@ -109,24 +109,24 @@ class TelaEmprestimos(ctk.CTkFrame):
         
         if os.path.exists(logo_path):
             try:
-                # Logo no tamanho maior (60x60) idêntico ao cadastro de usuários
                 img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
                 lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
                 lbl_logo.pack(side="left", padx=(0, 15))
             except:
                 pass
         
-        # Título da tela ao lado do logo
-        criar_titulo(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 20, "bold")).pack(side="left")
+        titulo = criar_titulo(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 38, "bold"))
+        titulo.configure(text_color="white")
+        titulo.pack(side="left")
 
         btn_voltar = ctk.CTkButton(
-            header, text="Voltar", command=self._voltar, 
-            width=100, height=35, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 12, "bold")
+            header, text="Voltar", command=self._voltar, width=130, height=45,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 
-        # === SELETOR DE ABAS AZUL CORPORATIVO ===
+        # ABAS
         abas_frame = ctk.CTkFrame(self, fg_color="transparent")
         abas_frame.grid(row=1, column=0, sticky="ew", padx=30, pady=(5, 5))
 
@@ -148,7 +148,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             btn.pack(side="left", padx=(0, 5))
             self._botoes_abas.append((btn, tag))
 
-        # === CONTAINER PRINCIPAL DE CONTEÚDO ===
+        # CONTAINER PRINCIPAL
         self._frame_conteudo = ctk.CTkFrame(self, fg_color="transparent")
         self._frame_conteudo.grid(row=2, column=0, sticky="nsew", padx=30, pady=(5, 20))
         self._frame_conteudo.grid_columnconfigure(0, weight=1)
@@ -168,19 +168,11 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._aba_atual = nome
         for btn, n in self._botoes_abas:
             if n == nome:
-                btn.configure(
-                    fg_color=COR_AZUL_PRINCIPAL, 
-                    text_color="#FFFFFF", 
-                    border_color=COR_AZUL_PRINCIPAL,
-                    border_width=1
-                )
+                btn.configure(fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF", 
+                             border_color=COR_AZUL_PRINCIPAL, border_width=1)
             else:
-                btn.configure(
-                    fg_color="transparent", 
-                    text_color=self.cor_texto, 
-                    border_color=self.cor_bg,
-                    border_width=0
-                )
+                btn.configure(fg_color="transparent", text_color=self.cor_texto, 
+                             border_color=self.cor_bg, border_width=0)
 
         self._frame_emprestimos.grid_forget()
         self._frame_reservas.grid_forget()
@@ -235,7 +227,14 @@ class TelaEmprestimos(ctk.CTkFrame):
             width=160, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
             hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
         )
-        self.btn_detalhes.pack(side="left", padx=(10, 0))
+        self.btn_finalizar.pack(side="left", padx=(0, 12))
+
+        self.btn_detalhes = ctk.CTkButton(
+            botoes_frame, text="Ver Detalhes", command=self._abrir_detalhes,
+            width=140, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
+            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
+        )
+        self.btn_detalhes.pack(side="left")
 
         # Tabela
         lista_card = criar_card(frame)
@@ -325,7 +324,6 @@ class TelaEmprestimos(ctk.CTkFrame):
         )
         self.btn_pagar.pack(side="left")
 
-        # Tabela
         lista_card = criar_card(frame)
         lista_card.grid(row=1, column=0, sticky="nsew")
 
@@ -343,6 +341,27 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.lista_multas = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_multas.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
+    # ==================== MÉTODOS ====================
+
+    def _finalizar_emprestimo(self):
+        if not self._selecionado:
+            self._notificar("Selecione um registro na listagem abaixo.")
+            return
+        emp_id = self._selecionado[0]
+        sucesso = finalizar_emprestimo(emp_id)
+        if sucesso:
+            self._notificar("Empréstimo finalizado / Devolvido com sucesso!")
+            self._selecionado = None
+            self._recarregar_emprestimos()
+        else:
+            self._notificar("Erro ao processar devolução.")
+
+    def _abrir_detalhes(self):
+        if not self._selecionado:
+            self._notificar("Selecione um empréstimo para ver detalhes.")
+            return
+        DetalheEmprestimo(self, self._selecionado)
+
     def _recarregar_emprestimos(self, emprestimos_filtrados=None):
         for widget in self.lista_emprestimos.winfo_children():
             widget.destroy()
@@ -351,45 +370,26 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         alunos = listar_alunos()
         self._alunos_map = {}
-        nomes_alunos = []
+        nomes_alunos = [f"{a[0]} - {a[1]}" for a in alunos]
         for a in alunos:
-            texto = f"{a[0]} - {a[1]}"
-            self._alunos_map[texto] = a[0]
-            nomes_alunos.append(texto)
-        self.combo_aluno.configure(values=nomes_alunos if nomes_alunos else [" Selecione..."])
+            self._alunos_map[f"{a[0]} - {a[1]}"] = a[0]
+        self.combo_aluno.configure(values=nomes_alunos if nomes_alunos else ["Selecione..."])
         if nomes_alunos:
             self.combo_aluno.set(nomes_alunos[0])
-        else:
-            self.combo_aluno.set(" Selecione...")
 
         exemplares = listar_exemplares_disponiveis()
         self._exemplares_map = {}
-        nomes_exemplares = []
+        nomes_exemplares = [f"{e[2]} ({e[1]})" if len(e) > 2 else str(e[0]) for e in exemplares]
         for e in exemplares:
-            texto = f"{e[2]} ({e[1]})"
-            self._exemplares_map[texto] = e[0]
-            nomes_exemplares.append(texto)
-        self.combo_exemplar.configure(values=nomes_exemplares if nomes_exemplares else [" Selecione..."])
+            key = f"{e[2]} ({e[1]})" if len(e) > 2 else str(e[0])
+            self._exemplares_map[key] = e[0]
+        self.combo_exemplar.configure(values=nomes_exemplares if nomes_exemplares else ["Selecione..."])
         if nomes_exemplares:
             self.combo_exemplar.set(nomes_exemplares[0])
-        else:
-            self.combo_exemplar.set(" Selecione...")
 
-        if emprestimos_filtrados is not None:
-            emprestimos = emprestimos_filtrados
-        else:
-            emprestimos = listar_emprestimos()
+        emprestimos = emprestimos_filtrados if emprestimos_filtrados is not None else listar_emprestimos()
         for emp in emprestimos:
             self._criar_item_emp(emp)
-
-    def _buscar_emprestimos(self):
-        termo = self.entry_busca_emp.get().strip().lower()
-        if not termo:
-            self._recarregar_emprestimos()
-            return
-        todos = listar_emprestimos()
-        filtrados = [e for e in todos if termo in str(e[1]).lower() or termo in str(e[3]).lower()]
-        self._recarregar_emprestimos(filtrados)
 
     def _criar_item_emp(self, emp):
         item = ctk.CTkFrame(self.lista_emprestimos, fg_color=self.cor_card, corner_radius=8, height=42)
@@ -420,12 +420,6 @@ class TelaEmprestimos(ctk.CTkFrame):
                 item.configure(fg_color=self.cor_card)
         self._selecionado = emp
 
-    def _abrir_detalhes(self):
-        if not self._selecionado:
-            self._notificar("Selecione um emprestimo para ver detalhes.")
-            return
-        DetalheEmprestimo(self, self._selecionado)
-
     def _cadastrar_emprestimo(self):
         aluno_sel = self.combo_aluno.get()
         exemplar_sel = self.combo_exemplar.get()
@@ -446,7 +440,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         id_funcionario = self.controller.usuario_logado['id'] if self.controller and hasattr(self.controller, 'usuario_logado') else 1
 
         if usuario_tem_multa_pendente(id_usuario):
-            self._notificar("Usuario com multa pendente! Regularize primeiro.")
+            self._notificar("Aluno com multa pendente! Regularize primeiro.")
             return
 
         self.btn_cadastrar.configure(text="Processando...", state="disabled")
@@ -462,19 +456,6 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar("Erro operacional ao salvar empréstimo.")
         self.btn_cadastrar.configure(text="Confirmar Empréstimo", state="normal")
 
-    def _devolver(self):
-        if not self._selecionado:
-            self._notificar("Selecione um registro na listagem abaixo.")
-            return
-        emp_id = self._selecionado[0]
-        sucesso = finalizar_emprestimo(emp_id)
-        if sucesso:
-            self._notificar("Empréstimo finalizado / Devolvido!")
-            self._selecionado = None
-            self._recarregar_emprestimos()
-        else:
-            self._notificar("Erro ao processar devolução.")
-
     def _recarregar_reservas(self):
         for widget in self.lista_reservas.winfo_children():
             widget.destroy()
@@ -483,29 +464,21 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         alunos = listar_alunos()
         self._reserva_alunos_map = {}
-        nomes_alunos = []
+        nomes_alunos = [f"{a[0]} - {a[1]}" for a in alunos]
         for a in alunos:
-            texto = f"{a[0]} - {a[1]}"
-            self._reserva_alunos_map[texto] = a[0]
-            nomes_alunos.append(texto)
-        self.combo_reserva_aluno.configure(values=nomes_alunos if nomes_alunos else [" Selecione..."])
+            self._reserva_alunos_map[f"{a[0]} - {a[1]}"] = a[0]
+        self.combo_reserva_aluno.configure(values=nomes_alunos if nomes_alunos else ["Selecione..."])
         if nomes_alunos:
             self.combo_reserva_aluno.set(nomes_alunos[0])
-        else:
-            self.combo_reserva_aluno.set(" Selecione...")
 
         livros = listar_livros()
         self._reserva_livros_map = {}
-        nomes_livros = []
+        nomes_livros = [f"{l[1]} ({l[2]})" for l in livros]
         for l in livros:
-            texto = f"{l[1]} ({l[2]})"
-            self._reserva_livros_map[texto] = l[0]
-            nomes_livros.append(texto)
-        self.combo_reserva_livro.configure(values=nomes_livros if nomes_livros else [" Selecione..."])
+            self._reserva_livros_map[f"{l[1]} ({l[2]})"] = l[0]
+        self.combo_reserva_livro.configure(values=nomes_livros if nomes_livros else ["Selecione..."])
         if nomes_livros:
             self.combo_reserva_livro.set(nomes_livros[0])
-        else:
-            self.combo_reserva_livro.set(" Selecione...")
 
         reservas = listar_reservas(status="ativa")
         for r in reservas:

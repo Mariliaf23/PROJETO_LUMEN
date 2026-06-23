@@ -24,10 +24,11 @@ def verificar_login(usuario, senha):
         conn = _conectar()
         cursor = conn.cursor()
         senha_hash = _hash_senha(senha)
+        # Ajustado para permitir login por Nome, Email ou Matricula de forma precisa
         cursor.execute(
             """SELECT id_usuario, nome, tipo_usuario FROM usuario
-               WHERE (nome = %s OR email = %s) AND senha = %s AND status = 'ativo'""",
-            (usuario, usuario, senha_hash)
+               WHERE (nome = %s OR email = %s OR matricula = %s) AND senha = %s AND status = 'ativo'""",
+            (usuario, usuario, usuario, senha_hash)
         )
         resultado = cursor.fetchone()
         conn.close()

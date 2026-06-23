@@ -63,12 +63,14 @@ class TelaDevolucoes(ctk.CTkFrame):
                 pass
         
         # Título da tela ao lado do logo
-        criar_titulo(header_left, "Devoluções Pendentes", font=("Segoe UI", 20, "bold")).pack(side="left")
+        titulo = criar_titulo(header_left, "Devoluções Pendentes", font=("Segoe UI", 38, "bold"))
+        titulo.configure(text_color="white")   # ou "#FFFFFF"
+        titulo.pack(side="left")
 
         btn_voltar = ctk.CTkButton(
-            header, text="Voltar", command=self._voltar, 
-            width=100, height=35, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 12, "bold")
+            header, text="Voltar", command=self._voltar, width=130, height=45,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 
@@ -99,7 +101,7 @@ class TelaDevolucoes(ctk.CTkFrame):
         colunas_larguras = [("ID", 0.06), ("Aluno", 0.2), ("Exemplar", 0.15), ("Livro", 0.2), ("Empréstimo", 0.12), ("Previsto", 0.12), ("Status", 0.1)]
         x_header = 0
         for txt, pct in colunas_larguras:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_AZUL_CLARO, anchor="w")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_AZUL_CLARO, anchor="center")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 
