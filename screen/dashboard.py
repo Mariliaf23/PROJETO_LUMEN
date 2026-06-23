@@ -100,13 +100,13 @@ class Dashboard(ctk.CTkFrame):
 
         # === MENU DE NAVEGAÇÃO ===
         itens = [
-            ("🏠  Dashboard", True, "dashboard"),
-            ("📚  Livros", False, "livros"),
-            ("📦  Exemplares", False, "exemplares"),
-            ("👨  Usuários", False, "cadastro_usuario"),
-            ("🔄  Empréstimos", False, "emprestimos"),
-            ("↩️  Devoluções", False, "devolucoes"),
-            ("⚙️  Configurações", False, "configuracoes"),
+            ("🏠   Dashboard", True, "dashboard"),
+            ("📚   Livros", False, "livros"),
+            ("📦   Exemplares", False, "exemplares"),
+            ("👨   Usuários", False, "cadastro_usuario"),
+            ("🔄   Empréstimos", False, "emprestimos"),
+            ("↩️   Devoluções", False, "devolucoes"),
+            ("⚙️   Configurações", False, "configuracoes"),
         ]
 
         self._botoes_nav = []
@@ -179,7 +179,8 @@ class Dashboard(ctk.CTkFrame):
             card = criar_card(cards_frame)
             card.grid(row=0, column=i, padx=8, pady=0, sticky="nsew")
 
-            criar_label(card, titulo, font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO2).pack(anchor="center", pady=(20, 2))
+            # Fonte do título alterada de 11 para 13 e mantido centralizado
+            criar_label(card, titulo, font=("Segoe UI", 13, "bold"), text_color=COR_TEXTO2).pack(anchor="center", pady=(20, 2))
             ctk.CTkLabel(card, text=valor, font=("Segoe UI", 58, "bold"), text_color=cor_valor).pack(anchor="center")
             criar_label(card, subtitulo, font=("Segoe UI", 12), text_color=COR_INPUT_BORDER).pack(anchor="center", pady=(0, 20))
 
@@ -196,7 +197,8 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+        # Modificado: font de 12 para 16 e anchor de "w" para "center"
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         if not dados:
             criar_label(card, "Sem movimentações registradas neste período.", font=("Segoe UI", 12)).pack(expand=True, pady=80)
@@ -231,7 +233,8 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 5))
+        # Modificado: font de 12 para 16 e anchor de "w" para "center"
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 5))
 
         if not dados:
             criar_label(card, "Nenhum livro categorizado encontrado.", font=("Segoe UI", 12)).pack(expand=True, pady=80)
@@ -243,23 +246,20 @@ class Dashboard(ctk.CTkFrame):
         area_grafico = ctk.CTkFrame(layout_container, fg_color="transparent")
         area_grafico.pack(side="left", fill="both", expand=True)
 
-        # CONFIGURAÇÃO DE TAMANHO SEGURO: Proporção retangular controlada para não esmagar verticalmente
         fig = Figure(figsize=(3.0, 2.5), dpi=100)
         ax = fig.add_subplot(111)
         
-        # Margem de segurança explícita para evitar cortes nas extremidades do canvas
         fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.10)
 
         categorias = [c for c, _ in dados]
         valores = [v for _, v in dados]
         cores = [COR_GRAF_AZUL, COR_GRAF_DOURADO, COR_GRAF_CLARO, COR_GRAF_MUTED, "#1E293B"]
 
-        # AJUSTE NO RAIO (De 1.0 para 0.7): Reduz o tamanho do círculo para que caiba com folga no card vertical
         wedges, _ = ax.pie(
             valores, 
             colors=cores[:len(categorias)], 
             startangle=90, 
-            radius=0.7,
+            radius=1.1,
             wedgeprops=dict(width=0.18, edgecolor=COR_CARD, linewidth=2)
         )
 
@@ -297,7 +297,8 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, columnspan=colspan, padx=8, pady=12, sticky="nsew")
 
-        criar_label(card, titulo.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+        # Modificado: font de 12 para 16 e anchor de "w" para "center"
+        criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         fig = Figure(figsize=(10, 3.6), dpi=100)
         ax = fig.add_subplot(111)

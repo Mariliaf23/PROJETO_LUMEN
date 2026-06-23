@@ -42,7 +42,7 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
-        criar_label(header_left, "|  Cadastro de Usuário", font=("Segoe UI", 26, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Cadastro de Usuário", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
 
         btn_voltar = ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=130, height=45,

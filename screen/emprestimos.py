@@ -71,12 +71,14 @@ class TelaEmprestimos(ctk.CTkFrame):
                 pass
         
         # Título da tela ao lado do logo
-        criar_titulo(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 20, "bold")).pack(side="left")
+        titulo = criar_titulo(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 38, "bold"))
+        titulo.configure(text_color="white")   # ou "#FFFFFF"
+        titulo.pack(side="left")
 
         btn_voltar = ctk.CTkButton(
-            header, text="Voltar", command=self._voltar, 
-            width=100, height=35, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 12, "bold")
+            header, text="Voltar", command=self._voltar, width=130, height=45,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 
