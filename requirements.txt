@@ -3,4 +3,4 @@ Pillow
 python-dotenv
 fpdf2
 customtkinter
-matplotlib
+

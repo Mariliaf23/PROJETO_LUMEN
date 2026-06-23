@@ -9,7 +9,8 @@ from services.app_controller import AppController
 from services.conector import init_db
 
 if __name__ == "__main__":
-    init_db()
+    if not init_db():
+        print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
 
     root = ctk.CTk()
     controller = AppController(root)

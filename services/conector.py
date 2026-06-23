@@ -47,7 +47,7 @@ def init_db():
 
         if existente:
             cursor.execute(
-                "UPDATE usuario SET senha = %s, funcao = 'admin' WHERE nome = %s",
+                "UPDATE usuario SET senha = %s, tipo_usuario = 'diretor', funcao = 'admin' WHERE nome = %s",
                 (senha_hash, DEFAULT_USER)
             )
             print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
