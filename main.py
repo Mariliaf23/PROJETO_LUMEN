@@ -8,7 +8,7 @@ import os
 # This part helps the computer find all our toy folders, like a map of the house.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from screens.tela_login import TelaLogin
+from screen.tela_login import TelaLogin
 
 # This is where the magic starts!
 if __name__ == "__main__":
