@@ -1,31 +1,12 @@
-<<<<<<< HEAD
-# This file is like the "Start" button on a video game console. 
-# It tells the computer to open our special toy box!
 
-import sys
-import os
-
-# This part helps the computer find all our toy folders, like a map of the house.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from screens.tela_login import TelaLogin
-
-# This is where the magic starts!
-if __name__ == "__main__":
-    # We create our login screen, which is like the front door of our house.
-    app = TelaLogin()
-    # This keeps the door open so we can stay and play.
-    app.mainloop()
-
-=======
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import customtkinter as ctk
-from services.app_controller import AppController
 from services.conector import init_db
+from services.app_controller import AppController
+import customtkinter as ctk
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 if __name__ == "__main__":
     init_db()
@@ -57,4 +38,3 @@ if __name__ == "__main__":
     controller.navegar_para("login", voltavel=False)
 
     root.mainloop()
->>>>>>> 12ec4c008d6bb431d769c5aad89078f3e6cb323a
