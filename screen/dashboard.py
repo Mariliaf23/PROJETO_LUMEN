@@ -109,15 +109,16 @@ class Dashboard(ctk.CTkFrame):
             ("⚙️  Configurações", False, "configuracoes"),
         ]
 
+        tipo_usuario = self.controller.usuario_logado.get('tipo', '') if self.controller and self.controller.usuario_logado else ''
         itens_indisponivel = []
         if tipo_usuario == 'bibliotecario':
             itens = [
-                ("DASHBOARD", True),
-                ("LIVROS", False),
-                ("EXEMPLARES", False),
-                ("EMPRESTIMOS", False),
+                ("🏠  Dashboard", True, "dashboard"),
+                ("📚  Livros", False, "livros"),
+                ("📦  Exemplares", False, "exemplares"),
+                ("🔄  Empréstimos", False, "emprestimos"),
             ]
-            itens_indisponivel = ["GERENCIAR USUARIOS", "CONFIGURACOES"]
+            itens_indisponivel = ["gerenciar_usuarios", "configuracoes"]
 
         self._botoes_nav = []
         for nome, ativo, chave in itens:

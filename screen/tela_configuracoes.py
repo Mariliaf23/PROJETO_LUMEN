@@ -1,6 +1,7 @@
 import os
 import sys
 from PIL import Image
+from tkinter import filedialog
 from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

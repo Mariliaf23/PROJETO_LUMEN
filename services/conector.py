@@ -53,8 +53,7 @@ def init_db():
             print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
         elif total == 0:
             cursor.execute(
-                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
-                   VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
+                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status) VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
                 (DEFAULT_USER, 'admin@lumen.com', senha_hash, '')
             )
             print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")

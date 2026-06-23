@@ -15,6 +15,7 @@ from services.database_config import (
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    FONTE_SUBTITULO, FONTE_LABEL,
     criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame, criar_combo,
     criar_botao_preenchido
 )
@@ -235,7 +236,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             width=160, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
             hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
         )
-        self.btn_detalhes.pack(side="left", padx=(10, 0))
+        self.btn_finalizar.pack(side="left", padx=(10, 0))
 
         # Tabela
         lista_card = criar_card(frame)
@@ -382,15 +383,6 @@ class TelaEmprestimos(ctk.CTkFrame):
         for emp in emprestimos:
             self._criar_item_emp(emp)
 
-    def _buscar_emprestimos(self):
-        termo = self.entry_busca_emp.get().strip().lower()
-        if not termo:
-            self._recarregar_emprestimos()
-            return
-        todos = listar_emprestimos()
-        filtrados = [e for e in todos if termo in str(e[1]).lower() or termo in str(e[3]).lower()]
-        self._recarregar_emprestimos(filtrados)
-
     def _criar_item_emp(self, emp):
         item = ctk.CTkFrame(self.lista_emprestimos, fg_color=self.cor_card, corner_radius=8, height=42)
         item.pack(fill="x", pady=2)
@@ -425,6 +417,19 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar("Selecione um emprestimo para ver detalhes.")
             return
         DetalheEmprestimo(self, self._selecionado)
+
+    def _finalizar_emprestimo(self):
+        if not self._selecionado:
+            self._notificar("Selecione um empréstimo para finalizar.")
+            return
+        emp_id = self._selecionado[0]
+        sucesso = finalizar_emprestimo(emp_id)
+        if sucesso:
+            self._notificar("Empréstimo finalizado com sucesso!")
+            self._selecionado = None
+            self._recarregar_emprestimos()
+        else:
+            self._notificar("Erro ao finalizar empréstimo.")
 
     def _cadastrar_emprestimo(self):
         aluno_sel = self.combo_aluno.get()

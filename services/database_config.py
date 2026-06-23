@@ -37,7 +37,7 @@ def verificar_login(usuario, senha):
         return None
 
 
-def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
+def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='',
                       matricula='', sala='', turno='', funcao=''):
     try:
         conn = _conectar()
