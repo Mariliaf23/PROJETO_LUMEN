@@ -7,7 +7,7 @@ import customtkinter as ctk
 from services.database_config import cadastrar_usuario
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO, FONTE_LABEL,
-    criar_entry, criar_botao_preenchido, criar_label, criar_titulo
+    criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo
 )
 
 
@@ -42,13 +42,7 @@ class LumenLoginApp(ctk.CTkFrame):
         )
         self.btn_cadastrar.pack(pady=(0, 20))
 
-        frame_voltar = ctk.CTkFrame(container, fg_color="transparent")
-        frame_voltar.pack()
-
-        lbl_voltar = criar_label(frame_voltar, "Voltar", font=FONTE_LABEL)
-        lbl_voltar.pack()
-        lbl_voltar.bind("<Button-1>", lambda e: self.controller.voltar())
-        lbl_voltar.configure(cursor="hand2")
+        criar_botao(container, text="Voltar", command=self._voltar, width=100, height=35).pack()
 
         self.lbl_notificacao = criar_label(container, "", text_color=COR_TEXTO2)
 
@@ -87,3 +81,6 @@ class LumenLoginApp(ctk.CTkFrame):
         self.lbl_notificacao.configure(text=mensagem, text_color="#d4b896")
         self.lbl_notificacao.pack(pady=(10, 0))
         self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
+
+    def _voltar(self):
+        self.controller.voltar()

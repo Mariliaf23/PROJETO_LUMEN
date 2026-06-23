@@ -6,8 +6,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
 from services.database_config import (
-    cadastrar_livro, listar_livros, excluir_livro,
-    listar_categorias, cadastrar_categoria
+    cadastrar_livro, listar_livros, excluir_livro, buscar_livro_por_id,
+    listar_categorias, cadastrar_categoria,
+    listar_autores, listar_autores_livro, associar_autor_livro, desassociar_autor_livro
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
@@ -239,6 +240,71 @@ class TelaLivros(ctk.CTkFrame):
             self._carregar_tabela()
         else:
             self._notificar("Erro ao excluir registro.")
+
+    def _editar_selecionado(self):
+        if not self._selecionado:
+            self._notificar("Selecione um livro para editar.")
+            return
+        id_livro = self._selecionado[0]
+        dados = buscar_livro_por_id(id_livro)
+        if not dados:
+            self._notificar("Livro nao encontrado.")
+            return
+        _, titulo, isbn, id_cat, editora, ano, sinopse = dados
+        self._limpar_campos()
+        self.entry_titulo.insert(0, titulo or '')
+        self.entry_isbn.insert(0, isbn or '')
+        self.entry_editora.insert(0, editora or '')
+        self.entry_ano.insert(0, str(ano) if ano else '')
+        self.entry_sinopse.insert(0, sinopse or '')
+        for nome, cid in self._cat_map.items():
+            if cid == id_cat:
+                self.combo_categoria.set(nome)
+                break
+        self.btn_cadastrar.configure(text="Salvar Alteracoes", command=self._salvar_edicao)
+        self._editando_id = id_livro
+
+    def _salvar_edicao(self):
+        titulo = self.entry_titulo.get().strip()
+        isbn = self.entry_isbn.get().strip()
+        cat_nome = self.combo_categoria.get()
+        editora = self.entry_editora.get().strip()
+        ano = self.entry_ano.get().strip()
+        sinopse = self.entry_sinopse.get().strip()
+
+        if not titulo or not isbn:
+            self._notificar("Titulo e ISBN sao obrigatorios.")
+            return
+        if cat_nome not in self._cat_map:
+            self._notificar("Selecione uma categoria valida.")
+            return
+
+        from services.database_config import _conectar
+        from mysql.connector import Error
+        try:
+            conn = _conectar()
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE livro SET titulo=%s, isbn=%s, id_categoria=%s,
+                   editora=%s, ano_publicacao=%s, sinopse=%s WHERE id_livro=%s""",
+                (titulo, isbn, self._cat_map[cat_nome], editora or None,
+                 int(ano) if ano.isdigit() else None, sinopse or None, self._editando_id)
+            )
+            conn.commit()
+            conn.close()
+            self._notificar("Livro atualizado!")
+            self._limpar_campos()
+            self.btn_cadastrar.configure(text="Cadastrar Livro", command=self._cadastrar)
+            self._editando_id = None
+            self._carregar_tabela()
+        except Error as e:
+            self._notificar(f"Erro ao atualizar: {e}")
+
+    def _gerenciar_autores(self):
+        if not self._selecionado:
+            self._notificar("Selecione um livro primeiro.")
+            return
+        JanelaAutoresLivro(self, self._selecionado[0], self._selecionado[1])
 
     def _limpar_campos(self):
         for e in [self.entry_titulo, self.entry_isbn, self.entry_editora, self.entry_ano, self.entry_sinopse]:

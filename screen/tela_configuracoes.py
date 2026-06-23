@@ -179,6 +179,28 @@ class TelaConfiguracoes(ctk.CTkFrame):
     def _voltar(self):
         self.controller.voltar()
 
+    def _gerar_relatorio(self, tipo):
+        from services.report_gen import (
+            gerar_relatorio_livros, gerar_relatorio_emprestimos, gerar_relatorio_multas
+        )
+        caminho = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            title=f"Salvar Relatorio de {tipo.title()}"
+        )
+        if not caminho:
+            return
+        try:
+            if tipo == 'livros':
+                gerar_relatorio_livros(caminho)
+            elif tipo == 'emprestimos':
+                gerar_relatorio_emprestimos(caminho)
+            elif tipo == 'multas':
+                gerar_relatorio_multas(caminho)
+            self._notificar(f"Relatorio salvo em: {caminho}")
+        except Exception as e:
+            self._notificar(f"Erro ao gerar relatorio: {e}")
+
     def _notificar(self, mensagem):
         self.lbl_notificacao.configure(text=mensagem, text_color=COR_AZUL_CLARO)
         self.lbl_notificacao.pack(pady=(10, 0))
