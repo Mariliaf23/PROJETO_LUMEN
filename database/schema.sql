@@ -1,110 +1,251 @@
 -- -----------------------------------------------------
 -- Schema biblioteca
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8 ;
-USE `biblioteca` ;
+CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8mb4;
+USE `biblioteca`;
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`funcionario`
+-- Table `biblioteca`.`usuario`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`funcionario` (
-  `id_funcionario` INT NOT NULL AUTO_INCREMENT,
-  `nome_funcionario` VARCHAR(100) NOT NULL,
-  `email_funcionario` VARCHAR(100) NOT NULL,
-  `password_funcionario` VARCHAR(255) NOT NULL,
-  `telefone_funcionario` CHAR(11) NOT NULL,
-  `funcao` ENUM('diretor', 'bibliotecario') NOT NULL,
-  PRIMARY KEY (`id_funcionario`),
-  UNIQUE INDEX `id_bibliotecario_UNIQUE` (`id_funcionario` ASC) VISIBLE)
-ENGINE = InnoDB;
+-- Tabela unificada de usuarios: alunos, professores, funcionarios e bibliotecarios.
+-- Substitui as tabelas antigas 'funcionario' e 'alunos'.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
+  `id_usuario` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `senha` VARCHAR(255) NOT NULL,
+  `telefone` CHAR(11) DEFAULT NULL,
+  `cpf` VARCHAR(14) DEFAULT NULL,
+  `tipo_usuario` ENUM('diretor', 'bibliotecario', 'aluno', 'professor') NOT NULL,
+  `matricula` VARCHAR(20) DEFAULT NULL,
+  `sala` VARCHAR(10) DEFAULT NULL,
+  `turno` VARCHAR(20) DEFAULT NULL,
+  `funcao` VARCHAR(50) DEFAULT NULL,
+  `status` ENUM('ativo', 'inativo', 'bloqueado') NOT NULL DEFAULT 'ativo',
+  `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_usuario`),
+  UNIQUE KEY `email_UNIQUE` (`email`),
+  UNIQUE KEY `cpf_UNIQUE` (`cpf`),
+  UNIQUE KEY `matricula_UNIQUE` (`matricula`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Table `biblioteca`.`categoria`
+-- -----------------------------------------------------
+-- Categorias de livros (genero/assunto).
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`categoria` (
+  `id_categoria` INT NOT NULL AUTO_INCREMENT,
+  `nome_categoria` VARCHAR(50) NOT NULL,
+  `descricao` TEXT DEFAULT NULL,
+  PRIMARY KEY (`id_categoria`),
+  UNIQUE KEY `nome_categoria_UNIQUE` (`nome_categoria`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Table `biblioteca`.`autor`
+-- -----------------------------------------------------
+-- Autores de livros.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`autor` (
+  `id_autor` INT NOT NULL AUTO_INCREMENT,
+  `nome_autor` VARCHAR(100) NOT NULL,
+  `nacionalidade` VARCHAR(50) DEFAULT NULL,
+  PRIMARY KEY (`id_autor`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`livro`
 -- -----------------------------------------------------
+-- Catalogo de livros da biblioteca.
+-- Cada livro pertence a uma categoria e pode ter multiplos autores.
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`livro` (
-  `id_livro` INT NOT NULL,
-  `título` VARCHAR(150) NOT NULL,
-  `autor` VARCHAR(100) NOT NULL,
-  `categoria` VARCHAR(30) NOT NULL,
-  `isbn` INT NOT NULL,
-  `status_livro` ENUM('disponivel', 'emprestado', 'reservado') NOT NULL,
+  `id_livro` INT NOT NULL AUTO_INCREMENT,
+  `titulo` VARCHAR(150) NOT NULL,
+  `isbn` VARCHAR(13) NOT NULL,
+  `editora` VARCHAR(100) DEFAULT NULL,
+  `ano_publicacao` YEAR DEFAULT NULL,
+  `sinopse` TEXT DEFAULT NULL,
+  `id_categoria` INT NOT NULL,
+  `status_livro` ENUM('disponivel', 'indisponivel') NOT NULL DEFAULT 'disponivel',
   PRIMARY KEY (`id_livro`),
-  UNIQUE INDEX `isbn_UNIQUE` (`isbn` ASC) VISIBLE,
-  UNIQUE INDEX `id_generetor_UNIQUE` (`id_livro` ASC) VISIBLE)
-ENGINE = InnoDB;
+  UNIQUE KEY `isbn_UNIQUE` (`isbn`),
+  INDEX `fk_livro_categoria_idx` (`id_categoria`),
+  CONSTRAINT `fk_livro_categoria`
+    FOREIGN KEY (`id_categoria`)
+    REFERENCES `biblioteca`.`categoria` (`id_categoria`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`alunos`
+-- Table `biblioteca`.`livro_autor`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`alunos` (
-  `cpf` INT NOT NULL AUTO_INCREMENT,
-  `nome_aluno` VARCHAR(100) NOT NULL,
-  `email_aluno` VARCHAR(100) NOT NULL,
-  `password_aluno` VARCHAR(255) NOT NULL,
-  `telefone_aluno` CHAR(11) NOT NULL,
-  PRIMARY KEY (`cpf`),
-  UNIQUE INDEX `cpf_UNIQUE` (`cpf` ASC) VISIBLE,
-  UNIQUE INDEX `email_aluno_UNIQUE` (`email_aluno` ASC) VISIBLE,
-  UNIQUE INDEX `telefone_aluno_UNIQUE` (`telefone_aluno` ASC) VISIBLE)
-ENGINE = InnoDB;
+-- Tabela de juncao N:N entre livros e autores.
+-- Um livro pode ter varios autores, um autor pode escrever varios livros.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`livro_autor` (
+  `id_livro` INT NOT NULL,
+  `id_autor` INT NOT NULL,
+  PRIMARY KEY (`id_livro`, `id_autor`),
+  INDEX `fk_livro_autor_autor_idx` (`id_autor`),
+  CONSTRAINT `fk_livro_autor_livro`
+    FOREIGN KEY (`id_livro`)
+    REFERENCES `biblioteca`.`livro` (`id_livro`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_livro_autor_autor`
+    FOREIGN KEY (`id_autor`)
+    REFERENCES `biblioteca`.`autor` (`id_autor`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Table `biblioteca`.`exemplar`
+-- -----------------------------------------------------
+-- Copias fisicas de cada livro.
+-- Um titulo pode ter varios exemplares (copias) em diferentes status.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`exemplar` (
+  `id_exemplar` INT NOT NULL AUTO_INCREMENT,
+  `codigo_patrimonio` VARCHAR(30) NOT NULL,
+  `status_exemplar` ENUM('disponivel', 'emprestado', 'reservado', 'manutencao') NOT NULL DEFAULT 'disponivel',
+  `localizacao` VARCHAR(50) DEFAULT NULL,
+  `id_livro` INT NOT NULL,
+  PRIMARY KEY (`id_exemplar`),
+  UNIQUE KEY `codigo_patrimonio_UNIQUE` (`codigo_patrimonio`),
+  INDEX `fk_exemplar_livro_idx` (`id_livro`),
+  CONSTRAINT `fk_exemplar_livro`
+    FOREIGN KEY (`id_livro`)
+    REFERENCES `biblioteca`.`livro` (`id_livro`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+>>>>>>> 4b97f5ecc6e78bd1eceb330720c3fb17c5038e16
 
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`emprestimo`
 -- -----------------------------------------------------
+-- Registro de emprestimos de exemplares.
+-- Cada emprestimo vincula um usuario a um exemplar especifico.
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo` (
   `id_emprestimo` INT NOT NULL AUTO_INCREMENT,
-  `lançamento` DATE NOT NULL,
-  `vencimento` DATE NOT NULL,
-  `status_emprestimo` ENUM('ativo', 'finalizado', 'atrasado') NOT NULL,
-  `alunos_id_alunos` INT NOT NULL,
-  `funcionario_id_funcionario` INT NOT NULL,
-  PRIMARY KEY (`id_emprestimo`, `alunos_id_alunos`, `funcionario_id_funcionario`),
-  UNIQUE INDEX `id_emprestimo_UNIQUE` (`id_emprestimo` ASC) VISIBLE,
-  INDEX `fk_emprestimo_alunos1_idx` (`alunos_id_alunos` ASC) VISIBLE,
-  INDEX `fk_emprestimo_funcionario1_idx` (`funcionario_id_funcionario` ASC) VISIBLE,
-  CONSTRAINT `fk_emprestimo_alunos1`
-    FOREIGN KEY (`alunos_id_alunos`)
-    REFERENCES `biblioteca`.`alunos` (`id_alunos`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_emprestimo_funcionario1`
-    FOREIGN KEY (`funcionario_id_funcionario`)
-    REFERENCES `biblioteca`.`funcionario` (`id_funcionario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+  `data_emprestimo` DATE NOT NULL,
+  `data_prevista` DATE NOT NULL,
+  `data_devolucao` DATE DEFAULT NULL,
+  `status` ENUM('ativo', 'finalizado', 'atrasado') NOT NULL DEFAULT 'ativo',
+  `id_usuario` INT NOT NULL,
+  `id_exemplar` INT NOT NULL,
+  `id_funcionario` INT NOT NULL,
+  PRIMARY KEY (`id_emprestimo`),
+  INDEX `fk_emprestimo_usuario_idx` (`id_usuario`),
+  INDEX `fk_emprestimo_exemplar_idx` (`id_exemplar`),
+  INDEX `fk_emprestimo_funcionario_idx` (`id_funcionario`),
+  CONSTRAINT `fk_emprestimo_usuario`
+    FOREIGN KEY (`id_usuario`)
+    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_emprestimo_exemplar`
+    FOREIGN KEY (`id_exemplar`)
+    REFERENCES `biblioteca`.`exemplar` (`id_exemplar`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_emprestimo_funcionario`
+    FOREIGN KEY (`id_funcionario`)
+    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`emprestimo_has_livro`
+-- Table `biblioteca`.`reserva`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo_has_livro` (
-  `emprestimo_id_emprestimo` INT NOT NULL,
-  `livro_id_livro` INT NOT NULL,
-  PRIMARY KEY (`emprestimo_id_emprestimo`, `livro_id_livro`),
-  INDEX `fk_emprestimo_has_livro_livro1_idx` (`livro_id_livro` ASC) VISIBLE,
-  INDEX `fk_emprestimo_has_livro_emprestimo_idx` (`emprestimo_id_emprestimo` ASC) VISIBLE,
-  CONSTRAINT `fk_emprestimo_has_livro_emprestimo`
-    FOREIGN KEY (`emprestimo_id_emprestimo`)
-    REFERENCES `biblioteca`.`emprestimo` (`id_emprestimo`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_emprestimo_has_livro_livro1`
-    FOREIGN KEY (`livro_id_livro`)
+-- Reservas de livros por usuarios.
+-- Um usuario pode reservar um livro que esta indisponivel.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`reserva` (
+  `id_reserva` INT NOT NULL AUTO_INCREMENT,
+  `data_reserva` DATE NOT NULL,
+  `data_validade` DATE NOT NULL,
+  `status` ENUM('ativa', 'atendida', 'cancelada', 'expirada') NOT NULL DEFAULT 'ativa',
+  `id_usuario` INT NOT NULL,
+  `id_livro` INT NOT NULL,
+  PRIMARY KEY (`id_reserva`),
+  INDEX `fk_reserva_usuario_idx` (`id_usuario`),
+  INDEX `fk_reserva_livro_idx` (`id_livro`),
+  CONSTRAINT `fk_reserva_usuario`
+    FOREIGN KEY (`id_usuario`)
+    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_reserva_livro`
+    FOREIGN KEY (`id_livro`)
     REFERENCES `biblioteca`.`livro` (`id_livro`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS alunos (
-    cpf INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
-    email VARCHAR(150),
-    telefone VARCHAR(20),
-    sala VARCHAR(10),
-    turno VARCHAR(20),
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
+-- -----------------------------------------------------
+-- Table `biblioteca`.`multa`
+-- -----------------------------------------------------
+-- Multas geradas por atraso ou dano.
+-- Vinculada a um emprestimo especifico.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`multa` (
+  `id_multa` INT NOT NULL AUTO_INCREMENT,
+  `valor` DECIMAL(10,2) NOT NULL,
+  `dias_atraso` INT NOT NULL DEFAULT 0,
+  `motivo` ENUM('atraso', 'dano', 'perda') NOT NULL DEFAULT 'atraso',
+  `status_pagamento` ENUM('pendente', 'pago', 'isento') NOT NULL DEFAULT 'pendente',
+  `data_geracao` DATE NOT NULL,
+  `id_emprestimo` INT NOT NULL,
+  PRIMARY KEY (`id_multa`),
+  INDEX `fk_multa_emprestimo_idx` (`id_emprestimo`),
+  CONSTRAINT `fk_multa_emprestimo`
+    FOREIGN KEY (`id_emprestimo`)
+    REFERENCES `biblioteca`.`emprestimo` (`id_emprestimo`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Dados iniciais: categorias
+-- -----------------------------------------------------
+INSERT INTO `biblioteca`.`categoria` (`nome_categoria`) VALUE
+('Matemática'),
+('Português'),
+('Ciências'),
+('História'),
+('Geografia'),
+('Literatura Infantil'),
+('Literatura Juvenil'),
+('Literatura Brasileira'),
+('Informática'),
+('Dicionários'),
+('Enciclopédias'),
+('Artes'),
+('Educação Física'),
+('Filosofia'),
+('Sociologia'),
+('Cultura Paraense'),
+('Amazônia'),
+('Educação Financeira'),
+('Inclusão e Acessibilidade'),
+('Romance'),
+('Literatura classica');
+
+
