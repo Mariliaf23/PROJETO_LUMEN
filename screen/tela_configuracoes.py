@@ -2,6 +2,8 @@ import os
 import sys
 from PIL import Image
 from dotenv import load_dotenv
+import tkinter as tk
+from tkinter import filedialog
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -144,7 +146,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         self.entry_default_password = criar_entry(user_frame, height=38, show="*")
         self.entry_default_password.insert(0, self.valores['DEFAULT_PASSWORD'])
         self.entry_default_password.grid(row=1, column=1, padx=20, sticky="ew")
-        
+
         # === BOTÃO DE SALVAR (AZUL CORPORATIVO) ===
         self.btn_salvar = ctk.CTkButton(
             scroll, text="Salvar Configurações", command=self._salvar,

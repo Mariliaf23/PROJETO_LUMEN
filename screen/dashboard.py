@@ -21,7 +21,7 @@ from services.styles import (
     criar_label, criar_card
 )
 
-# Paleta refinada e alinhada com a identidade Lumen
+# Paleta refinada
 COR_GRAF_AZUL = "#0091FF"
 COR_GRAF_DOURADO = "#D4A373"
 COR_GRAF_CLARO = "#E6C79C"
@@ -36,7 +36,6 @@ class Dashboard(ctk.CTkFrame):
         super().__init__(master, fg_color=COR_BG)
         self.controller = controller
 
-        # Configuração profissional para os gráficos Matplotlib
         plt.rcParams.update({
             'figure.facecolor': COR_CARD,
             'axes.facecolor': COR_CARD,
@@ -57,6 +56,8 @@ class Dashboard(ctk.CTkFrame):
     def _ao_visitar(self):
         self._carregar_dados()
         self._recriar_conteudo()
+        # Recria a sidebar também ao visitar para garantir que o menu mude caso o usuário mude
+        self._recriar_sidebar()
 
     def _carregar_dados(self):
         self._stats = buscar_stats_dashboard()
@@ -68,22 +69,26 @@ class Dashboard(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+        # Criamos um container para a sidebar para facilitar a recriação dinâmica
+        self.sidebar_container = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, width=260, corner_radius=0)
+        self.sidebar_container.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_container.grid_propagate(False)
+
         self._criar_sidebar()
         self._criar_conteudo()
 
-    def _criar_sidebar(self):
-        sidebar = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, width=260, corner_radius=0)
-        sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_propagate(False)
+    def _recriar_sidebar(self):
+        for widget in self.sidebar_container.winfo_children():
+            widget.destroy()
+        self._criar_sidebar()
 
+    def _criar_sidebar(self):
         # === TOPO COM LOGO ===
-        topo = ctk.CTkFrame(sidebar, fg_color="transparent")
+        topo = ctk.CTkFrame(self.sidebar_container, fg_color="transparent")
         topo.pack(fill="x", pady=(25, 5), padx=10)
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "logo_lumen.png")
-        if not os.path.exists(logo_path):
-            logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
+        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
 
         if os.path.exists(logo_path):
             try:
@@ -95,34 +100,35 @@ class Dashboard(ctk.CTkFrame):
         else:
             ctk.CTkLabel(topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=COR_DOURADO).pack()
 
-        separador = ctk.CTkFrame(sidebar, fg_color=COR_INPUT_BORDER, height=1)
+        separador = ctk.CTkFrame(self.sidebar_container, fg_color=COR_INPUT_BORDER, height=1)
         separador.pack(fill="x", padx=25, pady=(15, 20))
 
-        # === MENU DE NAVEGAÇÃO ===
+        # === MENU DINÂMICO BASEADO NO NÍVEL DE ACESSO ===
+        # Obtém o tipo de usuário logado de forma segura
+        tipo_usuario = None
+        if self.controller and hasattr(self.controller, 'usuario_logado') and self.controller.usuario_logado:
+            tipo_usuario = self.controller.usuario_logado.get('tipo', '').lower()
+
+        # Itens padrão que qualquer usuário logado (inclusive alunos/leitores) pode ver
         itens = [
             ("🏠   Dashboard", True, "dashboard"),
             ("📚   Livros", False, "livros"),
-            ("📦   Exemplares", False, "exemplares"),
-            ("👨   Usuários", False, "cadastro_usuario"),
-            ("🔄   Empréstimos", False, "emprestimos"),
-            ("↩️   Devoluções", False, "devolucoes"),
-            ("⚙️   Configurações", False, "configuracoes"),
         ]
 
-        itens_indisponivel = []
-        if tipo_usuario == 'bibliotecario':
-            itens = [
-                ("DASHBOARD", True),
-                ("LIVROS", False),
-                ("EXEMPLARES", False),
-                ("EMPRESTIMOS", False),
-            ]
-            itens_indisponivel = ["GERENCIAR USUARIOS", "CONFIGURACOES"]
+        # Se for administrador, adiciona as opções restritas de gerenciamento
+        if tipo_usuario == 'admin':
+            itens.extend([
+                ("📦   Exemplares", False, "exemplares"),
+                ("🔄   Empréstimos", False, "emprestimos"),
+                ("↩️   Devoluções", False, "devolucoes"),
+                ("👨   Usuários", False, "gerenciar_usuarios"),
+                ("⚙️   Configurações", False, "configuracoes"),
+            ])
 
         self._botoes_nav = []
         for nome, ativo, chave in itens:
             btn = ctk.CTkButton(
-                sidebar,
+                self.sidebar_container,
                 text=nome,
                 font=("Segoe UI", 15, "bold" if ativo else "normal"),
                 fg_color=COR_ATIVO if ativo else "transparent",
@@ -136,8 +142,9 @@ class Dashboard(ctk.CTkFrame):
             btn.pack(fill="x", padx=15, pady=5)
             self._botoes_nav.append((btn, nome))
 
-        # Rodapé corporativo
-        ctk.CTkLabel(sidebar, text="v1.0 • LUMEN SYSTEM", font=("Segoe UI", 11), text_color=COR_INPUT_BORDER).pack(side="bottom", pady=20)
+        # Rodapé
+        ctk.CTkLabel(self.sidebar_container, text="v1.0 • LUMEN SYSTEM", 
+                    font=("Segoe UI", 11), text_color=COR_INPUT_BORDER).pack(side="bottom", pady=20)
 
     def _criar_conteudo(self):
         self._conteudo = ctk.CTkScrollableFrame(self, fg_color="transparent", corner_radius=0)
@@ -189,7 +196,6 @@ class Dashboard(ctk.CTkFrame):
             card = criar_card(cards_frame)
             card.grid(row=0, column=i, padx=8, pady=0, sticky="nsew")
 
-            # Fonte do título alterada de 11 para 13 e mantido centralizado
             criar_label(card, titulo, font=("Segoe UI", 13, "bold"), text_color=COR_TEXTO2).pack(anchor="center", pady=(20, 2))
             ctk.CTkLabel(card, text=valor, font=("Segoe UI", 58, "bold"), text_color=cor_valor).pack(anchor="center")
             criar_label(card, subtitulo, font=("Segoe UI", 12), text_color=COR_INPUT_BORDER).pack(anchor="center", pady=(0, 20))
@@ -207,7 +213,6 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        # Modificado: font de 12 para 16 e anchor de "w" para "center"
         criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         if not dados:
@@ -243,7 +248,6 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
 
-        # Modificado: font de 12 para 16 e anchor de "w" para "center"
         criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 5))
 
         if not dados:
@@ -258,7 +262,6 @@ class Dashboard(ctk.CTkFrame):
 
         fig = Figure(figsize=(3.0, 2.5), dpi=100)
         ax = fig.add_subplot(111)
-        
         fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.10)
 
         categorias = [c for c, _ in dados]
@@ -307,7 +310,6 @@ class Dashboard(ctk.CTkFrame):
         card = criar_card(parent)
         card.grid(row=row, column=col, columnspan=colspan, padx=8, pady=12, sticky="nsew")
 
-        # Modificado: font de 12 para 16 e anchor de "w" para "center"
         criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
         fig = Figure(figsize=(10, 3.6), dpi=100)
@@ -349,6 +351,7 @@ class Dashboard(ctk.CTkFrame):
             "emprestimos": "emprestimos",
             "devolucoes": "devolucoes",
             "configuracoes": "configuracoes",
+            "gerenciar_usuarios": "gerenciar_usuarios",
         }
         if nome in telas:
             self.controller.navegar_para(telas[nome])
