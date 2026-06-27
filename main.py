@@ -1,44 +1,46 @@
-import sys
-import os
+# main.py — Ponto de entrada do sistema LUMEN
 
-# Configura o caminho para importar os módulos
+import sys  # Biblioteca do Python para acesso ao sistema (caminhos, argumentos)
+import os   # Biblioteca para manipular pastas e arquivos
+
+# Configura o caminho do projeto para que as importações funcionem corretamente
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import customtkinter as ctk
-from services.app_controller import AppController
-from services.conector import init_db
+import customtkinter as ctk                          # Biblioteca de interface gráfica moderna
+from services.app_controller import AppController     # Controlador que gerencia as telas
+from services.conector import init_db                 # Função que inicializa o banco de dados
 
-if __name__ == "__main__":
-    if not init_db():
+if __name__ == "__main__":                            # Só executa se for o arquivo principal
+    if not init_db():                                # Tenta criar/verificar o banco de dados
         print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
 
-    root = ctk.CTk()
-    controller = AppController(root)
-    controller.usuario_logado = None
+    root = ctk.CTk()                                 # Cria a janela principal do aplicativo
+    controller = AppController(root)                  # Cria o controlador de navegação
+    controller.usuario_logado = None                  # Nenhum usuário logado no início
 
-    # Importação das telas
-    from screen.tela_login import TelaLogin
-    from screen.dashboard import Dashboard
-    from screen.tela_livros import TelaLivros
-    from screen.tela_exemplares import TelaExemplares
-    from screen.tela_cadastro_usuario import TelaCadastroUsuario
-    from screen.emprestimos import TelaEmprestimos
-    from screen.tela_devolucoes import TelaDevolucoes
-    from screen.tela_configuracoes import TelaConfiguracoes
-    from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios
+    # Importação de todas as telas do sistema
+    from screen.tela_login import TelaLogin                         # Tela de login
+    from screen.dashboard import Dashboard                          # Tela principal (dashboard)
+    from screen.tela_livros import TelaLivros                       # Tela de cadastro de livros
+    from screen.tela_exemplares import TelaExemplares               # Tela de exemplares físicos
+    from screen.tela_cadastro_usuario import TelaCadastroUsuario    # Tela de cadastro de usuários
+    from screen.emprestimos import TelaEmprestimos                  # Tela de empréstimos
+    from screen.tela_devolucoes import TelaDevolucoes               # Tela de devoluções
+    from screen.tela_configuracoes import TelaConfiguracoes         # Tela de configurações
+    from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios # Tela de gerenciar usuários
 
-    # Registro das telas no controller
-    controller.registrar_tela("login", TelaLogin)
-    controller.registrar_tela("dashboard", Dashboard)
-    controller.registrar_tela("livros", TelaLivros)
-    controller.registrar_tela("exemplares", TelaExemplares)
-    controller.registrar_tela("cadastro_usuario", TelaCadastroUsuario)
-    controller.registrar_tela("emprestimos", TelaEmprestimos)
-    controller.registrar_tela("devolucoes", TelaDevolucoes)
-    controller.registrar_tela("configuracoes", TelaConfiguracoes)
-    controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios)
+    # Registra cada tela no controlador com um nome para navegação
+    controller.registrar_tela("login", TelaLogin)                   # Tela de login
+    controller.registrar_tela("dashboard", Dashboard)               # Dashboard principal
+    controller.registrar_tela("livros", TelaLivros)                 # Gerenciamento de livros
+    controller.registrar_tela("exemplares", TelaExemplares)         # Gerenciamento de exemplares
+    controller.registrar_tela("cadastro_usuario", TelaCadastroUsuario) # Cadastro de usuários
+    controller.registrar_tela("emprestimos", TelaEmprestimos)       # Gerenciamento de empréstimos
+    controller.registrar_tela("devolucoes", TelaDevolucoes)         # Gerenciamento de devoluções
+    controller.registrar_tela("configuracoes", TelaConfiguracoes)   # Configurações do sistema
+    controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios) # Gerenciar usuários
 
-    # Inicia na tela de login
+    # Inicia o sistema na tela de login (voltavel=False para não poder voltar ao login pelo histórico)
     controller.navegar_para("login", voltavel=False)
 
-    root.mainloop()
+    root.mainloop()                                  # Inicia o loop da interface gráfica
