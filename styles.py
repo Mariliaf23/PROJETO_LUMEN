@@ -1,2 +1,3 @@
-# This file is like a box of crayons! 
-# We use it to pick the colors and styles to make our screens look beautiful.
+# styles.py (raiz) — ARQUIVO LEGADO (não utilizado)
+# O sistema agora usa services/styles.py para estilos.
+# Este arquivo foi mantido apenas por referência.
