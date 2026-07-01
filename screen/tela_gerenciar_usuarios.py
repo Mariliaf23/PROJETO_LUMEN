@@ -78,9 +78,9 @@ class JanelaUsuario(ctk.CTkToplevel):
 
         self.frame_aluno_prof = ctk.CTkFrame(self, fg_color="transparent")
 
-        self.entry_sala  = criar_entry(self.frame_aluno_prof, placeholder="Sala (opcional)",  width=160, height=40)
+        self.entry_sala  = criar_entry(self.frame_aluno_prof, placeholder="Turma",  width=160, height=40)
         self.entry_sala.pack(side="left", padx=(0, 8))
-        self.entry_turma = criar_entry(self.frame_aluno_prof, placeholder="Turma (opcional)", width=160, height=40)
+        self.entry_turma = criar_entry(self.frame_aluno_prof, placeholder="Turno", width=160, height=40)
         self.entry_turma.pack(side="left")
 
         self.frame_func = ctk.CTkFrame(self, fg_color="transparent")
