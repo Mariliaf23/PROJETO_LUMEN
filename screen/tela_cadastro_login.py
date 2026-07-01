@@ -11,6 +11,12 @@ from services.styles import (                                      # Estilos e c
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, FONTE_TITULO, FONTE_SUBTITULO, FONTE_LABEL,
     criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo
 )
+from services.database_config import cadastrar_usuario
+import customtkinter as ctk
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class LumenLoginApp(ctk.CTkFrame):
@@ -30,23 +36,23 @@ class LumenLoginApp(ctk.CTkFrame):
 
         # Título LUMEN
         criar_titulo(container, "LUMEN", font=FONTE_TITULO).pack(pady=(0, 5))
-        # Subtítulo
-        criar_label(container, "Criar conta", font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 30))
+        criar_label(container, "Criar conta", font=FONTE_SUBTITULO,
+                    text_color=COR_TEXTO).pack(pady=(0, 30))
 
-        # Campo: Nome completo
-        self.entry_nome = criar_entry(container, placeholder="Nome completo", width=300, height=42)
+        self.entry_nome = criar_entry(
+            container, placeholder="Nome completo", width=300, height=42)
         self.entry_nome.pack(pady=(0, 12))
 
-        # Campo: Email
-        self.entry_email = criar_entry(container, placeholder="Email", width=300, height=42)
+        self.entry_email = criar_entry(
+            container, placeholder="Email", width=300, height=42)
         self.entry_email.pack(pady=(0, 12))
 
-        # Campo: Senha (com asteriscos)
-        self.entry_senha = criar_entry(container, placeholder="Senha", width=300, height=42, show="*")
+        self.entry_senha = criar_entry(
+            container, placeholder="Senha", width=300, height=42, show="*")
         self.entry_senha.pack(pady=(0, 12))
 
-        # Campo: Confirmar senha
-        self.entry_confirmar = criar_entry(container, placeholder="Confirmar senha", width=300, height=42, show="*")
+        self.entry_confirmar = criar_entry(
+            container, placeholder="Confirmar senha", width=300, height=42, show="*")
         self.entry_confirmar.pack(pady=(0, 25))
 
         # Botão cadastrar
@@ -56,11 +62,11 @@ class LumenLoginApp(ctk.CTkFrame):
         )
         self.btn_cadastrar.pack(pady=(0, 20))
 
-        # Botão voltar
-        criar_botao(container, text="Voltar", command=self._voltar, width=100, height=35).pack()
+        criar_botao(container, text="Voltar", command=self._voltar,
+                    width=100, height=35).pack()
 
-        # Label para notificações
-        self.lbl_notificacao = criar_label(container, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(
+            container, "", text_color=COR_TEXTO2)
 
     def _cadastrar(self):
         """Valida os campos e inicia o cadastro."""

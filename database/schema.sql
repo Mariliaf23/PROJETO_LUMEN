@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
   `cpf` VARCHAR(14) DEFAULT NULL,
   `tipo_usuario` ENUM('diretor', 'bibliotecario', 'aluno', 'professor') NOT NULL,
   `matricula` VARCHAR(20) DEFAULT NULL,
-  `sala` VARCHAR(10) DEFAULT NULL,
+  `turma` VARCHAR(10) DEFAULT NULL,
   `turno` VARCHAR(20) DEFAULT NULL,
   `funcao` VARCHAR(50) DEFAULT NULL,
   `status` ENUM('ativo', 'inativo', 'bloqueado') NOT NULL DEFAULT 'ativo',
@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`exemplar` (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+>>>>>>> 4b97f5ecc6e78bd1eceb330720c3fb17c5038e16
 
 
 -- -----------------------------------------------------
@@ -246,4 +247,5 @@ INSERT INTO `biblioteca`.`categoria` (`nome_categoria`) VALUE
 ('Inclusão e Acessibilidade'),
 ('Romance'),
 ('Literatura classica');
+
 

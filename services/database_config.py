@@ -45,7 +45,7 @@ def verificar_login(usuario, senha):
 
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', sala='', turno='', funcao=''):
+                      matricula='', turma='', turno='', funcao=''):
     """Cadastra um novo usuário no banco de dados. Retorna True se deu certo."""
     try:
         conn = _conectar()                      # Abre conexão
@@ -55,10 +55,10 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
         # Insere o novo usuário na tabela
         cursor.execute(
             """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
-               matricula, sala, turno, funcao)
+               matricula, turma, turno, funcao)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (nome, email, senha_hash, telefone or None, cpf or None, tipo,
-             matricula or None, sala or None, turno or None, funcao or None)
+             matricula or None, turma or None, turno or None, funcao or None)
         )
         conn.commit()                           # Salva no banco
         conn.close()                            # Fecha conexão
@@ -757,7 +757,7 @@ def listar_usuarios(tipo=None, status=None):
 
         # Consulta base
         base = """SELECT id_usuario, nome, email, telefone, cpf,
-                         tipo_usuario, matricula, sala, turno, funcao, status
+                         tipo_usuario, matricula, turma, turno, funcao, status
                   FROM usuario"""
         condicoes = []                          # Lista de condições WHERE
         valores = []                            # Lista de valores para os parâmetros
@@ -788,7 +788,7 @@ def buscar_usuario_por_id(id_usuario):
         cursor = conn.cursor()
         cursor.execute(
             """SELECT id_usuario, nome, email, telefone, cpf,
-                      tipo_usuario, matricula, sala, turno, funcao, status
+                      tipo_usuario, matricula, turma, turno, funcao, status
                FROM usuario WHERE id_usuario = %s""",
             (id_usuario,)
         )
@@ -800,7 +800,7 @@ def buscar_usuario_por_id(id_usuario):
 
 
 def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno',
-                      matricula='', sala='', turno='', funcao='', status='ativo'):
+                      matricula='', turma='', turno='', funcao='', status='ativo'):
     """Atualiza todos os campos editáveis de um usuário (exceto senha)."""
     try:
         conn = _conectar()
@@ -808,10 +808,10 @@ def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno'
         cursor.execute(
             """UPDATE usuario
                SET nome=%s, email=%s, telefone=%s, cpf=%s, tipo_usuario=%s,
-                   matricula=%s, sala=%s, turno=%s, funcao=%s, status=%s
+                   matricula=%s, turma=%s, turno=%s, funcao=%s, status=%s
                WHERE id_usuario=%s""",
             (nome, email, telefone or None, cpf or None, tipo,
-             matricula or None, sala or None, turno or None, funcao or None,
+             matricula or None, turma or None, turno or None, funcao or None,
              status, id_usuario)
         )
         conn.commit()                           # Salva as alterações
@@ -885,7 +885,7 @@ def buscar_usuarios_por_nome(termo):
         # LIKE com % nos dois lados = busca parcial
         cursor.execute(
             """SELECT id_usuario, nome, email, telefone, cpf,
-                      tipo_usuario, matricula, sala, turno, funcao, status
+                      tipo_usuario, matricula, turma, turno, funcao, status
                FROM usuario
                WHERE nome LIKE %s
                ORDER BY nome""",

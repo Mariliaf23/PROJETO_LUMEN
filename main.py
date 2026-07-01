@@ -1,14 +1,12 @@
-# main.py — Ponto de entrada do sistema LUMEN
 
-import sys  # Biblioteca do Python para acesso ao sistema (caminhos, argumentos)
-import os   # Biblioteca para manipular pastas e arquivos
+from services.conector import init_db
+from services.app_controller import AppController
+import customtkinter as ctk
+import sys
+import os
 
-# Configura o caminho do projeto para que as importações funcionem corretamente
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import customtkinter as ctk                          # Biblioteca de interface gráfica moderna
-from services.app_controller import AppController     # Controlador que gerencia as telas
-from services.conector import init_db                 # Função que inicializa o banco de dados
 
 if __name__ == "__main__":                            # Só executa se for o arquivo principal
     if not init_db():                                # Tenta criar/verificar o banco de dados

@@ -104,8 +104,8 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         self.entry_matricula = criar_entry(self.dinamico_container, placeholder="Matrícula", height=50)
         self.entry_matricula.configure(font=("Segoe UI", 16))
 
-        self.entry_sala = criar_entry(self.dinamico_container, placeholder="Sala", height=50)
-        self.entry_sala.configure(font=("Segoe UI", 16))
+        self.entry_turma = criar_entry(self.dinamico_container, placeholder="Turma", height=50)
+        self.entry_turma.configure(font=("Segoe UI", 16))
 
         self.entry_turno = criar_entry(self.dinamico_container, placeholder="Turno", height=50)
         self.entry_turno.configure(font=("Segoe UI", 16))
@@ -131,23 +131,23 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
 
     def _exibir_campos_aluno(self):
-        """Mostra os campos específicos de aluno (matrícula, sala, turno)."""
+        """Mostra os campos específicos de aluno (matrícula, turma, turno)."""
         self.entry_funcao.grid_forget()             # Esconde campo de função
         self.entry_matricula.grid(row=0, column=0, padx=(0, 10), sticky="ew")
-        self.entry_sala.grid(row=0, column=1, padx=(10, 10), sticky="ew")
+        self.entry_turma.grid(row=0, column=1, padx=(10, 10), sticky="ew")
         self.entry_turno.grid(row=0, column=2, padx=(10, 0), sticky="ew")
 
     def _exibir_campos_func(self):
         """Mostra os campos específicos de funcionário (função)."""
         self.entry_matricula.grid_forget()          # Esconde campos de aluno
-        self.entry_sala.grid_forget()
+        self.entry_turma.grid_forget()
         self.entry_turno.grid_forget()
         self.entry_funcao.grid(row=0, column=0, columnspan=3, sticky="ew")  # Mostra função
 
     def _tipo_mudou(self, tipo):
         """Chamado quando o tipo de perfil muda — atualiza os campos visíveis."""
         if tipo == "aluno":                         # Se é aluno
-            self._exibir_campos_aluno()             # Mostra matrícula, sala, turno
+            self._exibir_campos_aluno()             # Mostra matrícula, turma, turno
         elif tipo in ("funcionario", "bibliotecario", "professor"):  # Se é funcionário
             self._exibir_campos_func()              # Mostra função
 
@@ -166,16 +166,16 @@ class TelaCadastroUsuario(ctk.CTkFrame):
 
         # Campos condicionais ao tipo
         matricula = self.entry_matricula.get().strip() if tipo == "aluno" else ""
-        sala = self.entry_sala.get().strip() if tipo == "aluno" else ""
+        turma = self.entry_turma.get().strip() if tipo == "aluno" else ""
         turno = self.entry_turno.get().strip() if tipo == "aluno" else ""
         funcao = self.entry_funcao.get().strip() if tipo in ("funcionario", "bibliotecario", "professor") else ""
 
         self.btn_cadastrar.configure(text="Processando...", state="disabled")  # Desabilita botão
-        self.after(400, lambda: self._salvar(nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao))
+        self.after(400, lambda: self._salvar(nome, email, senha, telefone, cpf, tipo, matricula, turma, turno, funcao))
 
-    def _salvar(self, nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao):
+    def _salvar(self, nome, email, senha, telefone, cpf, tipo, matricula, turma, turno, funcao):
         """Salva o usuário no banco de dados."""
-        sucesso = cadastrar_usuario(nome, email, senha, telefone, cpf, tipo, matricula, sala, turno, funcao)
+        sucesso = cadastrar_usuario(nome, email, senha, telefone, cpf, tipo, matricula, turma, turno, funcao)
         if sucesso:                                # Se deu certo
             self._notificar("Usuário registrado com sucesso!")
             self.after(1500, lambda: self._voltar())  # Volta após 1.5s
