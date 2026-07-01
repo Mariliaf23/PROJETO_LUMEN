@@ -106,7 +106,7 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_ano.configure(font=("Segoe UI", 16))
         self.entry_ano.grid(row=2, column=0, padx=(0, 15), pady=12, sticky="ew")
 
-        self.entry_sinopse = criar_entry(form_frame, placeholder="Sinopse / Observações (opcional)", height=50)
+        self.entry_sinopse = criar_entry(form_frame, placeholder="Autor", height=50)
         self.entry_sinopse.configure(font=("Segoe UI", 16))
         self.entry_sinopse.grid(row=2, column=1, padx=(15, 0), pady=12, sticky="ew")
 

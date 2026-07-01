@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
   `cpf` VARCHAR(14) DEFAULT NULL,
   `tipo_usuario` ENUM('diretor', 'bibliotecario', 'aluno', 'professor') NOT NULL,
   `matricula` VARCHAR(20) DEFAULT NULL,
-  `sala` VARCHAR(10) DEFAULT NULL,
+  `turma` VARCHAR(10) DEFAULT NULL,
   `turno` VARCHAR(20) DEFAULT NULL,
   `funcao` VARCHAR(50) DEFAULT NULL,
   `status` ENUM('ativo', 'inativo', 'bloqueado') NOT NULL DEFAULT 'ativo',
