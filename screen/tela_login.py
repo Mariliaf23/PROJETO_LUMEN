@@ -99,15 +99,7 @@ class TelaLogin(ctk.CTkFrame):
         )
         self.btn_entrar.pack(pady=(0, 30))
 
-        # Link "Não tem conta? Registrar agora"
-        frame_registrar = ctk.CTkFrame(container_form, fg_color="transparent")
-        frame_registrar.pack(anchor="center")
-
-        lbl_registrar = criar_label(frame_registrar, "Não tem conta? Registrar agora", font=("Segoe UI", 13))
-        lbl_registrar.pack()
-        lbl_registrar.bind("<Button-1>", lambda e: self.controller.navegar_para("cadastro_login"))  # Clique navega para cadastro
-        lbl_registrar.configure(cursor="hand2", text_color=COR_DOURADO)  # Mãozinha + cor dourada
-
+        
         # Label para mensagens de erro (inicialmente vazio)
         self.lbl_erro = criar_label(container_form, "", text_color=COR_TEXTO2, font=("Segoe UI", 12))
 
