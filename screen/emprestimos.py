@@ -66,7 +66,9 @@ class DetalheEmprestimo(ctk.CTkToplevel):
                     cor_valor = COR_AZUL_CLARO
             criar_label(linha, valor, font=FONTE_LABEL, text_color=cor_valor).pack(side="right")
 
-        criar_botao_preenchido(self, text="Fechar", command=self.destroy, width=120, height=36).pack(pady=15)
+        ctk.CTkButton(self, text="Fechar", command=self.destroy, width=160, height=50,
+                      fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                      hover_color=COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")).pack(pady=15)
 
 
 class TelaEmprestimos(ctk.CTkFrame):
@@ -136,13 +138,13 @@ class TelaEmprestimos(ctk.CTkFrame):
             is_atual = (tag == self._aba_atual)
             
             btn = ctk.CTkButton(
-                abas_frame, text=nome, font=("Segoe UI", 12, "bold"),
+                abas_frame, text=nome, font=("Segoe UI", 16, "bold"),
                 fg_color=COR_AZUL_PRINCIPAL if is_atual else "transparent",
                 text_color="#FFFFFF" if is_atual else self.cor_texto,
                 border_color=COR_AZUL_PRINCIPAL if is_atual else self.cor_bg, 
                 border_width=1 if is_atual else 0,
                 hover_color=COR_AZUL_HOVER,
-                width=120, height=35,
+                width=140, height=42,
                 command=lambda n=tag: self._mostrar_aba(n)
             )
             btn.pack(side="left", padx=(0, 5))
@@ -200,15 +202,15 @@ class TelaEmprestimos(ctk.CTkFrame):
         form.pack(fill="x", padx=25, pady=20)
         form.grid_columnconfigure((0, 1), weight=1)
 
-        criar_label(form, "Selecione o Aluno beneficiário", font=("Segoe UI", 11)).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        criar_label(form, "Selecione o Aluno beneficiário", font=("Segoe UI", 16, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
         self.combo_aluno = criar_combo(form, height=40)
         self.combo_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
 
-        criar_label(form, "Selecione o Exemplar físico", font=("Segoe UI", 11)).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        criar_label(form, "Selecione o Exemplar físico", font=("Segoe UI", 16, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
         self.combo_exemplar = criar_combo(form, height=40)
         self.combo_exemplar.grid(row=1, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
 
-        criar_label(form, "Prazo Limite para Devolução (AAAA-MM-DD)", font=("Segoe UI", 11)).grid(row=2, column=0, sticky="w", pady=(5, 2))
+        criar_label(form, "Prazo Limite para Devolução (AAAA-MM-DD)", font=("Segoe UI", 16, "bold")).grid(row=2, column=0, sticky="w", pady=(5, 2))
         self.entry_vencimento = criar_entry(form, placeholder="Ex: 2026-12-31", height=40)
         self.entry_vencimento.grid(row=3, column=0, padx=(0, 15), sticky="ew")
 
@@ -217,22 +219,22 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.btn_cadastrar = ctk.CTkButton(
             botoes_frame, text="Confirmar Empréstimo", command=self._cadastrar_emprestimo,
-            width=180, height=40, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 11, "bold")
+            width=220, height=50, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 16, "bold")
         )
         self.btn_cadastrar.pack(side="left", padx=(0, 12))
 
         self.btn_finalizar = ctk.CTkButton(
             botoes_frame, text="Finalizar Selecionado", command=self._finalizar_emprestimo,
-            width=160, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
-            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
+            width=200, height=50, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
+            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 16, "bold")
         )
         self.btn_finalizar.pack(side="left", padx=(0, 12))
 
         self.btn_detalhes = ctk.CTkButton(
             botoes_frame, text="Ver Detalhes", command=self._abrir_detalhes,
-            width=140, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
-            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
+            width=180, height=50, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
+            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 16, "bold")
         )
         self.btn_detalhes.pack(side="left")
 
@@ -240,14 +242,14 @@ class TelaEmprestimos(ctk.CTkFrame):
         lista_card = criar_card(frame)
         lista_card.grid(row=1, column=0, sticky="nsew")
 
-        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=30)
-        header_lista.pack(fill="x", padx=15, pady=(10, 5))
+        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=45)
+        header_lista.pack(fill="x", padx=20, pady=(15, 5))
         header_lista.pack_propagate(False)
 
         colunas_ajustadas = [("ID", 0.06), ("Beneficiário", 0.22), ("Cód. Patrimônio", 0.16), ("Título do Livro", 0.22), ("Retirada", 0.12), ("Vencimento", 0.12), ("Status", 0.1)]
         x_header = 0
         for txt, pct in colunas_ajustadas:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_AZUL_CLARO, anchor="w")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="w")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 
@@ -266,11 +268,11 @@ class TelaEmprestimos(ctk.CTkFrame):
         form.pack(fill="x", padx=25, pady=20)
         form.grid_columnconfigure((0, 1), weight=1)
 
-        criar_label(form, "Selecione o Aluno", font=("Segoe UI", 11)).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        criar_label(form, "Selecione o Aluno", font=("Segoe UI", 16, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
         self.combo_reserva_aluno = criar_combo(form, height=40)
         self.combo_reserva_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
 
-        criar_label(form, "Selecione a Obra / Livro", font=("Segoe UI", 11)).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        criar_label(form, "Selecione a Obra / Livro", font=("Segoe UI", 16, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
         self.combo_reserva_livro = criar_combo(form, height=40)
         self.combo_reserva_livro.grid(row=1, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
 
@@ -279,15 +281,15 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.btn_reservar = ctk.CTkButton(
             botoes, text="Efetuar Nova Reserva", command=self._reservar,
-            width=180, height=40, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 11, "bold")
+            width=220, height=50, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 16, "bold")
         )
         self.btn_reservar.pack(side="left", padx=(0, 12))
 
         self.btn_cancelar_reserva = ctk.CTkButton(
             botoes, text="Cancelar Selecionada", command=self._cancelar_reserva,
-            width=180, height=40, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
-            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 11, "bold")
+            width=220, height=50, fg_color="transparent", border_color=COR_AZUL_CLARO, border_width=1,
+            hover_color="#0F172A", text_color=COR_AZUL_CLARO, font=("Segoe UI", 16, "bold")
         )
         self.btn_cancelar_reserva.pack(side="left")
 
@@ -295,14 +297,14 @@ class TelaEmprestimos(ctk.CTkFrame):
         lista_card = criar_card(frame)
         lista_card.grid(row=1, column=0, sticky="nsew")
 
-        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=30)
-        header_lista.pack(fill="x", padx=15, pady=(10, 5))
+        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=45)
+        header_lista.pack(fill="x", padx=20, pady=(15, 5))
         header_lista.pack_propagate(False)
 
         colunas_res = [("ID", 0.06), ("Beneficiário", 0.25), ("Obra Reservada", 0.3), ("Data Solicitação", 0.14), ("Prazo Retirada", 0.15), ("Situação", 0.1)]
         x_header = 0
         for txt, pct in colunas_res:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_AZUL_CLARO, anchor="w")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="w")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 
@@ -319,22 +321,22 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.btn_pagar = ctk.CTkButton(
             header_frame, text="Dar Baixa / Registrar Pagamento", command=self._pagar_multa,
-            width=260, height=42, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
-            font=("Segoe UI", 11, "bold")
+            width=340, height=50, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 16, "bold")
         )
         self.btn_pagar.pack(side="left")
 
         lista_card = criar_card(frame)
         lista_card.grid(row=1, column=0, sticky="nsew")
 
-        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=30)
-        header_lista.pack(fill="x", padx=15, pady=(10, 5))
+        header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=45)
+        header_lista.pack(fill="x", padx=20, pady=(15, 5))
         header_lista.pack_propagate(False)
 
         colunas_mul = [("ID", 0.06), ("Valor (R$)", 0.1), ("Dias", 0.08), ("Motivo Ocorrência", 0.14), ("Situação", 0.1), ("Geração", 0.12), ("Estudante", 0.22), ("Obra Atrelada", 0.18)]
         x_header = 0
         for txt, pct in colunas_mul:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 9, "bold"), text_color=COR_AZUL_CLARO, anchor="w")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="w")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 
