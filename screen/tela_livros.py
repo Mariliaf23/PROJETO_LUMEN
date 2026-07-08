@@ -143,7 +143,7 @@ class TelaLivros(ctk.CTkFrame):
 
         for i, (nome, pct) in enumerate(zip(colunas, self._proporcoes)):
             rel_x = sum(self._proporcoes[:i])
-            lbl = ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_DOURADO, anchor="w")
+            lbl = ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="w")
             lbl.place(relx=rel_x, rely=0.5, anchor="w", relwidth=pct-0.01)
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")
