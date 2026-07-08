@@ -24,6 +24,8 @@ COR_LINHA_IMPAR = "#16161f"
 COR_PERIGO      = "#c0392b"
 COR_SUCESSO     = "#27ae60"
 COR_AVISO       = "#d4a017"
+COR_AZUL_PRINCIPAL = "#1E3A8A"
+COR_AZUL_HOVER     = "#1D4ED8"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -48,20 +50,22 @@ class JanelaUsuario(ctk.CTkToplevel):
     # ── UI ──────────────────────────────────────────────────────────────────
     def _construir(self):
         pad = {"padx": 30}
-        criar_titulo(self, "LUMEN", font=FONTE_TITULO).pack(pady=(20, 4), **pad)
+        ctk.CTkLabel(self, text="LUMEN", font=FONTE_TITULO, text_color=COR_AZUL_PRINCIPAL).pack(pady=(20, 4), **pad)
 
         titulo = "Editar Usuário" if self.id_usuario else "Novo Usuário"
         criar_label(self, titulo, font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 16), **pad)
 
         self.combo_tipo = criar_combo(
-            self, values=["aluno", "professor", "bibliotecario"], width=340, height=40
+            self, values=["aluno", "professor", "bibliotecario"], width=340, height=40,
+            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
         )
         self.combo_tipo.set("aluno")
         self.combo_tipo.configure(command=self._tipo_mudou)
         self.combo_tipo.pack(pady=(0, 10), **pad)
 
         self.combo_status = criar_combo(
-            self, values=["ativo", "inativo"], width=340, height=40
+            self, values=["ativo", "inativo"], width=340, height=40,
+            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
         )
         self.combo_status.set("ativo")
         self.combo_status.pack(pady=(0, 10), **pad)
@@ -89,8 +93,10 @@ class JanelaUsuario(ctk.CTkToplevel):
 
         self._tipo_mudou("aluno")
 
-        criar_botao_preenchido(self, text="Salvar", command=self._salvar,
-                               width=340, height=42).pack(pady=(14, 6), **pad)
+        ctk.CTkButton(self, text="Salvar", command=self._salvar,
+                      width=340, height=42,
+                      fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                      hover_color=COR_AZUL_HOVER).pack(pady=(14, 6), **pad)
 
         self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
         self.lbl_notif.pack()
@@ -176,11 +182,11 @@ class JanelaUsuario(ctk.CTkToplevel):
 class LinhaUsuario(ctk.CTkFrame):
     COLUNAS = [
         ("ID",     40),
-        ("Nome",  200),
-        ("Contato",200),
-        ("Tipo",   90),
-        ("Status", 70),
-        ("Acoes",  160),
+        ("NOME",  200),
+        ("CONTATO",200),
+        ("TIPO",   90),
+        ("STATUS", 70),
+        ("AÇÕES",  160),
     ]
 
     def __init__(self, master, dados, indice, on_editar, on_alternar, on_excluir, **kw):
@@ -194,7 +200,8 @@ class LinhaUsuario(ctk.CTkFrame):
 
         for val, larg in zip(valores, larguras):
             cor_val = COR_SUCESSO if val == "ativo" else (COR_PERIGO if val == "inativo" else COR_TEXTO)
-            criar_label(self, val, text_color=cor_val, width=larg, anchor="w").pack(
+            criar_label(self, val, text_color=cor_val, width=larg, anchor="w",
+                        font=("Segoe UI", 15)).pack(
                 side="left", padx=(6, 0)
             )
 
@@ -203,22 +210,26 @@ class LinhaUsuario(ctk.CTkFrame):
         frame_acoes.pack(side="left", padx=8)
 
         ctk.CTkButton(
-            frame_acoes, text="Editar", width=60, height=28,
-            fg_color=COR_DOURADO, text_color="#000",
+            frame_acoes, text="Editar", width=70, height=32,
+            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=COR_AZUL_HOVER,
+            font=("Segoe UI", 13, "bold"),
             command=lambda: on_editar(id_u)
         ).pack(side="left", padx=(0, 4))
 
         label_status = "Ativar" if status == "inativo" else "Desativar"
         cor_status   = COR_SUCESSO if status == "inativo" else COR_AVISO
         ctk.CTkButton(
-            frame_acoes, text=label_status, width=72, height=28,
+            frame_acoes, text=label_status, width=80, height=32,
             fg_color=cor_status, text_color="#fff",
+            font=("Segoe UI", 13, "bold"),
             command=lambda: on_alternar(id_u)
         ).pack(side="left", padx=(0, 4))
 
         ctk.CTkButton(
-            frame_acoes, text="✕", width=28, height=28,
+            frame_acoes, text="✕", width=32, height=32,
             fg_color=COR_PERIGO, text_color="#fff",
+            font=("Segoe UI", 13, "bold"),
             command=lambda: on_excluir(id_u, nome)
         ).pack(side="left")
 
@@ -230,9 +241,9 @@ class CabecalhoTabela(ctk.CTkFrame):
     def __init__(self, master, **kw):
         super().__init__(master, fg_color="#0d0d1a", corner_radius=0, **kw)
         for rotulo, largura in LinhaUsuario.COLUNAS:
-            criar_label(self, rotulo, text_color=COR_DOURADO,
+            criar_label(self, rotulo, text_color=COR_TEXTO,
                         width=largura, anchor="w",
-                        font=(FONTE_SUBTITULO[0], FONTE_SUBTITULO[1], "bold")
+                        font=("Segoe UI", 14, "bold")
                         ).pack(side="left", padx=(6, 0))
 
 
@@ -311,10 +322,12 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         criar_label(header_left, "Gerenciar Usuários", font=FONTE_TITULO, text_color=COR_TEXTO).pack(side="left")
 
-        criar_botao_preenchido(
-            topo, text="+ Novo Usuário", command=self._abrir_cadastro,
-            width=150, height=36
-        ).pack(side="right")
+        btn_voltar = ctk.CTkButton(
+            topo, text="Voltar", command=self.controller.voltar, width=130, height=45,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
+        )
+        btn_voltar.pack(side="right")
 
         # ── Filtros ──
         filtros = ctk.CTkFrame(self, fg_color="transparent")
@@ -325,24 +338,33 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self.entry_busca.bind("<Return>", lambda e: self._buscar())
 
         ctk.CTkButton(
-            filtros, text="Buscar", width=80, height=36,
-            fg_color=COR_DOURADO, text_color="#000",
+            filtros, text="Buscar", width=100, height=42,
+            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 16, "bold"),
             command=self._buscar
         ).pack(side="left", padx=(0, 16))
 
         self.combo_filtro = criar_combo(
             filtros,
             values=["Todos", "aluno", "professor", "bibliotecario"],
-            width=160, height=36
+            width=160, height=36,
+            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
         )
         self.combo_filtro.set("Todos")
         self.combo_filtro.configure(command=lambda _: self._carregar())
         self.combo_filtro.pack(side="left", padx=(0, 10))
 
         ctk.CTkButton(
-            filtros, text="↺ Limpar", width=80, height=36,
-            fg_color="#333",
+            filtros, text="↺ Limpar", width=100, height=42,
+            fg_color="#333", font=("Segoe UI", 16, "bold"),
             command=self._limpar_filtros
+        ).pack(side="left", padx=(0, 10))
+
+        ctk.CTkButton(
+            filtros, text="+ Novo Usuário", command=self._abrir_cadastro,
+            width=160, height=42,
+            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
         ).pack(side="left")
 
         self.lbl_total = criar_label(filtros, "", text_color=COR_TEXTO2)
@@ -353,17 +375,6 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True, padx=30, pady=(0, 20))
-
-        rodape = ctk.CTkFrame(self, fg_color="transparent")
-        rodape.pack(pady=(0, 10), padx=30)
-
-        if self.controller:
-            btn_voltar = ctk.CTkButton(
-                rodape, text="Voltar", command=self.controller.voltar, width=130, height=45,
-                fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
-                hover_color="#1E293B", font=("Segoe UI", 16, "bold")
-            )
-            btn_voltar.pack()
 
         self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
         self.lbl_notif.pack(pady=(0, 8))

@@ -55,7 +55,7 @@ class TelaExemplares(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         # Título com fonte aumentada para 26
-        criar_label(header_left, "Gerenciar Exemplares", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Gerenciamento de Livros", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
 
         # Botão voltar azul escuro sólido com texto branco
         btn_voltar = ctk.CTkButton(
@@ -104,7 +104,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         # Botão Adicionar - AZUL PURO SÓLIDO (Sem tom pastel)
         self.btn_adicionar = ctk.CTkButton(
-            botoes_frame, text="Adicionar Exemplar", command=self._adicionar,
+            botoes_frame, text="Adicionar Livro", command=self._adicionar,
             width=220, height=50, 
             fg_color="#0052CC", text_color="#FFFFFF",
             hover_color="#003399", font=("Segoe UI", 16, "bold")
@@ -126,7 +126,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         # Distribuição das colunas
         self._proporcoes_colunas = [0.18, 0.42, 0.16, 0.24]
-        colunas_nomes = ["Patrimônio", "Livro", "Status", "Localização"]
+        colunas_nomes = ["PATRIMÔNIO", "LIVRO", "STATUS", "LOCALIZAÇÃO"]
 
         header_lista = ctk.CTkFrame(lista_card, fg_color="transparent", height=45)
         header_lista.pack(fill="x", padx=20, pady=(15, 5))
@@ -135,7 +135,7 @@ class TelaExemplares(ctk.CTkFrame):
         # Renderização do cabeçalho com fonte 14
         for i, (txt, pct) in enumerate(zip(colunas_nomes, self._proporcoes_colunas)):
             rel_x = sum(self._proporcoes_colunas[:i])
-            lbl = criar_label(header_lista, txt, font=("Segoe UI", 14, "bold"), text_color=COR_DOURADO, anchor="w")
+            lbl = criar_label(header_lista, txt, font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="w")
             lbl.place(relx=rel_x, rely=0.5, anchor="w", relwidth=pct - 0.01)
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")

@@ -101,7 +101,7 @@ class TelaDevolucoes(ctk.CTkFrame):
         colunas_larguras = [("ID", 0.06), ("Aluno", 0.2), ("Exemplar", 0.15), ("Livro", 0.2), ("Empréstimo", 0.12), ("Previsto", 0.12), ("Status", 0.1)]
         x_header = 0
         for txt, pct in colunas_larguras:
-            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_AZUL_CLARO, anchor="center")
+            lbl_h = criar_label(header_lista, txt.upper(), font=("Segoe UI", 14, "bold"), text_color=COR_TEXTO, anchor="center")
             lbl_h.place(relx=x_header + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             x_header += pct
 

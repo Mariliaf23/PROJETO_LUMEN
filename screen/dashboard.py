@@ -223,7 +223,7 @@ class Dashboard(ctk.CTkFrame):
         # Itens extras para admin/diretor
         if tipo_usuario in ('admin', 'diretor'):
             itens.extend([
-                ("📦   Exemplares", False, "exemplares"),        # Exemplares físicos
+                ("📦   Gerenciar Livros", False, "exemplares"),   # Gerenciar Livros
                 ("🔄   Empréstimos", False, "emprestimos"),      # Empréstimos
                 ("↩️   Devoluções", False, "devolucoes"),        # Devoluções
                 ("👨   Usuários", False, "gerenciar_usuarios"),  # Gerenciar usuários
