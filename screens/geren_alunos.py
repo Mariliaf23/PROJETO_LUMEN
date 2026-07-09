@@ -77,7 +77,7 @@ class TelaListaAlunos(tk.Toplevel):
             "Nome": (180, True),
             "Email": (180, True),
             "Telefone": (110, True),
-            "Sala": (60, True),
+            "Turma": (60, True),
             "Turno": (80, True),
             "Cadastro": (100, True),
         }
