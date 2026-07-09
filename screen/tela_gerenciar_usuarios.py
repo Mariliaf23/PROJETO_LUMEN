@@ -182,9 +182,11 @@ class JanelaUsuario(ctk.CTkToplevel):
 class LinhaUsuario(ctk.CTkFrame):
     COLUNAS = [
         ("ID",     40),
-        ("NOME",  200),
-        ("CONTATO",200),
-        ("TIPO",   90),
+        ("NOME",  160),
+        ("CONTATO",150),
+        ("TIPO",   80),
+        ("TURMA",  70),
+        ("TURNO",  80),
         ("STATUS", 70),
         ("AÇÕES",  160),
     ]
@@ -193,9 +195,9 @@ class LinhaUsuario(ctk.CTkFrame):
         cor = COR_LINHA_PAR if indice % 2 == 0 else COR_LINHA_IMPAR
         super().__init__(master, fg_color=cor, corner_radius=0, **kw)
 
-        id_u, nome, email, *_, tipo, _m, _s, _t, _f, status = dados
+        id_u, nome, email, telefone, cpf, tipo, matricula, turma, turno, funcao, status = dados
 
-        valores = [str(id_u), nome, email, tipo, status]
+        valores = [str(id_u), nome, email, tipo, turma or "-", turno or "-", status]
         larguras = [c[1] for c in self.COLUNAS[:-1]]
 
         for val, larg in zip(valores, larguras):
