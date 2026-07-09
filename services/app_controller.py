@@ -77,15 +77,16 @@ class AppController:
         self._tela_atual = nome                       # Atualiza a tela atual
         nova_tela = self._telas[nome]                 # Pega a nova tela do dicionário
 
-        if hasattr(nova_tela, '_ao_visitar'):         # Se a tela tem método ao ser visitada
-            nova_tela._ao_visitar()                   # Chama para atualizar os dados
-
         if antiga:                                    # Se tinha uma tela antes
             # Anima a transição deslizando da esquerda para a direita
             self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda")
         else:                                         # Primeira tela (sem animação)
             nova_tela.place(relx=0, rely=0, relwidth=1, relheight=1)  # Mostra a tela
             nova_tela.lift()                          # Coloca na frente
+
+        # Chama _ao_visitar APÓS a tela estar visível
+        if hasattr(nova_tela, '_ao_visitar'):
+            nova_tela.after(50, nova_tela._ao_visitar)
 
     def voltar(self):
         """Volta para a tela anterior (usando o histórico)."""
@@ -100,15 +101,16 @@ class AppController:
         self._tela_atual = anterior                   # Atualiza para a tela anterior
         tela_volta = self._telas[anterior]            # Pega o frame da tela anterior
 
-        if hasattr(tela_volta, '_ao_visitar'):        # Atualiza dados da tela ao retornar
-            tela_volta._ao_visitar()
-
         if antiga:                                    # Se tinha uma tela na frente
             # Anima a transição deslizando da direita para a esquerda (volta)
             self._animar_slide(self._telas[antiga], tela_volta, direcao="direita")
         else:                                         # Sem animação
             tela_volta.place(relx=0, rely=0, relwidth=1, relheight=1)
             tela_volta.lift()
+
+        # Chama _ao_visitar APÓS a tela estar visível
+        if hasattr(tela_volta, '_ao_visitar'):
+            tela_volta.after(50, tela_volta._ao_visitar)
 
     def voltar_ao_inicio(self):
         """Volta para a tela de login e limpa o histórico."""

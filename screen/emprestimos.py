@@ -1,6 +1,7 @@
 import os
 import sys
 from PIL import Image
+from datetime import date, timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -22,6 +23,43 @@ from services.styles import (
 COR_AZUL_PRINCIPAL = "#1E3A8A"
 COR_AZUL_HOVER = "#1D4ED8"
 COR_AZUL_CLARO = "#3B82F6"
+
+
+def validar_e_converter_data(entrada):
+    """
+    Valida e converte entrada de data:
+    - Se for número: interpreta como dias a partir de hoje (ex: "1" = amanhã)
+    - Se for AAAA-MM-DD: valida o formato
+    
+    Retorna: (sucesso, data_formatada, mensagem_erro)
+    """
+    entrada = entrada.strip()
+    
+    # Tenta interpretar como número de dias
+    try:
+        dias = int(entrada)
+        if dias <= 0:
+            return False, None, "Os dias devem ser um número positivo (ex: 1, 7, 14)."
+        data_futura = date.today() + timedelta(days=dias)
+        return True, data_futura.strftime("%Y-%m-%d"), None
+    except ValueError:
+        pass
+    
+    # Tenta validar como data AAAA-MM-DD
+    try:
+        partes = entrada.split("-")
+        if len(partes) != 3:
+            return False, None, "Formato inválido. Use AAAA-MM-DD (ex: 2026-12-31) ou número de dias (ex: 7)."
+        
+        ano, mes, dia = int(partes[0]), int(partes[1]), int(partes[2])
+        data_obj = date(ano, mes, dia)
+        
+        if data_obj <= date.today():
+            return False, None, "A data deve ser posterior a hoje."
+        
+        return True, data_obj.strftime("%Y-%m-%d"), None
+    except (ValueError, AttributeError):
+        return False, None, "Formato inválido. Use AAAA-MM-DD (ex: 2026-12-31) ou número de dias (ex: 7)."
 
 
 class DetalheEmprestimo(ctk.CTkToplevel):
@@ -171,10 +209,10 @@ class TelaEmprestimos(ctk.CTkFrame):
         for btn, n in self._botoes_abas:
             if n == nome:
                 btn.configure(fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF", 
-                             border_color=COR_AZUL_PRINCIPAL, border_width=1)
+                              border_color=COR_AZUL_PRINCIPAL, border_width=1)
             else:
                 btn.configure(fg_color="transparent", text_color=self.cor_texto, 
-                             border_color=self.cor_bg, border_width=0)
+                              border_color=self.cor_bg, border_width=0)
 
         self._frame_emprestimos.grid_forget()
         self._frame_reservas.grid_forget()
@@ -202,20 +240,32 @@ class TelaEmprestimos(ctk.CTkFrame):
         form.pack(fill="x", padx=25, pady=20)
         form.grid_columnconfigure((0, 1), weight=1)
 
-        criar_label(form, "Selecione o Aluno beneficiário", font=("Segoe UI", 16, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        # --- SEÇÃO ALUNO COM FILTRO ---
+        criar_label(form, "Selecione o Aluno beneficiário", font=("Segoe UI", 14, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        self.entry_busca_aluno = criar_entry(form, placeholder="Digite para buscar o aluno...", height=35)
+        self.entry_busca_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 5), sticky="ew")
+        self.entry_busca_aluno.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_aluno.get(), self.combo_aluno, self._alunos_map))
+
         self.combo_aluno = criar_combo(form, height=40)
-        self.combo_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
+        self.combo_aluno.grid(row=2, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
 
-        criar_label(form, "Selecione o Exemplar físico", font=("Segoe UI", 16, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        # --- SEÇÃO EXEMPLAR COM FILTRO ---
+        criar_label(form, "Selecione o Exemplar físico", font=("Segoe UI", 14, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        self.entry_busca_exemplar = criar_entry(form, placeholder="Digite para buscar o exemplar...", height=35)
+        self.entry_busca_exemplar.grid(row=1, column=1, padx=(15, 0), pady=(0, 5), sticky="ew")
+        self.entry_busca_exemplar.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_exemplar.get(), self.combo_exemplar, self._exemplares_map))
+
         self.combo_exemplar = criar_combo(form, height=40)
-        self.combo_exemplar.grid(row=1, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
+        self.combo_exemplar.grid(row=2, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
 
-        criar_label(form, "Prazo Limite para Devolução (AAAA-MM-DD)", font=("Segoe UI", 16, "bold")).grid(row=2, column=0, sticky="w", pady=(5, 2))
-        self.entry_vencimento = criar_entry(form, placeholder="Ex: 2026-12-31", height=40)
-        self.entry_vencimento.grid(row=3, column=0, padx=(0, 15), sticky="ew")
+        # --- PRAZO LIMITE ---
+        criar_label(form, "Prazo Limite para Devolução", font=("Segoe UI", 16, "bold")).grid(row=3, column=0, sticky="w", pady=(5, 2))
+        criar_label(form, "(Digite dias: 1, 7, 14... ou data: 2026-12-31)", font=("Segoe UI", 12), text_color=COR_TEXTO2).grid(row=3, column=1, sticky="e", pady=(5, 2))
+        self.entry_vencimento = criar_entry(form, placeholder="Ex: 7 ou 2026-12-31", height=40)
+        self.entry_vencimento.grid(row=4, column=0, padx=(0, 15), sticky="ew")
 
         botoes_frame = ctk.CTkFrame(form, fg_color="transparent")
-        botoes_frame.grid(row=3, column=1, padx=(15, 0), sticky="ew")
+        botoes_frame.grid(row=4, column=1, padx=(15, 0), sticky="ew")
 
         self.btn_cadastrar = ctk.CTkButton(
             botoes_frame, text="Confirmar Empréstimo", command=self._cadastrar_emprestimo,
@@ -268,16 +318,26 @@ class TelaEmprestimos(ctk.CTkFrame):
         form.pack(fill="x", padx=25, pady=20)
         form.grid_columnconfigure((0, 1), weight=1)
 
-        criar_label(form, "Selecione o Aluno", font=("Segoe UI", 16, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
-        self.combo_reserva_aluno = criar_combo(form, height=40)
-        self.combo_reserva_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
+        # --- ALUNO RESERVA COM FILTRO ---
+        criar_label(form, "Selecione o Aluno", font=("Segoe UI", 14, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        self.entry_busca_res_aluno = criar_entry(form, placeholder="Digite para buscar o aluno...", height=35)
+        self.entry_busca_res_aluno.grid(row=1, column=0, padx=(0, 15), pady=(0, 5), sticky="ew")
+        self.entry_busca_res_aluno.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_res_aluno.get(), self.combo_reserva_aluno, self._reserva_alunos_map))
 
-        criar_label(form, "Selecione a Obra / Livro", font=("Segoe UI", 16, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        self.combo_reserva_aluno = criar_combo(form, height=40)
+        self.combo_reserva_aluno.grid(row=2, column=0, padx=(0, 15), pady=(0, 10), sticky="ew")
+
+        # --- LIVRO RESERVA COM FILTRO ---
+        criar_label(form, "Selecione a Obra / Livro", font=("Segoe UI", 14, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 2))
+        self.entry_busca_res_livro = criar_entry(form, placeholder="Digite para buscar a obra...", height=35)
+        self.entry_busca_res_livro.grid(row=1, column=1, padx=(15, 0), pady=(0, 5), sticky="ew")
+        self.entry_busca_res_livro.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_res_livro.get(), self.combo_reserva_livro, self._reserva_livros_map))
+
         self.combo_reserva_livro = criar_combo(form, height=40)
-        self.combo_reserva_livro.grid(row=1, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
+        self.combo_reserva_livro.grid(row=2, column=1, padx=(15, 0), pady=(0, 10), sticky="ew")
 
         botoes = ctk.CTkFrame(form, fg_color="transparent")
-        botoes.grid(row=2, column=0, columnspan=2, pady=(10, 0))
+        botoes.grid(row=3, column=0, columnspan=2, pady=(10, 0))
 
         self.btn_reservar = ctk.CTkButton(
             botoes, text="Efetuar Nova Reserva", command=self._reservar,
@@ -390,7 +450,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             self.combo_exemplar.set(nomes_exemplares[0])
 
         emprestimos = emprestimos_filtrados if emprestimos_filtrados is not None else listar_emprestimos()
-        for emp in emprestimos:
+        for emp in map(list, list(emprestimos)):
             self._criar_item_emp(emp)
 
     def _criar_item_emp(self, emp):
@@ -399,14 +459,36 @@ class TelaEmprestimos(ctk.CTkFrame):
         item.pack_propagate(False)
         item.bind("<Button-1>", lambda e, v=emp: self._selecionar(v))
 
-        colunas = [0.06, 0.22, 0.16, 0.22, 0.12, 0.12, 0.1]
+        colunas_display = [0.06, 0.22, 0.16, 0.22, 0.12, 0.12, 0.1]
+        indices_exibir = [0, 1, 2, 3, 4, 5, 7]
+        
         x = 0
-        for i, (texto, pct) in enumerate(zip(emp, colunas)):
+        for col_idx, db_idx in enumerate(indices_exibir):
+            texto = emp[db_idx] if db_idx < len(emp) else ""
+            pct = colunas_display[col_idx]
             cor = self.cor_texto
-            if i == 6 and str(texto).lower() == "atrasado":
-                cor = "#EF4444" 
-            elif i == 6 and str(texto).lower() == "ativo":
-                cor = COR_AZUL_CLARO
+            
+            if col_idx in [4, 5]:
+                try:
+                    if texto:
+                        if hasattr(texto, 'strftime'):
+                            texto = texto.strftime("%d/%m/%Y")
+                        elif isinstance(texto, str) and "20" in str(texto):
+                            partes = str(texto).split("-")
+                            if len(partes) == 3:
+                                texto = f"{partes[2]}/{partes[1]}/{partes[0]}"
+                except:
+                    pass
+            
+            if col_idx == 6:
+                status_texto = str(texto).lower()
+                if status_texto == "atrasado":
+                    cor = "#EF4444" 
+                elif status_texto == "ativo":
+                    cor = COR_AZUL_CLARO
+                elif status_texto == "finalizado":
+                    cor = "#10B981"
+                
             lbl = ctk.CTkLabel(item, text=str(texto) if texto else "-", font=("Segoe UI", 10), text_color=cor, anchor="w")
             lbl.place(relx=x + 0.01, rely=0.5, anchor="w", relwidth=pct - 0.02)
             lbl.bind("<Button-1>", lambda e, v=emp: self._selecionar(v))
@@ -415,12 +497,36 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._itens_lista.append((item, emp))
 
     def _selecionar(self, emp):
+        self._selecionado = emp
         for item, e in self._itens_lista:
             if e == emp:
-                item.configure(fg_color="#1E293B")
+                # Destaque de linha selecionada de alto contraste
+                item.configure(fg_color="#0F172A")
+                for widget in item.winfo_children():
+                    if isinstance(widget, ctk.CTkLabel):
+                        widget.configure(text_color="#FFFFFF")
             else:
                 item.configure(fg_color=self.cor_card)
-        self._selecionado = emp
+                for idx, widget in enumerate(item.winfo_children()):
+                    if isinstance(widget, ctk.CTkLabel):
+                        if idx == 6: # Restaura cores originais dos status
+                            st = str(e[7]).lower()
+                            widget.configure(text_color="#EF4444" if st == "atrasado" else "#10B981" if st == "finalizado" else COR_AZUL_CLARO)
+                        else:
+                            widget.configure(text_color=self.cor_texto)
+        self.lista_emprestimos.update_idletasks()
+
+    def _filtrar_dados(self, termo, combo_alvo, mapa_referencia):
+        """Filtra as opções mapeadas nos dicionários em tempo real com base no texto digitado."""
+        termo = termo.lower().strip()
+        opcoes_filtradas = [chave for chave in mapa_referencia.keys() if termo in chave.lower()]
+        
+        if opcoes_filtradas:
+            combo_alvo.configure(values=opcoes_filtradas)
+            combo_alvo.set(opcoes_filtradas[0])
+        else:
+            combo_alvo.configure(values=["Nenhum resultado encontrado"])
+            combo_alvo.set("Nenhum resultado encontrado")
 
     def _cadastrar_emprestimo(self):
         aluno_sel = self.combo_aluno.get()
@@ -434,7 +540,12 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar("Selecione um exemplar disponível.")
             return
         if not vencimento:
-            self._notificar("Informe a data prevista de devolução.")
+            self._notificar("Informe a data prevista de devolução (AAAA-MM-DD) ou número de dias (ex: 7).")
+            return
+
+        sucesso, data_convertida, erro = validar_e_converter_data(vencimento)
+        if not sucesso:
+            self._notificar(f"Erro na data: {erro}")
             return
 
         id_usuario = self._alunos_map[aluno_sel]
@@ -446,13 +557,15 @@ class TelaEmprestimos(ctk.CTkFrame):
             return
 
         self.btn_cadastrar.configure(text="Processando...", state="disabled")
-        self.after(500, lambda: self._salvar_emprestimo(id_usuario, id_exemplar, vencimento, id_funcionario))
+        self.after(500, lambda: self._salvar_emprestimo(id_usuario, id_exemplar, data_convertida, id_funcionario))
 
     def _salvar_emprestimo(self, id_usuario, id_exemplar, vencimento, id_funcionario):
         sucesso = cadastrar_emprestimo(id_usuario, id_exemplar, vencimento, id_funcionario)
         if sucesso:
             self._notificar("Empréstimo registrado com sucesso!")
             self.entry_vencimento.delete(0, "end")
+            self.entry_busca_aluno.delete(0, "end")
+            self.entry_busca_exemplar.delete(0, "end")
             self._recarregar_emprestimos()
         else:
             self._notificar("Erro operacional ao salvar empréstimo.")
@@ -499,12 +612,18 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._itens_reserva.append((item, r))
 
     def _selecionar_reserva(self, r):
+        self._reserva_selecionada = r
         for item, v in self._itens_reserva:
             if v == r:
-                item.configure(fg_color="#1E293B")
+                item.configure(fg_color="#0F172A")
+                for widget in item.winfo_children():
+                    if isinstance(widget, ctk.CTkLabel):
+                        widget.configure(text_color="#FFFFFF")
             else:
                 item.configure(fg_color=self.cor_card)
-        self._reserva_selecionada = r
+                for widget in item.winfo_children():
+                    if isinstance(widget, ctk.CTkLabel):
+                        widget.configure(text_color=self.cor_texto)
 
     def _reservar(self):
         aluno_sel = self.combo_reserva_aluno.get()
@@ -525,8 +644,10 @@ class TelaEmprestimos(ctk.CTkFrame):
 
     def _salvar_reserva(self, id_usuario, id_livro):
         sucesso = cadastrar_reserva(id_usuario, id_livro)
-        if sucesso:
+        if friendship := sucesso:
             self._notificar("Reserva ativada com sucesso!")
+            self.entry_busca_res_aluno.delete(0, "end")
+            self.entry_busca_res_livro.delete(0, "end")
             self._recarregar_reservas()
         else:
             self._notificar("Erro ao gerar reserva para esta obra.")
@@ -573,12 +694,22 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._itens_multa.append((item, m))
 
     def _selecionar_multa(self, m):
+        self._multa_selecionada = m
         for item, v in self._itens_multa:
             if v == m:
-                item.configure(fg_color="#1E293B")
+                item.configure(fg_color="#0F172A")
+                for widget in item.winfo_children():
+                    if isinstance(widget, ctk.CTkLabel):
+                        widget.configure(text_color="#FFFFFF")
             else:
                 item.configure(fg_color=self.cor_card)
-        self._multa_selecionada = m
+                for idx, widget in enumerate(item.winfo_children()):
+                    if isinstance(widget, ctk.CTkLabel):
+                        if idx == 1:
+                            st = str(v[4]).lower()
+                            widget.configure(text_color="#EF4444" if st == "pendente" else "#10B981")
+                        else:
+                            widget.configure(text_color=self.cor_texto)
 
     def _pagar_multa(self):
         if not self._multa_selecionada:

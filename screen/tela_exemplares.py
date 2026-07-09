@@ -7,7 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import customtkinter as ctk
 from services.database_config import (
     listar_livros, listar_exemplares, cadastrar_exemplar,
-    excluir_exemplar, atualizar_status_exemplar
+    excluir_exemplar, atualizar_status_exemplar,
+    exemplar_tem_historico_emprestimo
 )
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
@@ -22,6 +23,7 @@ class TelaExemplares(ctk.CTkFrame):
         self.controller = controller
         self._itens_lista = []
         self._selecionado = None
+        self._selecionado_item = None
         self._livros_map = {}
         self._construir_ui()
 
@@ -55,7 +57,7 @@ class TelaExemplares(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         # Título com fonte aumentada para 26
-        criar_label(header_left, "Gerenciamento de Livros", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Gerenciamento de Exemplares", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
 
         # Botão voltar azul escuro sólido com texto branco
         btn_voltar = ctk.CTkButton(
@@ -104,7 +106,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         # Botão Adicionar - AZUL PURO SÓLIDO (Sem tom pastel)
         self.btn_adicionar = ctk.CTkButton(
-            botoes_frame, text="Adicionar Livro", command=self._adicionar,
+            botoes_frame, text="Adicionar Exemplar", command=self._adicionar,
             width=220, height=50, 
             fg_color="#0052CC", text_color="#FFFFFF",
             hover_color="#003399", font=("Segoe UI", 16, "bold")
@@ -161,6 +163,8 @@ class TelaExemplares(ctk.CTkFrame):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
         self._itens_lista.clear()
+        self._selecionado = None
+        self._selecionado_item = None
 
         if exemplares is None:
             exemplares = listar_exemplares()
@@ -174,13 +178,21 @@ class TelaExemplares(ctk.CTkFrame):
 
     def _criar_item(self, exc):
         # Linha da tabela maior (height=48) e fontes internas maiores (15px)
-        item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=6, height=48)
+        item = ctk.CTkFrame(
+            self.lista_frame,
+            fg_color=COR_CARD,
+            corner_radius=6,
+            height=48,
+            border_width=0,
+            border_color=COR_CARD
+        )
         item.pack(fill="x", pady=4)
         item.pack_propagate(False)
 
-        item.bind("<Button-1>", lambda e, v=exc: self._selecionar(v))
+        item._dados = exc
+        item.bind("<Button-1>", lambda e, it=item: self._selecionar(it))
 
-        dados_exibicao = exc[1:] if len(exc) > 4 else exc
+        dados_exibicao = [exc[1], exc[4], exc[2], exc[3]] if len(exc) > 4 else exc
 
         for i, pct in enumerate(self._proporcoes_colunas):
             if i < len(dados_exibicao):
@@ -205,15 +217,19 @@ class TelaExemplares(ctk.CTkFrame):
                     anchor="w"
                 )
                 lbl.place(relx=rel_x + 0.005, rely=0.5, anchor="w", relwidth=pct - 0.01)
-                lbl.bind("<Button-1>", lambda e, v=exc: self._selecionar(v))
+                lbl.bind("<Button-1>", lambda e, it=item: self._selecionar(it))
 
         self._itens_lista.append((item, exc))
 
-    def _selecionar(self, exc):
-        for item, e in self._itens_lista:
-            # Highlight azul marinho profundo ao selecionar a linha
-            item.configure(fg_color="#0F172A" if e == exc else COR_CARD)
-        self._selecionado = exc
+    def _selecionar(self, item):
+        for linha, e in self._itens_lista:
+            if linha == item:
+                linha.configure(fg_color="#0F172A", border_width=2, border_color=COR_DOURADO)
+            else:
+                linha.configure(fg_color=COR_CARD, border_width=0, border_color=COR_CARD)
+        self._selecionado = item._dados
+        self._selecionado_item = item
+        self._notificar(f"Exemplar selecionado: {self._selecionado[1]}")
 
     def _adicionar(self):
         livro_sel = self.combo_livro.get()
@@ -247,21 +263,26 @@ class TelaExemplares(ctk.CTkFrame):
         if not self._selecionado:
             self._notificar("Selecione um exemplar na lista para excluir.")
             return
-            
+
         id_exc = self._selecionado[0]
         status = str(self._selecionado[2]).strip().lower() if len(self._selecionado) > 2 else ""
         
         if "emprestado" in status:
             self._notificar("Não é possível excluir um exemplar com empréstimo ativo.")
             return
-            
+
+        if exemplar_tem_historico_emprestimo(id_exc):
+            self._notificar("Não é possível excluir este exemplar: ele tem histórico de empréstimos.")
+            return
+
         sucesso = excluir_exemplar(id_exc)
         if sucesso:
             self._notificar("Exemplar excluído do acervo.")
             self._selecionado = None
+            self._selecionado_item = None
             self._carregar_tabela()
         else:
-            self._notificar("Erro ao excluir o exemplar.")
+            self._notificar(f"Erro ao excluir o exemplar {id_exc}.")
 
     def _voltar(self):
         if self.controller and hasattr(self.controller, 'voltar'):

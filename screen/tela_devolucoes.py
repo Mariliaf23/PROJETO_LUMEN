@@ -161,31 +161,51 @@ class TelaDevolucoes(ctk.CTkFrame):
             self._notificar("Selecione um empréstimo para devolver.")
             return
         emp_id = self._selecionado[0]
+        print(f"🔄 Iniciando devolução do empréstimo ID: {emp_id}")
         self.btn_devolver.configure(text="Processando...", state="disabled")
         self.after(500, lambda: self._processar_devolucao(emp_id))
 
     def _processar_devolucao(self, emp_id):
-        data_prevista_str = str(self._selecionado[5])
+        msg = "Devolução registrada com sucesso!"
+        
         try:
-            partes = data_prevista_str.split("-")
-            data_prevista = date(int(partes[0]), int(partes[1]), int(partes[2]))
+            data_prevista = self._selecionado[5]
+            print(f"Data prevista: {data_prevista}")
+            
+            # Converte para string se for objeto date/datetime
+            if hasattr(data_prevista, 'strftime'):
+                data_prevista_obj = data_prevista
+            else:
+                # Se for string, converte para date
+                data_str = str(data_prevista)
+                partes = data_str.split()[0].split("-")  # Remove horas se houver
+                data_prevista_obj = date(int(partes[0]), int(partes[1]), int(partes[2]))
+            
             hoje = date.today()
-            dias_atraso = (hoje - data_prevista).days
+            dias_atraso = (hoje - data_prevista_obj).days
+            print(f"Dias de atraso: {dias_atraso}")
 
             if dias_atraso > 0:
-                gerar_multa(emp_id, dias_atraso, 'atraso')
-                self._notificar(f"Devolução registrada! Multa gerada: {dias_atraso} dias de atraso.")
-            else:
-                self._notificar("Devolução registrada com sucesso!")
-        except Exception:
-            self._notificar("Devolução registrada com sucesso!")
+                resultado_multa = gerar_multa(emp_id, dias_atraso, 'atraso')
+                print(f"Multa gerada: {resultado_multa}")
+                msg = f"Devolução registrada! Multa gerada: {dias_atraso} dias de atraso."
+                
+        except Exception as e:
+            print(f"❌ Erro ao calcular atraso: {e}")
+            msg = "Devolução registrada com sucesso!"
 
+        print(f"Finalizando empréstimo {emp_id}...")
         sucesso = finalizar_emprestimo(emp_id)
+        
         if sucesso:
+            print(f"✓ Devolução bem-sucedida")
+            self._notificar(msg)
             self._selecionado = None
             self._carregar_tabela()
         else:
-            self._notificar("Erro ao finalizar empréstimo.")
+            print(f"❌ Erro ao finalizar empréstimo")
+            self._notificar("Erro ao finalizar empréstimo. Verifique os logs.")
+            
         self.btn_devolver.configure(text="Registrar Devolução", state="normal")
 
     def _voltar(self):

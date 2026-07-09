@@ -223,7 +223,7 @@ class Dashboard(ctk.CTkFrame):
         # Itens extras para admin/diretor
         if tipo_usuario in ('admin', 'diretor'):
             itens.extend([
-                ("📦   Gerenciar Livros", False, "exemplares"),   # Gerenciar Livros
+                ("📦   Gerenciar Exemplares", False, "exemplares"),   # Gerenciar Exemplares
                 ("🔄   Empréstimos", False, "emprestimos"),      # Empréstimos
                 ("↩️   Devoluções", False, "devolucoes"),        # Devoluções
                 ("👨   Usuários", False, "gerenciar_usuarios"),  # Gerenciar usuários
@@ -297,7 +297,7 @@ class Dashboard(ctk.CTkFrame):
         # Dados de cada card: (título, valor, subtítulo, cor do valor)
         cards = [
             ("TOTAL NO ACERVO", str(self._stats.get('livros', 0)), "Títulos catalogados", COR_GRAF_AZUL),
-            ("EMPRÉSTIMOS ATIVOS", str(self._stats.get('emprestimos', 0)), "Livros em circulação", COR_GRAF_DOURADO),
+            ("EMPRÉSTIMOS ATIVOS", str(self._stats.get('emprestimos_ativos', 0)), "Livros em circulação", COR_GRAF_DOURADO),
             ("LEITORES ATIVOS", str(self._stats.get('usuarios', 0)), "Usuários na plataforma", COR_TEXTO),
             ("ALERTAS DE ATRASO", str(self._stats.get('atrasados', 0)), "Devoluções pendentes", "#EF4444"),
         ]
@@ -381,13 +381,13 @@ class Dashboard(ctk.CTkFrame):
 
         criar_label(card, titulo.upper(), font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(anchor="center", padx=20, pady=(15, 10))
 
-        # Mapeia os dados para cada dia da semana (começa tudo zerado)
-        dados_map = {d: 0 for d in DIAS}
-        for dia, total in dados:                  # Para cada dia com dados
-            if dia in dados_map:                  # Se é um dia válido
-                dados_map[dia] = total            # Atualiza o valor
+        # Mapeia os dados para cada dia da semana (Mon=0 .. Sun=6)
+        valores = [0] * 7
+        for dia, total in dados:
+            if 1 <= dia <= 7:
+                index = 6 if dia == 1 else dia - 2
+                valores[index] = total
 
-        valores = [dados_map[d] for d in DIAS]   # Lista de valores na ordem dos dias
         canvas = GraficoBarras(card, valores, DIAS,
                                cor_normal=COR_GRAF_MUTED, cor_destaque=COR_GRAF_DOURADO, height=240)
         canvas.pack(fill="both", expand=True, padx=15, pady=(0, 15))

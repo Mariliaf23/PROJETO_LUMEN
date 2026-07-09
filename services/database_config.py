@@ -358,6 +358,22 @@ def listar_exemplares_disponiveis(id_livro=None):
         return []
 
 
+def exemplar_tem_historico_emprestimo(id_exemplar):
+    """Verifica se o exemplar já participou de algum empréstimo (qualquer status)."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM emprestimo WHERE id_exemplar = %s",
+            (id_exemplar,)
+        )
+        total = cursor.fetchone()[0]
+        conn.close()
+        return total > 0
+    except Error:
+        return False
+
+
 def atualizar_status_exemplar(id_exemplar, status):
     """Atualiza o status de um exemplar (disponivel, emprestado, etc)."""
     try:
@@ -376,11 +392,24 @@ def excluir_exemplar(id_exemplar):
     try:
         conn = _conectar()
         cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM emprestimo WHERE id_exemplar = %s",
+            (id_exemplar,)
+        )
+        total_emprestimos = cursor.fetchone()[0]
+        if total_emprestimos > 0:
+            conn.close()
+            print(f"Não é possível excluir exemplar {id_exemplar}: histórico de {total_emprestimos} empréstimos")
+            return False
+
         cursor.execute("DELETE FROM exemplar WHERE id_exemplar = %s", (id_exemplar,))
+        sucesso = cursor.rowcount > 0
         conn.commit()
         conn.close()
-        return True
-    except Error:
+        return sucesso
+    except Error as e:
+        print(f"Erro ao excluir exemplar: {e}")
         return False
 
 
@@ -460,39 +489,68 @@ def finalizar_emprestimo(id_emprestimo):
         # 1. Busca o exemplar vinculado ao empréstimo
         cursor.execute("SELECT id_exemplar FROM emprestimo WHERE id_emprestimo = %s", (id_emprestimo,))
         resultado = cursor.fetchone()
-        id_exemplar = resultado[0] if resultado else None
+        
+        if not resultado:
+            print(f"Aviso: Empréstimo {id_emprestimo} não encontrado")
+            conn.close()
+            return False
+            
+        id_exemplar = resultado[0]
+        
+        if not id_exemplar:
+            print(f"Aviso: Exemplar não vinculado ao empréstimo {id_emprestimo}")
+            conn.close()
+            return False
 
         # 2. Marca o empréstimo como finalizado com data de hoje
         cursor.execute(
             "UPDATE emprestimo SET status = 'finalizado', data_devolucao = CURDATE() WHERE id_emprestimo = %s",
             (id_emprestimo,)
         )
+        
+        atualizacoes = cursor.rowcount
+        if atualizacoes == 0:
+            print(f"Aviso: Nenhuma linha atualizada para empréstimo {id_emprestimo}")
+        
         # 3. Libera o exemplar (volta a ficar disponível)
         cursor.execute(
             "UPDATE exemplar SET status_exemplar = 'disponivel' WHERE id_exemplar = %s",
             (id_exemplar,)
         )
+        
+        atualizacoes_ex = cursor.rowcount
+        if atualizacoes_ex == 0:
+            print(f"Aviso: Nenhuma linha atualizada para exemplar {id_exemplar}")
 
-        # 4. Verifica se alguém reservou esse livro
+        # 4. Verifica se alguém reservou esse livro (simples - apenas id_reserva e título)
         reserva_info = None
-        if id_exemplar:
-            cursor.execute(
-                """SELECT r.id_reserva, u.nome, l.titulo
-                   FROM reserva r
-                   JOIN livro l ON r.id_livro = l.id_livro
-                   JOIN exemplar ex ON ex.id_livro = l.id_livro
-                   WHERE ex.id_exemplar = %s AND r.status = 'ativa'
-                   ORDER BY r.data_reserva ASC LIMIT 1""",
-                (id_exemplar,)
-            )
-            reserva_info = cursor.fetchone()     # Pega a primeira reserva ativa
+        cursor.execute(
+            """SELECT r.id_reserva, l.titulo
+               FROM reserva r
+               JOIN livro l ON r.id_livro = l.id_livro
+               WHERE r.id_livro = (SELECT id_livro FROM exemplar WHERE id_exemplar = %s)
+               AND r.status = 'ativa'
+               ORDER BY r.data_reserva ASC LIMIT 1""",
+            (id_exemplar,)
+        )
+        reserva_info = cursor.fetchone()
 
         conn.commit()
         conn.close()
-        return reserva_info                      # Retorna info da reserva (se existir)
+        
+        print(f"✓ Empréstimo {id_emprestimo} finalizado com sucesso")
+        if reserva_info:
+            print(f"  ⚠ Há reserva ativa: {reserva_info}")
+        return True
+        
     except Error as e:
-        print(f"Erro ao finalizar emprestimo: {e}")
-        return None
+        print(f"❌ Erro ao finalizar emprestimo {id_emprestimo}: {e}")
+        if 'conn' in locals():
+            try:
+                conn.close()
+            except:
+                pass
+        return False
 
 
 def verificar_atrasos():
@@ -583,6 +641,9 @@ def gerar_multa(id_emprestimo, dias_atraso, motivo='atraso'):
         conn = _conectar()
         cursor = conn.cursor()
         valor = dias_atraso * 2.00               # Calcula o valor da multa
+        
+        print(f"Gerando multa: emp_id={id_emprestimo}, dias={dias_atraso}, valor=R${valor:.2f}")
+        
         cursor.execute(
             """INSERT INTO multa (valor, dias_atraso, motivo, status_pagamento, data_geracao, id_emprestimo)
                VALUES (%s, %s, %s, 'pendente', CURDATE(), %s)""",
@@ -590,9 +651,15 @@ def gerar_multa(id_emprestimo, dias_atraso, motivo='atraso'):
         )
         conn.commit()
         conn.close()
+        print(f"✓ Multa criada com sucesso: R${valor:.2f}")
         return True
     except Error as e:
-        print(f"Erro ao gerar multa: {e}")
+        print(f"❌ Erro ao gerar multa: {e}")
+        if 'conn' in locals():
+            try:
+                conn.close()
+            except:
+                pass
         return False
 
 
@@ -666,8 +733,15 @@ def usuario_tem_multa_pendente(id_usuario):
 # ======================== DASHBOARD ========================
 
 def buscar_stats_dashboard():
-    """Busca estatísticas gerais para o dashboard: livros, empréstimos, usuários, taxa de retorno."""
-    stats = {'livros': 0, 'emprestimos': 0, 'usuarios': 0, 'taxa_retorno': 0}  # Valores padrão
+    """Busca estatísticas gerais para o dashboard: livros, empréstimos totais, ativos, usuários, taxa de retorno."""
+    stats = {
+        'livros': 0,
+        'emprestimos': 0,
+        'emprestimos_ativos': 0,
+        'usuarios': 0,
+        'atrasados': 0,
+        'taxa_retorno': 0
+    }  # Valores padrão
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -675,8 +749,16 @@ def buscar_stats_dashboard():
         cursor.execute("SELECT COUNT(*) FROM livro")           # Conta livros
         stats['livros'] = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM emprestimo")      # Conta empréstimos
+        cursor.execute("SELECT COUNT(*) FROM emprestimo")      # Conta empréstimos totais
         stats['emprestimos'] = cursor.fetchone()[0]
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM emprestimo WHERE status IN ('ativo', 'atrasado')"
+        )  # Conta empréstimos em aberto
+        stats['emprestimos_ativos'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM emprestimo WHERE status = 'atrasado'")  # Conta empréstimos atrasados
+        stats['atrasados'] = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM usuario WHERE tipo_usuario = 'aluno'")  # Conta alunos
         stats['usuarios'] = cursor.fetchone()[0]
@@ -734,10 +816,10 @@ def buscar_emprestimos_semana():
         conn = _conectar()
         cursor = conn.cursor()
         cursor.execute(
-            """SELECT DAYNAME(data_emprestimo) as dia, COUNT(*) as total
+            """SELECT DAYOFWEEK(data_emprestimo) as dia_semana, COUNT(*) as total
                FROM emprestimo
                WHERE YEARWEEK(data_emprestimo) = YEARWEEK(CURDATE())
-               GROUP BY DAYNAME(data_emprestimo), DAYOFWEEK(data_emprestimo)
+               GROUP BY DAYOFWEEK(data_emprestimo)
                ORDER BY DAYOFWEEK(data_emprestimo)"""
         )
         dados = cursor.fetchall()
