@@ -70,14 +70,15 @@ def init_db():
                 (senha_hash, DEFAULT_USER)
             )
             print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
-        elif total == 0:                            # Se não tem nenhum usuário no banco
-            # Cria o primeiro usuário admin
+        else:                                       # Se o admin não existe
+            # Cria o usuário admin (independente de já haver outros usuários)
             cursor.execute(
-                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
+                """INSERT IGNORE INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
                    VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
                 (DEFAULT_USER, 'admin@lumen.com', senha_hash, '')
             )
-            print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")
+            if cursor.rowcount > 0:
+                print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")
 
         _inserir_dados_exemplo(cursor)              # Insere dados de exemplo (se necessário)
 

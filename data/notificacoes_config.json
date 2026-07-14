@@ -1,0 +1,14 @@
+{
+  "habilitado": true,
+  "abrir_automatico": true,
+  "registrar_historico": true,
+  "incluir_resumo": true,
+  "eventos_habilitados": {
+    "emprestimo_realizado": true,
+    "devolucao_realizada": true,
+    "reserva_criada": true,
+    "reserva_disponivel": true,
+    "aviso_devolucao": true,
+    "aviso_atraso": true
+  }
+}

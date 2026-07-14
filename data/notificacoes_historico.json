@@ -1,0 +1,74 @@
+[
+  {
+    "data": "14/07/2026",
+    "hora": "19:58:24",
+    "usuario": "Natália",
+    "evento": "Devolução realizada",
+    "telefone": "21972162978",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "14/07/2026",
+    "hora": "19:54:54",
+    "usuario": "Natália",
+    "evento": "Empréstimo realizado",
+    "telefone": "21972162978",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "14/07/2026",
+    "hora": "16:05:35",
+    "usuario": "EZEQUIEL",
+    "evento": "Devolução realizada",
+    "telefone": "91985260715",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "14/07/2026",
+    "hora": "16:00:00",
+    "usuario": "EZEQUIEL",
+    "evento": "Empréstimo realizado",
+    "telefone": "91985260715",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "12/07/2026",
+    "hora": "00:06:42",
+    "usuario": "José",
+    "evento": "Devolução realizada",
+    "telefone": "91983252293",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "11/07/2026",
+    "hora": "22:29:15",
+    "usuario": "José",
+    "evento": "Devolução realizada",
+    "telefone": "91983252293",
+    "status": "Enviado",
+    "observacoes": "WhatsApp Web aberto com sucesso"
+  },
+  {
+    "data": "11/07/2026",
+    "hora": "22:21:48",
+    "usuario": "TESTE",
+    "evento": "teste",
+    "telefone": "91983252293",
+    "status": "Enviado",
+    "observacoes": "Mensagem de teste"
+  },
+  {
+    "data": "11/07/2026",
+    "hora": "22:13:53",
+    "usuario": "TESTE",
+    "evento": "teste",
+    "telefone": "91983252293",
+    "status": "Enviado",
+    "observacoes": "Mensagem de teste"
+  }
+]

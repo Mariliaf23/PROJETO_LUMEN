@@ -2,6 +2,36 @@
 
 import customtkinter as ctk   # Biblioteca de interface gráfica moderna
 
+COR_ERRO   = "#EF4444"   # borda vermelha de erro
+COR_OK     = "#10B981"   # borda verde de sucesso
+
+
+def aplicar_validacao_focusout(entry, fn_validar, lbl_erro_global, todos_entries):
+    entry._tocado = False
+    entry._validacao_ativa = False  # bloqueia até janela estar pronta
+
+    def _ao_sair(event=None):
+        if not entry._tocado or not entry._validacao_ativa:
+            return
+        valor = entry.get().strip()
+        if not valor:
+            entry.configure(border_color=COR_INPUT_BORDER)
+            lbl_erro_global.configure(text="")
+            return
+        ok, msg = fn_validar(valor)
+        entry.configure(border_color=COR_OK if ok else COR_ERRO)
+        lbl_erro_global.configure(text="" if ok else msg, text_color=COR_ERRO)
+
+    def _ao_entrar(event=None):
+        entry._tocado = True
+        entry._validacao_ativa = True
+        for e in todos_entries:
+            e.configure(border_color=COR_INPUT_BORDER)
+        lbl_erro_global.configure(text="")
+
+    entry.bind("<FocusOut>", lambda e: _ao_sair())
+    entry.bind("<FocusIn>",  lambda e: _ao_entrar())
+
 ctk.set_appearance_mode("dark")              # Define o tema escuro para toda a aplicação
 ctk.set_default_color_theme("dark-blue")     # Tema de cores padrão: azul escuro
 
@@ -140,8 +170,8 @@ def criar_combo(parent, values=None, **kwargs):
         values=values or [" Selecione..."],  # Opções disponíveis
         font=FONTE_INPUT,                     # Fonte
         fg_color=COR_INPUT_BG,               # Fundo do campo
-        button_color=COR_DOURADO,            # Cor do botão de abertura
-        button_hover_color=COR_HOVER,         # Cor ao passar o mouse no botão
+        button_color="#1E3A8A",              # Cor do botão de abertura (azul)
+        button_hover_color="#1D4ED8",        # Cor ao passar o mouse no botão (azul escuro)
         dropdown_fg_color=COR_CARD,           # Fundo da lista suspensa
         dropdown_hover_color=COR_ATIVO,       # Cor ao passar mouse nas opções
         text_color=COR_TEXTO,                 # Cor do texto selecionado
@@ -150,21 +180,6 @@ def criar_combo(parent, values=None, **kwargs):
     )
     defaults.update(kwargs)
     return ctk.CTkOptionMenu(parent, **defaults)  # Retorna o menu suspenso
-
-
-def criar_switch(parent, text, **kwargs):
-    """Cria um interruptor (toggle) com estilo padronizado."""
-    defaults = dict(
-        text=text,                        # Texto ao lado do switch
-        font=FONTE_LABEL,                # Fonte
-        text_color=COR_TEXTO2,           # Cor do texto
-        fg_color=COR_INPUT_BORDER,       # Cor quando desligado
-        progress_color=COR_DOURADO,      # Cor quando ligado
-        button_color=COR_DOURADO,        # Cor do botão deslizante
-        button_hover_color=COR_HOVER,    # Cor do botão ao passar o mouse
-    )
-    defaults.update(kwargs)
-    return ctk.CTkSwitch(parent, **defaults)  # Retorna o switch
 
 
 def criar_scroll_frame(parent, **kwargs):
@@ -177,29 +192,3 @@ def criar_scroll_frame(parent, **kwargs):
     )
     defaults.update(kwargs)
     return ctk.CTkScrollableFrame(parent, **defaults)  # Retorna o frame scrollável
-
-
-def criar_item_lista(parent, dados, on_click=None, **kwargs):
-    """Cria uma linha de lista com várias colunas de dados."""
-    frame = ctk.CTkFrame(parent, fg_color=COR_CARD, corner_radius=8, height=45)  # Frame da linha
-
-    labels = []                          # Lista para guardar os labels criados
-    colunas = len(dados)                 # Quantidade de colunas
-    largura_col = 1.0 / colunas if colunas > 0 else 1  # Largura proporcional de cada coluna
-
-    for i, (texto, _) in enumerate(dados):  # Para cada coluna (texto, dados extras)
-        lbl = ctk.CTkLabel(
-            frame, text=texto, font=FONTE_SMALL,   # Label com fonte pequena
-            text_color=COR_TEXTO, anchor="w"       # Texto branco, alinhado à esquerda
-        )
-        # Posiciona o label na posição correta
-        lbl.place(relx=i * largura_col + 0.01, rely=0.5, anchor="w", relwidth=largura_col - 0.02)
-        labels.append(lbl)               # Salva o label na lista
-
-    if on_click:                         # Se tem função de clique
-        frame.bind("<Button-1>", lambda e: on_click())  # Clique no frame
-        for lbl in labels:               # Para cada label
-            lbl.bind("<Button-1>", lambda e: on_click())  # Clique no label também
-
-    frame.pack(fill="x", padx=5, pady=2)  # Posiciona a linha
-    return frame

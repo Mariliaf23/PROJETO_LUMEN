@@ -61,115 +61,108 @@ class AppController:
 
     def navegar_para(self, nome, voltavel=True):
         """Navega para a tela indicada pelo nome."""
-        if self._animando:                            # Se está animando, bloqueia nova navegação
+        if self._animando:
             return
 
-        if self._tela_atual and self._tela_atual == nome:  # Se já está nessa tela, não faz nada
+        if self._tela_atual and self._tela_atual == nome:
             return
 
-        if not self.verificar_acesso(nome):           # Verifica se o usuário pode acessar
+        if not self.verificar_acesso(nome):
             return
 
-        if voltavel and self._tela_atual:             # Se pode voltar e tem tela atual
-            self._historico.append(self._tela_atual)  # Salva a tela atual no histórico
+        if voltavel and self._tela_atual:
+            self._historico.append(self._tela_atual)
 
-        antiga = self._tela_atual                     # Guarda a tela que está saindo
-        self._tela_atual = nome                       # Atualiza a tela atual
-        nova_tela = self._telas[nome]                 # Pega a nova tela do dicionário
+        antiga = self._tela_atual
+        self._tela_atual = nome
+        nova_tela = self._telas[nome]
 
-        if antiga:                                    # Se tinha uma tela antes
-            # Anima a transição deslizando da esquerda para a direita
-            self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda")
-        else:                                         # Primeira tela (sem animação)
-            nova_tela.place(relx=0, rely=0, relwidth=1, relheight=1)  # Mostra a tela
-            nova_tela.lift()                          # Coloca na frente
+        callback = nova_tela._ao_visitar if hasattr(nova_tela, '_ao_visitar') else None
 
-        # Chama _ao_visitar APÓS a tela estar visível
-        if hasattr(nova_tela, '_ao_visitar'):
-            nova_tela.after(50, nova_tela._ao_visitar)
+        if antiga:
+            self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda", callback=callback)
+        else:
+            nova_tela.place(relx=0, rely=0, relwidth=1, relheight=1)
+            nova_tela.lift()
+            if callback:
+                callback()
 
     def voltar(self):
         """Volta para a tela anterior (usando o histórico)."""
-        if self._animando:                            # Bloqueia se estiver animando
+        if self._animando:
             return
 
-        if not self._historico:                       # Se não tem histórico, não volta
+        if not self._historico:
             return
 
-        anterior = self._historico.pop()              # Remove e pega a última tela do histórico
-        antiga = self._tela_atual                     # Tela atual que vai sair
-        self._tela_atual = anterior                   # Atualiza para a tela anterior
-        tela_volta = self._telas[anterior]            # Pega o frame da tela anterior
+        anterior = self._historico.pop()
+        antiga = self._tela_atual
+        self._tela_atual = anterior
+        tela_volta = self._telas[anterior]
 
-        if antiga:                                    # Se tinha uma tela na frente
-            # Anima a transição deslizando da direita para a esquerda (volta)
-            self._animar_slide(self._telas[antiga], tela_volta, direcao="direita")
-        else:                                         # Sem animação
+        callback = tela_volta._ao_visitar if hasattr(tela_volta, '_ao_visitar') else None
+
+        if antiga:
+            self._animar_slide(self._telas[antiga], tela_volta, direcao="direita", callback=callback)
+        else:
             tela_volta.place(relx=0, rely=0, relwidth=1, relheight=1)
             tela_volta.lift()
+            if callback:
+                callback()
 
-        # Chama _ao_visitar APÓS a tela estar visível
-        if hasattr(tela_volta, '_ao_visitar'):
-            tela_volta.after(50, tela_volta._ao_visitar)
-
-    def voltar_ao_inicio(self):
-        """Volta para a tela de login e limpa o histórico."""
-        self._historico.clear()                       # Limpa todo o histórico de navegação
-        self.navegar_para("login", voltavel=False)    # Navega para o login sem salvar no histórico
-
-    def _animar_slide(self, saindo, entrando, direcao="esquerda", duracao=250):
+    def _animar_slide(self, saindo, entrando, direcao="esquerda", duracao=250, callback=None):
         """Anima a transição entre telas com efeito de deslize."""
-        self._animando = True                         # Marca que está animando (bloqueia cliques)
-        saindo.update_idletasks()                     # Atualiza medições da tela saindo
-        largura = saindo.winfo_width()                # Largura da tela (para calcular o deslocamento)
+        self._animando = True
+        saindo.update_idletasks()
+        largura = saindo.winfo_width()
 
-        if direcao == "esquerda":                     # Animação para frente (esquerda)
-            x_inicio_nova = largura                   # Nova tela começa fora, à direita
-            x_fim_nova = 0                           # Nova tela termina no centro
-            x_inicio_velha = 0                       # Tela antiga começa no centro
-            x_fim_velha = -largura                   # Tela antiga termina fora, à esquerda
-        else:                                         # Animação para trás (direita)
-            x_inicio_nova = -largura                  # Nova tela começa fora, à esquerda
-            x_fim_nova = 0                           # Nova tela termina no centro
-            x_inicio_velha = 0                       # Tela antiga começa no centro
-            x_fim_velha = largura                    # Tela antiga termina fora, à direita
+        if direcao == "esquerda":
+            x_inicio_nova = largura
+            x_fim_nova = 0
+            x_inicio_velha = 0
+            x_fim_velha = -largura
+        else:
+            x_inicio_nova = -largura
+            x_fim_nova = 0
+            x_inicio_velha = 0
+            x_fim_velha = largura
 
-        entrando.place(relx=0, rely=0, relwidth=1, relheight=1)  # Mostra a tela entrando
-        entrando.place_configure(x=x_inicio_nova)    # Posiciona fora da tela
-        entrando.lift()                              # Coloca na frente
+        entrando.place(relx=0, rely=0, relwidth=1, relheight=1)
+        entrando.place_configure(x=x_inicio_nova)
+        entrando.lift()
 
-        passos = 15                                  # Número de quadros da animação
-        intervalo = max(duracao // passos, 1)        # Tempo entre cada quadro (em ms)
+        passos = 15
+        intervalo = max(duracao // passos, 1)
 
-        # Inicia a animação passo a passo
         self._animar_passo(
             saindo, entrando,
-            x_inicio_velha, x_fim_velha,             # Posições da tela saindo
-            x_inicio_nova, x_fim_nova,               # Posições da tela entrando
-            0, passos, intervalo                     # Passo atual, total, intervalo
+            x_inicio_velha, x_fim_velha,
+            x_inicio_nova, x_fim_nova,
+            0, passos, intervalo, callback
         )
 
-    def _animar_passo(self, saindo, entrando, x_sv, x_fv, x_sn, x_fn, passo, total, intervalo):
+    def _animar_passo(self, saindo, entrando, x_sv, x_fv, x_sn, x_fn, passo, total, intervalo, callback=None):
         """Executa um quadro da animação de transição."""
-        if passo >= total:                            # Se chegou ao último passo
-            saindo.place_forget()                     # Esconde a tela que saiu
-            entrando.place(relx=0, rely=0, relwidth=1, relheight=1)  # Posiciona a nova tela
-            self._animando = False                    # Libera a navegação
-            return                                    # Fim da animação
+        if passo >= total:
+            saindo.place_forget()
+            entrando.place(relx=0, rely=0, relwidth=1, relheight=1)
+            self._animando = False
+            if callback:
+                callback()
+            return
 
-        t = (passo + 1) / total                      # Progresso da animação (0.0 a 1.0)
-        t_suave = self._ease_out_cubic(t)             # Aplica suavização (ease-out)
+        t = (passo + 1) / total
+        t_suave = self._ease_out_cubic(t)
 
-        x_velha = x_sv + (x_fv - x_sv) * t_suave    # Calcula posição da tela saindo
-        x_nova = x_sn + (x_fn - x_sn) * t_suave     # Calcula posição da tela entrando
+        x_velha = x_sv + (x_fv - x_sv) * t_suave
+        x_nova = x_sn + (x_fn - x_sn) * t_suave
 
-        saindo.place_configure(x=int(x_velha))       # Move a tela saindo
-        entrando.place_configure(x=int(x_nova))      # Move a tela entrando
+        saindo.place_configure(x=int(x_velha))
+        entrando.place_configure(x=int(x_nova))
 
-        # Agenda o próximo passo da animação
         self.root.after(intervalo, lambda: self._animar_passo(
             saindo, entrando, x_sv, x_fv, x_sn, x_fn,
-            passo + 1, total, intervalo
+            passo + 1, total, intervalo, callback
         ))
 
     def _ease_out_cubic(self, t):

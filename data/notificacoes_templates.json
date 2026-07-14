@@ -1,0 +1,8 @@
+{
+  "emprestimo_realizado": "Olá {nome}! 📚\n\nSeu empréstimo foi registrado com sucesso!\n\n📖 Livro: {livro}\n📋 Patrimônio: {patrimonio}\n📅 Empréstimo: {emprestimo}\n📅 Devolução prevista: {devolucao}\n\n{historico_usuario}\n\nObrigado por utilizar a biblioteca LUMEN!",
+  "devolucao_realizada": "Olá {nome}! ✅\n\nSua devolução foi registrada com sucesso!\n\n📖 Livro: {livro}\n📋 Patrimônio: {patrimonio}\n\n{historico_usuario}\n\nObrigado por devolver no prazo!",
+  "reserva_criada": "Olá {nome}! 📌\n\nSua reserva foi realizada com sucesso!\n\n📖 Livro: {livro}\n📅 Reserva feita em: {emprestimo}\n\n{historico_usuario}\n\nVocê será notificado quando o livro estiver disponível.",
+  "reserva_disponivel": "Olá {nome}! 🎉\n\nO livro reservado está disponível para retirada!\n\n📖 Livro: {livro}\n📋 Patrimônio: {patrimonio}\n\n{historico_usuario}\n\nRetire na biblioteca em até 3 dias úteis.",
+  "aviso_devolucao": "Olá {nome}! ⏰\n\nLembrete: sua devolução está próxima!\n\n📖 Livro: {livro}\n📋 Patrimônio: {patrimonio}\n📅 Devolução prevista: {devolucao}\n\n{historico_usuario}\n\nPor favor, devolva dentro do prazo para evitar multas.",
+  "aviso_atraso": "Olá {nome}! ⚠️\n\nSeu empréstimo está em atraso!\n\n📖 Livro: {livro}\n📋 Patrimônio: {patrimonio}\n📅 Devolução prevista: {devolucao}\n\n{historico_usuario}\n\nPor favor, devolva o mais breve possível para evitar multas."
+}

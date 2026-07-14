@@ -23,9 +23,11 @@ if __name__ == "__main__":                            # Só executa se for o arq
     from screen.tela_exemplares import TelaExemplares               # Tela de exemplares físicos
     from screen.tela_cadastro_usuario import TelaCadastroUsuario    # Tela de cadastro de usuários
     from screen.emprestimos import TelaEmprestimos                  # Tela de empréstimos
-    from screen.tela_devolucoes import TelaDevolucoes               # Tela de devoluções
     from screen.tela_configuracoes import TelaConfiguracoes         # Tela de configurações
     from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios # Tela de gerenciar usuários
+    from screen.tela_catalogo import TelaCatalogo                     # Tela de catálogo de livros
+    from screen.tela_relatorios import TelaRelatorios                 # Tela de relatórios
+    from screen.tela_notificacoes import TelaNotificacoes             # Central de notificações
 
     # Registra cada tela no controlador com um nome para navegação
     controller.registrar_tela("login", TelaLogin)                   # Tela de login
@@ -34,9 +36,11 @@ if __name__ == "__main__":                            # Só executa se for o arq
     controller.registrar_tela("exemplares", TelaExemplares)         # Gerenciamento de exemplares
     controller.registrar_tela("cadastro_usuario", TelaCadastroUsuario) # Cadastro de usuários
     controller.registrar_tela("emprestimos", TelaEmprestimos)       # Gerenciamento de empréstimos
-    controller.registrar_tela("devolucoes", TelaDevolucoes)         # Gerenciamento de devoluções
     controller.registrar_tela("configuracoes", TelaConfiguracoes)   # Configurações do sistema
     controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios) # Gerenciar usuários
+    controller.registrar_tela("catalogo", TelaCatalogo)             # Catálogo de livros
+    controller.registrar_tela("relatorios", TelaRelatorios)         # Relatórios
+    controller.registrar_tela("notificacoes", TelaNotificacoes)     # Central de notificações
 
     # Inicia o sistema na tela de login (voltavel=False para não poder voltar ao login pelo histórico)
     controller.navegar_para("login", voltavel=False)

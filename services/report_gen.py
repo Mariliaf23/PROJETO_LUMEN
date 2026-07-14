@@ -1,191 +1,129 @@
 # report_gen.py — Gera relatórios em PDF do sistema de biblioteca
 
-import os                                        # Biblioteca para manipular caminhos de arquivos
-from datetime import date                        # Biblioteca para obter a data atual
-from fpdf import FPDF                            # Biblioteca para criar arquivos PDF
-from services.database_config import (            # Funções que buscam dados do banco
-    listar_livros,                               # Lista todos os livros cadastrados
-    listar_emprestimos,                          # Lista todos os empréstimos
-    listar_emprestimos_ativos,                   # Lista empréstimos em aberto
-    listar_multas,                               # Lista multas
-    buscar_stats_dashboard                       # Busca estatísticas gerais
+import os
+from datetime import date
+from services.database_config import (
+    listar_livros, listar_emprestimos_ativos, listar_multas,
+    listar_usuarios, listar_emprestimos, buscar_usuario_por_id,
+    buscar_historico_usuario, buscar_exemplares_por_titulo,
+    buscar_movimentacoes_periodo, listar_exemplares
+)
+from services.report_export import (
+    RelatorioPDF, gerar_pdf_generico, COLUNAS_MAP
 )
 
 
-class RelatorioPDF(FPDF):
-    """Classe que cria o PDF com cabeçalho e rodapé personalizados."""
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAPEAMENTO DE COLUNAS PARA RELATÓRIOS ANTIGOS
+# ═══════════════════════════════════════════════════════════════════════════════
 
-    def header(self):
-        """Adiciona o cabeçalho em todas as páginas do PDF."""
-        self.set_font('Helvetica', 'B', 16)      # Fonte Arial Negrito, tamanho 16
-        self.cell(0, 10, 'LUMEN - Relatorio da Biblioteca', new_x="LMARGIN", new_y="NEXT", align='C')  # Título centralizado
-        self.set_font('Helvetica', '', 9)         # Fonte Arial Normal, tamanho 9
-        self.cell(0, 6, f'Gerado em: {date.today().strftime("%d/%m/%Y")}', new_x="LMARGIN", new_y="NEXT", align='C')  # Data de geração
-        self.ln(5)                                # Espaço após o cabeçalho
-
-    def footer(self):
-        """Adiciona o rodapé com número de página em todas as páginas."""
-        self.set_y(-15)                           # Posiciona a 15mm do fundo da página
-        self.set_font('Helvetica', 'I', 8)        # Fonte Arial Itálico, tamanho 8
-        self.cell(0, 10, f'Pagina {self.page_no()}/{{nb}}', align='C')  # Número da página
-
-    def titulo_secao(self, texto):
-        """Adiciona um título de seção com fundo colorido."""
-        self.set_font('Helvetica', 'B', 12)       # Fonte Arial Negrito, tamanho 12
-        self.set_fill_color(184, 154, 114)        # Cor de fundo dourada
-        self.set_text_color(0, 0, 0)              # Cor do texto: preto
-        self.cell(0, 8, texto, new_x="LMARGIN", new_y="NEXT", fill=True)  # Célula com fundo preenchido
-        self.ln(3)                                # Espaço após o título
-        self.set_text_color(0, 0, 0)              # Volta cor do texto para preto
+COLUNAS_LIVROS = ["ID", "Título", "ISBN", "Categoria", "Editora", "Ano"]
+COLUNAS_EMPRESTIMOS = ["ID", "Usuário", "Livro", "Empréstimo", "Previsto", "Status"]
+COLUNAS_MULTAS = ["ID", "Valor", "Dias", "Motivo", "Data", "Usuário", "Livro"]
 
 
 def gerar_relatorio_livros(caminho):
     """Gera um PDF com a lista de todos os livros cadastrados."""
-    pdf = RelatorioPDF()                          # Cria o objeto PDF
-    pdf.alias_nb_pages()                          # Habilita numeração de páginas
-    pdf.add_page()                                # Adiciona a primeira página
-    pdf.titulo_secao('Catalogo de Livros')        # Título da seção
-
-    livros = listar_livros()                      # Busca todos os livros do banco
-    if not livros:                                # Se não tem livros
-        pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 8, 'Nenhum livro cadastrado.', new_x="LMARGIN", new_y="NEXT")
-    else:                                         # Se tem livros
-        # Cabeçalho da tabela
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_fill_color(26, 18, 8)            # Cor de fundo escura
-        pdf.set_text_color(255, 255, 255)        # Texto branco
-        pdf.cell(8, 7, 'ID', border=1, fill=True)
-        pdf.cell(60, 7, 'Titulo', border=1, fill=True)
-        pdf.cell(30, 7, 'ISBN', border=1, fill=True)
-        pdf.cell(35, 7, 'Categoria', border=1, fill=True)
-        pdf.cell(35, 7, 'Editora', border=1, fill=True)
-        pdf.cell(15, 7, 'Ano', border=1, fill=True)
-        pdf.ln()                                  # Nova linha
-
-        # Dados da tabela
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(0, 0, 0)              # Texto preto
-        for l in livros:                          # Para cada livro
-            pdf.cell(8, 6, str(l[0]), border=1)          # ID
-            pdf.cell(60, 6, str(l[1])[:30], border=1)    # Título (máx 30 chars)
-            pdf.cell(30, 6, str(l[2])[:15], border=1)    # ISBN (máx 15 chars)
-            pdf.cell(35, 6, str(l[3])[:18], border=1)    # Categoria
-            pdf.cell(35, 6, str(l[4] or '-')[:18], border=1)  # Editora
-            pdf.cell(15, 6, str(l[5] or '-'), border=1)  # Ano
-            pdf.ln()                              # Nova linha
-
-    pdf.output(caminho)                           # Salva o PDF no caminho indicado
-    return caminho                                # Retorna o caminho do arquivo
+    dados = listar_livros()
+    larguras = [18, 85, 43, 51, 51, 25]
+    cards = [{'icone': '[T]', 'valor': len(dados), 'label': 'LIVROS'}]
+    gerar_pdf_generico("Catálogo de Livros", COLUNAS_LIVROS, larguras, dados, caminho,
+                      descricao='Relatório completo do catálogo de livros da biblioteca.',
+                      cards_resumo=cards,
+                      observacao='Todos os livros cadastrados no sistema aparecem neste relatório.')
+    return caminho
 
 
 def gerar_relatorio_emprestimos(caminho):
     """Gera um PDF com os empréstimos ativos."""
-    pdf = RelatorioPDF()                          # Cria o objeto PDF
-    pdf.alias_nb_pages()                          # Habilita numeração
-    pdf.add_page()                                # Nova página
-    pdf.titulo_secao('Emprestimos Ativos')        # Título
-
-    emprestimos = listar_emprestimos_ativos()     # Busca empréstimos ativos
-    if not emprestimos:                           # Se não tem empréstimos
-        pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 8, 'Nenhum emprestimo ativo.', new_x="LMARGIN", new_y="NEXT")
-    else:
-        # Cabeçalho da tabela
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_fill_color(26, 18, 8)
-        pdf.set_text_color(255, 255, 255)
-        pdf.cell(8, 7, 'ID', border=1, fill=True)
-        pdf.cell(40, 7, 'Usuario', border=1, fill=True)
-        pdf.cell(40, 7, 'Livro', border=1, fill=True)
-        pdf.cell(25, 7, 'Emprestimo', border=1, fill=True)
-        pdf.cell(25, 7, 'Previsto', border=1, fill=True)
-        pdf.cell(20, 7, 'Status', border=1, fill=True)
-        pdf.ln()
-
-        # Dados da tabela
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(0, 0, 0)
-        for e in emprestimos:                     # Para cada empréstimo
-            pdf.cell(8, 6, str(e[0]), border=1)          # ID
-            pdf.cell(40, 6, str(e[1])[:20], border=1)    # Nome do usuário
-            pdf.cell(40, 6, str(e[3])[:20], border=1)    # Título do livro
-            pdf.cell(25, 6, str(e[4]), border=1)         # Data do empréstimo
-            pdf.cell(25, 6, str(e[5]), border=1)         # Data prevista
-            pdf.cell(20, 6, str(e[6]), border=1)         # Status
-            pdf.ln()
-
-    pdf.output(caminho)                           # Salva o PDF
+    dados = listar_emprestimos_ativos()
+    larguras = [18, 62, 70, 44, 44, 35]
+    cards = [{'icone': '[>>]', 'valor': len(dados), 'label': 'ATIVOS'}]
+    gerar_pdf_generico("Empréstimos Ativos", COLUNAS_EMPRESTIMOS, larguras, dados, caminho,
+                      descricao='Empréstimos em aberto no momento da geração.',
+                      cards_resumo=cards,
+                      observacao='Empréstimos com devolução pendente. Multas são geradas automaticamente em caso de atraso.')
     return caminho
 
 
 def gerar_relatorio_multas(caminho):
     """Gera um PDF com as multas pendentes."""
-    pdf = RelatorioPDF()                          # Cria o PDF
-    pdf.alias_nb_pages()
-    pdf.add_page()
-    pdf.titulo_secao('Multas Pendentes')          # Título
-
-    multas = listar_multas(status='pendente')     # Busca multas pendentes
-    if not multas:                                # Se não tem multas
-        pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 8, 'Nenhuma multa pendente.', new_x="LMARGIN", new_y="NEXT")
-    else:
-        # Cabeçalho da tabela
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_fill_color(26, 18, 8)
-        pdf.set_text_color(255, 255, 255)
-        pdf.cell(8, 7, 'ID', border=1, fill=True)
-        pdf.cell(20, 7, 'Valor', border=1, fill=True)
-        pdf.cell(15, 7, 'Dias', border=1, fill=True)
-        pdf.cell(20, 7, 'Motivo', border=1, fill=True)
-        pdf.cell(25, 7, 'Data', border=1, fill=True)
-        pdf.cell(40, 7, 'Usuario', border=1, fill=True)
-        pdf.cell(40, 7, 'Livro', border=1, fill=True)
-        pdf.ln()
-
-        # Dados da tabela
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(0, 0, 0)
-        total = 0                                 # Acumulador do valor total
-        for m in multas:                          # Para cada multa
-            pdf.cell(8, 6, str(m[0]), border=1)          # ID
-            pdf.cell(20, 6, f'R$ {m[1]:.2f}', border=1) # Valor em reais
-            pdf.cell(15, 6, str(m[2]), border=1)         # Dias de atraso
-            pdf.cell(20, 6, str(m[3]), border=1)         # Motivo
-            pdf.cell(25, 6, str(m[5]), border=1)         # Data
-            pdf.cell(40, 6, str(m[6])[:20], border=1)    # Nome do usuário
-            pdf.cell(40, 6, str(m[7])[:20], border=1)    # Título do livro
-            pdf.ln()
-            total += float(m[1])                 # Soma o valor da multa
-
-        pdf.ln(5)                                # Espaço antes do total
-        pdf.set_font('Helvetica', 'B', 11)       # Fonte negrita
-        pdf.cell(0, 8, f'Total pendente: R$ {total:.2f}', new_x="LMARGIN", new_y="NEXT")  # Mostra total
-
-    pdf.output(caminho)                           # Salva o PDF
+    multas = listar_multas(status='pendente')
+    larguras = [19, 34, 22, 34, 37, 65, 62]
+    total = sum(float(m[1]) for m in multas)
+    cards = [
+        {'icone': '[!]', 'valor': len(multas), 'label': 'MULTAS'},
+        {'icone': '[T]', 'valor': f'R$ {total:.2f}', 'label': 'TOTAL'}
+    ]
+    gerar_pdf_generico("Multas Pendentes", COLUNAS_MULTAS, larguras, multas, caminho,
+                      descricao='Multas pendentes de pagamento no sistema.',
+                      cards_resumo=cards,
+                      observacao='Multas geradas por atraso na devolução. Valor: R$ 2,00 por dia de atraso.')
     return caminho
 
 
-def gerar_relatorio_geral(caminho):
-    """Gera um PDF com o resumo geral e relatórios auxiliares."""
-    pdf = RelatorioPDF()                          # Cria o PDF
-    pdf.alias_nb_pages()
-    pdf.add_page()
+def gerar_relatorio_usuario(usuario_id, caminho):
+    """Gera um PDF com o histórico completo de um usuário."""
+    dados, resumo = buscar_historico_usuario(usuario_id)
+    usuario = buscar_usuario_por_id(usuario_id)
+    nome = usuario[1] if usuario else "Usuário"
 
-    stats = buscar_stats_dashboard()              # Busca estatísticas do dashboard
-    pdf.titulo_secao('Resumo Geral')              # Título da seção
-    pdf.set_font('Helvetica', '', 11)             # Fonte tamanho 11
-    pdf.cell(0, 8, f"Total de Livros: {stats['livros']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 8, f"Total de Emprestimos: {stats['emprestimos']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 8, f"Alunos Cadastrados: {stats['usuarios']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 8, f"Taxa de Retorno: {stats['taxa_retorno']}%", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(10)                                   # Espaço
+    colunas = ["Patrimônio", "Livro", "Empréstimo", "Previsto", "Devolução"]
+    larguras = [47, 82, 48, 48, 48]
+    cards = [{'icone': '[U]', 'valor': resumo['total'], 'label': 'EMPRESTIMOS'}]
 
-    # Gera relatórios auxiliares com nomes diferentes
-    gerar_relatorio_livros(caminho.replace('.pdf', '_livros.pdf'))
-    gerar_relatorio_emprestimos(caminho.replace('.pdf', '_emprestimos.pdf'))
-    gerar_relatorio_multas(caminho.replace('.pdf', '_multas.pdf'))
+    gerar_pdf_generico(f"Histórico - {nome}", colunas, larguras, dados, caminho,
+                      cards_resumo=cards,
+                      descricao=f'Histórico completo de empréstimos do usuário {nome}.',
+                      observacao='Relatório gerado a partir dos registros de empréstimos vinculados ao usuário.')
+    return caminho
 
-    pdf.output(caminho)                           # Salva o PDF principal
+
+def gerar_relatorio_titulos_exemplares(caminho):
+    """Gera um PDF com todos os títulos e seus exemplares."""
+    dados = buscar_exemplares_por_titulo()
+    colunas = ["Título", "ISBN", "Categoria", "Editora", "Exemplares"]
+    larguras = [85, 43, 51, 51, 43]
+    cards = [{'icone': '[T]', 'valor': len(dados), 'label': 'TITULOS'}]
+
+    gerar_pdf_generico("Títulos e Exemplares", colunas, larguras, dados, caminho,
+                      descricao='Títulos cadastrados com quantidade de exemplares.',
+                      cards_resumo=cards,
+                      observacao='Todos os títulos do acervo com suas cópias físicas vinculadas.')
+    return caminho
+
+
+def gerar_relatorio_usuarios(caminho, tipo_usuario=None):
+    """Gera um PDF com a lista de usuários cadastrados."""
+    usuarios = listar_usuarios(tipo=tipo_usuario)
+    colunas = ["Nome", "Email", "Tipo", "Status", "Telefone"]
+    larguras = [85, 75, 38, 28, 47]
+    cards = [{'icone': '[U]', 'valor': len(usuarios), 'label': 'USUARIOS'}]
+
+    titulo = 'Usuários Cadastrados'
+    if tipo_usuario:
+        titulo += f' ({tipo_usuario})'
+
+    gerar_pdf_generico(titulo, colunas, larguras, usuarios, caminho,
+                      cards_resumo=cards,
+                      descricao='Lista de todos os usuários cadastrados no sistema.',
+                      observacao='Todos os usuários ativos e inativos aparecem neste relatório.')
+    return caminho
+
+
+def gerar_relatorio_movimentacoes(caminho, data_inicio=None, data_fim=None):
+    """Gera um PDF com as movimentações do período."""
+    movimentacoes = buscar_movimentacoes_periodo(data_inicio, data_fim)
+    colunas = ["Patrimônio", "Livro", "Usuário", "Data", "Prevista", "Status"]
+    larguras = [38, 70, 53, 38, 38, 36]
+    cards = [{'icone': '[>>]', 'valor': len(movimentacoes), 'label': 'MOVIMENTOS'}]
+
+    periodo = ''
+    if data_inicio and data_fim:
+        periodo = f' ({data_inicio} a {data_fim})'
+
+    gerar_pdf_generico(f"Movimentações{periodo}", colunas, larguras, movimentacoes, caminho,
+                      cards_resumo=cards,
+                      descricao='Empréstimos registrados no período informado.',
+                      observacao='Todos os movimentos de empréstimos e devoluções do período.')
     return caminho

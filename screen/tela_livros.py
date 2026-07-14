@@ -6,7 +6,7 @@ from PIL import Image
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
-from services.book_api import buscar_livro_por_isbn
+from services.isbn_service import buscar_por_isbn
 from services.database_config import (
     cadastrar_livro, listar_livros, excluir_livro, buscar_livro_por_id,
     listar_categorias, cadastrar_categoria,
@@ -15,9 +15,9 @@ from services.database_config import (
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     criar_entry, criar_botao, criar_label, criar_titulo,
-    criar_card, criar_scroll_frame, criar_combo
+    criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout
 )
-from services.validador import validar_isbn
+from services.validador import validar_isbn, validar_ano, validar_texto, validar_autor
 
 class TelaLivros(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
@@ -33,6 +33,13 @@ class TelaLivros(ctk.CTkFrame):
     def _ao_visitar(self):
         self._carregar_categorias()
         self._carregar_tabela()
+        self._limpar_campos()
+        for e in [self.entry_titulo, self.entry_isbn, self.entry_editora,
+                  self.entry_ano, self.entry_sinopse]:
+            e._tocado = False
+            e._validacao_ativa = False
+            e.configure(border_color="#334155")
+        self.after(100, self._forcar_placeholder)
 
     def _construir_ui(self):
         self.grid_columnconfigure(0, weight=1)
@@ -89,6 +96,7 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_isbn = criar_entry(form_frame, placeholder="ISBN", height=ALTURA_INPUT)
         self.entry_isbn.configure(font=FONTE_INPUT)
         self.entry_isbn.grid(row=0, column=1, padx=(10, 10), pady=6, sticky="ew")
+        self.entry_isbn.bind("<Return>", lambda e: self._buscar_isbn())
 
         self.btn_buscar_isbn = ctk.CTkButton(
             form_frame, text="Buscar ISBN", width=110, height=ALTURA_INPUT,
@@ -97,14 +105,21 @@ class TelaLivros(ctk.CTkFrame):
         )
         self.btn_buscar_isbn.grid(row=0, column=2, padx=(0, 0), pady=6, sticky="ew")
 
-        # Categoria + Botão [+] em Azul
+        # Categoria com busca + Botão [+]
         cat_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         cat_frame.grid(row=1, column=0, padx=(0, 10), pady=6, sticky="ew")
         cat_frame.grid_columnconfigure(0, weight=1)
 
-        self.combo_categoria = criar_combo(cat_frame, height=ALTURA_INPUT, values=[])
-        self.combo_categoria.configure(font=FONTE_INPUT)
-        self.combo_categoria.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        self.entry_busca_cat = criar_entry(cat_frame, placeholder="Categoria (digite para buscar)", height=ALTURA_INPUT)
+        self.entry_busca_cat.configure(font=FONTE_INPUT)
+        self.entry_busca_cat.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        self.entry_busca_cat.bind("<KeyRelease>", self._atualizar_sugestoes_cat)
+        self.entry_busca_cat.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_cat))
+
+        self._frame_sugestoes_cat = ctk.CTkScrollableFrame(
+            cat_frame, fg_color="#1E293B", height=120, corner_radius=8
+        )
+        self._cat_selecionada_id = None
 
         btn_add_cat = ctk.CTkButton(
             cat_frame, text="+", width=40, height=ALTURA_INPUT,
@@ -168,30 +183,108 @@ class TelaLivros(ctk.CTkFrame):
         lista_card = criar_card(self)
         lista_card.grid(row=2, column=0, sticky="nsew", padx=30, pady=(5, 20))
 
-        self._proporcoes = [0.30, 0.18, 0.15, 0.15, 0.08, 0.14]
-        colunas = ["Título", "ISBN", "Categoria", "Editora", "Ano", "Status"]
+        COLUNAS_LIVROS = [
+            ("Título",     3, 250, 35),
+            ("ISBN",       2, 150, 16),
+            ("Categoria",  2, 150, 18),
+            ("Editora",    2, 150, 18),
+            ("Ano",        1,  70,  6),
+            ("Autor",      2, 150, 22),
+            ("Status",     1, 100, 12),
+        ]
+        COMPENSA_SCROLLBAR = 18
 
-        header_tab = ctk.CTkFrame(lista_card, fg_color="transparent", height=35)
-        header_tab.pack(fill="x", padx=20, pady=(10, 2))
-        header_tab.pack_propagate(False)
+        # Barra de busca da tabela
+        busca_frame = ctk.CTkFrame(lista_card, fg_color="transparent")
+        busca_frame.pack(fill="x", padx=20, pady=(12, 0))
 
-        for i, (nome, pct) in enumerate(zip(colunas, self._proporcoes)):
-            rel_x = sum(self._proporcoes[:i])
-            lbl = ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO, anchor="w")
-            lbl.place(relx=rel_x, rely=0.5, anchor="w", relwidth=pct-0.01)
+        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por título, ISBN ou categoria…", height=34)
+        self.entry_filtro.configure(font=("Segoe UI", 13))
+        self.entry_filtro.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
+
+        ctk.CTkButton(
+            busca_frame, text="↺ Limpar", width=90, height=34,
+            fg_color="#333", font=("Segoe UI", 13, "bold"),
+            command=self._limpar_filtro
+        ).pack(side="left")
+
+        # Cabeçalho da tabela (grid)
+        header_tab = ctk.CTkFrame(lista_card, fg_color="transparent")
+        header_tab.pack(fill="x", padx=(20, 20 + COMPENSA_SCROLLBAR), pady=(8, 2))
+
+        for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_LIVROS):
+            header_tab.grid_columnconfigure(idx, weight=peso, minsize=minsize)
+            ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"),
+                         text_color=COR_TEXTO, anchor="center"
+                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color=COR_CARD)
-        self.lista_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        self.lista_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+
+        self._colunas_livros = COLUNAS_LIVROS
 
         self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
 
+        # ── Label único de erro de validação (flutuante, não ocupa espaço no grid) ──
+        self._lbl_erro_campo = criar_label(form_card, "", font=("Segoe UI", 12))
+        self._lbl_erro_campo.place(relx=0.01, rely=0.97, anchor="sw")
+
+        _entries = [self.entry_titulo, self.entry_isbn, self.entry_editora,
+                    self.entry_ano, self.entry_sinopse]
+        aplicar_validacao_focusout(self.entry_titulo,  lambda v: validar_texto(v, "Título", min_len=2),                                           self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_isbn,    lambda v: validar_isbn(v), self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_editora, lambda v: validar_texto(v, "Editora", min_len=2, obrigatorio=False),                         self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_ano,     lambda v: validar_ano(v),                                                                    self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_sinopse, lambda v: validar_autor(v),                                                                  self._lbl_erro_campo, _entries)
+        self.after(300, self._forcar_placeholder)
+
+    def _forcar_placeholder(self):
+        """Força redesenho dos placeholders — workaround para CustomTkinter no Python 3.14."""
+        entries = [self.entry_titulo, self.entry_isbn, self.entry_editora,
+                   self.entry_ano, self.entry_sinopse, self.entry_busca_cat]
+        for e in entries:
+            try:
+                ph = e._placeholder_text
+                e.delete(0, "end")
+                e.configure(placeholder_text=ph)
+            except Exception:
+                pass
+
     def _carregar_categorias(self):
         cats = listar_categorias()
-        valores = [c[1] for c in cats]
         self._cat_map = {c[1]: c[0] for c in cats}
-        self.combo_categoria.configure(values=valores)
-        if valores: self.combo_categoria.set(valores[0])
-        else: self.combo_categoria.set("Categoria")
+        self._cat_lista = list(self._cat_map.keys())
+
+    def _atualizar_sugestoes_cat(self, event=None):
+        termo = self.entry_busca_cat.get().strip().lower()
+        for w in self._frame_sugestoes_cat.winfo_children():
+            w.destroy()
+        if not termo:
+            self._esconder_sugestoes_cat()
+            return
+        resultados = [c for c in self._cat_lista if termo in c.lower()]
+        if not resultados:
+            self._esconder_sugestoes_cat()
+            return
+        self._frame_sugestoes_cat.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        for cat in resultados[:15]:
+            ctk.CTkButton(
+                self._frame_sugestoes_cat, text=cat, anchor="w",
+                fg_color="transparent", text_color=COR_TEXTO,
+                hover_color="#1D4ED8", font=("Segoe UI", 13),
+                height=30, corner_radius=4,
+                command=lambda c=cat: self._escolher_categoria(c)
+            ).pack(fill="x", pady=1)
+
+    def _escolher_categoria(self, cat):
+        self._cat_selecionada_id = self._cat_map[cat]
+        self.entry_busca_cat.delete(0, "end")
+        self.entry_busca_cat.insert(0, cat)
+        self._esconder_sugestoes_cat()
+
+    def _esconder_sugestoes_cat(self):
+        self._frame_sugestoes_cat.grid_forget()
 
     def _adicionar_categoria(self):
         dialog = ctk.CTkInputDialog(text="Nova Categoria:", title="Lumen System")
@@ -204,104 +297,140 @@ class TelaLivros(ctk.CTkFrame):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
         self._itens_lista.clear()
-        livros = listar_livros()
+        self._todos_livros = listar_livros()
+        self._renderizar(self._todos_livros)
 
-        if not livros:
-            criar_label(self.lista_frame, "Nenhum livro cadastrado encontrado.", font=("Segoe UI", 14), text_color=COR_TEXTO).pack(pady=30)
-            self.lista_frame.update_idletasks()
+    def _filtrar_tabela(self):
+        termo = self.entry_filtro.get().strip().lower()
+        if not termo:
+            self._renderizar(self._todos_livros)
             return
+        resultado = [
+            l for l in self._todos_livros
+            if termo in str(l[1]).lower()
+            or termo in str(l[2]).lower()
+            or termo in str(l[3]).lower()
+        ]
+        self._renderizar(resultado)
+        if resultado:
+            self._selecionar(resultado[0])
 
+    def _limpar_filtro(self):
+        self.entry_filtro.delete(0, "end")
+        self._renderizar(self._todos_livros)
+        if self._todos_livros:
+            self._selecionar(self._todos_livros[0])
+
+    def _renderizar(self, livros):
+        for widget in self.lista_frame.winfo_children():
+            widget.destroy()
+        self._itens_lista.clear()
+        if not livros:
+            criar_label(self.lista_frame, "Nenhum livro encontrado.",
+                        font=("Segoe UI", 14), text_color=COR_TEXTO).pack(pady=30)
+            return
         for idx, livro in enumerate(livros):
             self._criar_item(livro, idx)
-
         self.lista_frame.update_idletasks()
-        try:
-            self.lista_frame._parent_canvas.configure(
-                scrollregion=self.lista_frame._parent_canvas.bbox("all")
-            )
-        except Exception as e:
-            pass
 
     def _criar_item(self, livro, idx=0):
-        # Cada linha da tabela agora usa altura 40px (mais compacto)
         item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=6, height=40)
         item.pack(fill="x", pady=2)
         item.pack_propagate(False)
         item.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
 
-        dados = livro[1:] if len(livro) > 6 else livro
-        colunas = ["Titulo", "ISBN", "Categoria", "Editora", "Ano", "Status"]
-        proporcoes = [0.30, 0.18, 0.15, 0.15, 0.08, 0.14]
+        # banco: (id, titulo, isbn, categoria, editora, ano, status_livro, sinopse)
+        _, titulo, isbn, categoria, editora, ano, status_livro, sinopse, *_ = (*livro, None, None)
+        # exibição: Título, ISBN, Categoria, Editora, Ano, Autor(sinopse), Status
+        dados = [titulo, isbn, categoria, editora, ano, sinopse, status_livro]
 
-        x_atual = 0.005
-        for i, nome_col in enumerate(colunas):
-            if i < len(dados):
-                texto = dados[i]
-                cor_txt = COR_TEXTO
-                if i == 5:
-                    status = str(texto).lower()
-                    cor_txt = COR_DOURADO if "dispon" in status else COR_TEXTO2
-                lbl = ctk.CTkLabel(
-                    item, text=str(texto) if texto else "-",
-                    font=("Segoe UI", 14), text_color=cor_txt, anchor="w", padx=8
-                )
-                lbl.place(relx=x_atual, rely=0.5, anchor="w", relwidth=proporcoes[i] - 0.01)
-                lbl.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
-                x_atual += proporcoes[i]
+        for idx_col, (nome, peso, minsize, max_chars) in enumerate(self._colunas_livros):
+            item.grid_columnconfigure(idx_col, weight=peso, minsize=minsize)
+            valor = dados[idx_col]
+            texto = "-" if valor is None or valor == "" else str(valor)
+            if len(texto) > max_chars:
+                texto = texto[:max_chars - 1].rstrip() + "…"
+            cor_txt = COR_TEXTO
+            if nome == "Status":
+                s = str(dados[idx_col]).lower() if dados[idx_col] else ""
+                if "dispon" in s:
+                    cor_txt = "#10B981"
+                elif "emprestado" in s or "manutenc" in s:
+                    cor_txt = "#EAB308"
+                elif "atrasado" in s or "inativo" in s:
+                    cor_txt = "#EF4444"
+                else:
+                    cor_txt = COR_TEXTO2
+            ancora = "w" if nome == "Título" else "center"
+            lbl = ctk.CTkLabel(item, text=texto, font=("Segoe UI", 14), text_color=cor_txt, anchor=ancora)
+            lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
+            lbl.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
 
         self._itens_lista.append((item, livro))
 
     def _selecionar(self, livro):
         self._selecionado = livro
-        
+
         for item, l in self._itens_lista:
-            if l == livro:
-                # --- LINHA SELECIONADA: Fundo Azul Escuro e Texto Branco Puro ---
-                item.configure(fg_color="#0F172A")
-                
-                # Encontra todas as labels filhas desse frame e força o texto a ficar branco
+            selecionado = l == livro
+            dados = l[1:] if len(l) > 6 else l
+
+            if selecionado:
+                item.configure(fg_color="#1D4ED8", border_width=0)
                 for widget in item.winfo_children():
                     if isinstance(widget, ctk.CTkLabel):
-                        widget.configure(text_color="#FFFFFF")
+                        widget.configure(text_color="#FFFFFF", fg_color="#1D4ED8")
             else:
-                # --- LINHAS NÃO SELECIONADAS: Retorna ao padrão original do CustomTkinter ---
-                item.configure(fg_color=COR_CARD)
-                
-                # Recupera os dados originais para restaurar a cor correta da coluna de status
-                dados = l[1:] if len(l) > 6 else l
-                
+                item.configure(fg_color=COR_CARD, border_width=0)
                 for idx, widget in enumerate(item.winfo_children()):
                     if isinstance(widget, ctk.CTkLabel):
-                        # Se for a última coluna (Status) e contiver "dispon", volta a ser dourado
-                        if idx == 5 and "dispon" in str(dados[5]).lower():
-                            widget.configure(text_color=COR_DOURADO)
+                        _, _, _, _, _, _, status_l, *_ = (*l, None, None)
+                        if idx == 6:
+                            s = str(status_l).lower() if status_l else ""
+                            if "dispon" in s:
+                                cor = "#10B981"
+                            elif "emprestado" in s or "manutenc" in s:
+                                cor = "#EAB308"
+                            elif "atrasado" in s or "inativo" in s:
+                                cor = "#EF4444"
+                            else:
+                                cor = COR_TEXTO2
                         else:
-                            widget.configure(text_color=COR_TEXTO)
-                            
-        # Força o tkinter a redesenhar a tabela imediatamente na tela
+                            cor = COR_TEXTO
+                        widget.configure(text_color=cor, fg_color=COR_CARD)
+
         self.lista_frame.update_idletasks()
 
     def _cadastrar(self):
-        titulo = self.entry_titulo.get().strip()
-        isbn = self.entry_isbn.get().strip()
-        cat_nome = self.combo_categoria.get()
-        editora = self.entry_editora.get().strip()
-        ano = self.entry_ano.get().strip()
-        sinopse = self.entry_sinopse.get().strip()
+        titulo   = self.entry_titulo.get().strip()
+        isbn     = self.entry_isbn.get().strip()
+        editora  = self.entry_editora.get().strip()
+        ano      = self.entry_ano.get().strip()
+        sinopse  = self.entry_sinopse.get().strip()
 
-        if not titulo or not isbn or cat_nome == "Categoria":
-            self._notificar("Preencha os campos obrigatórios (*)")
-            return
+        ok, msg = validar_texto(titulo, "Título", min_len=2)
+        if not ok:
+            self._notificar(msg); return
+        if not isbn:
+            self._notificar("ISBN é obrigatório."); return
+        ok_isbn, msg_isbn = validar_isbn(isbn)
+        if not ok_isbn:
+            self._notificar(msg_isbn); return
+        if not self._cat_selecionada_id:
+            self._notificar("Selecione uma categoria."); return
+        ok, msg = validar_ano(ano)
+        if not ok:
+            self._notificar(msg); return
+        ok, msg = validar_texto(editora, "Editora", min_len=2, obrigatorio=False)
+        if not ok:
+            self._notificar(msg); return
+        ok, msg = validar_autor(sinopse)
+        if not ok:
+            self._notificar(msg); return
 
-        if not validar_isbn(isbn):
-            self._notificar("ISBN inválido. Use 10 ou 13 dígitos.")
-            return
-
-        id_categoria = self._cat_map.get(cat_nome)
-        ano_pub = int(ano) if ano.isdigit() else None
-
+        ano_pub = int(ano) if ano else None
         self.btn_cadastrar.configure(text="Processando...", state="disabled")
-        self.after(400, lambda: self._salvar(titulo, isbn, id_categoria, editora, ano_pub, sinopse))
+        self._salvar(titulo, isbn, self._cat_selecionada_id, editora, ano_pub, sinopse)
 
     def _salvar(self, t, i, c, e, a, s):
         if cadastrar_livro(t, i, c, e, a, s):
@@ -318,34 +447,37 @@ class TelaLivros(ctk.CTkFrame):
             self._notificar("Informe um ISBN antes de buscar.")
             return
 
-        if not validar_isbn(isbn):
-            self._notificar("ISBN inválido. Use 10 ou 13 dígitos.")
+        ok_isbn, msg_isbn = validar_isbn(isbn)
+        if not ok_isbn:
+            self._notificar(msg_isbn)
             return
 
         self.btn_buscar_isbn.configure(text="Buscando...", state="disabled")
+        self.lbl_notificacao.configure(text="Consultando bases de dados...", text_color="#3B82F6")
+        self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         threading.Thread(target=self._buscar_isbn_async, args=(isbn,), daemon=True).start()
 
     def _buscar_isbn_async(self, isbn):
-        livro = buscar_livro_por_isbn(isbn)
-        self.after(0, lambda: self._finalizar_busca_isbn(livro))
+        resultado = buscar_por_isbn(isbn)
+        self.after(0, lambda: self._finalizar_busca_isbn(resultado))
 
-    def _finalizar_busca_isbn(self, livro):
+    def _finalizar_busca_isbn(self, resultado):
         self.btn_buscar_isbn.configure(text="Buscar ISBN", state="normal")
-        if not livro:
-            self._notificar("Não foi possível localizar o livro pelo ISBN.")
+        if not resultado:
+            self._notificar("Livro não encontrado nas bases consultadas. Cadastre manualmente.")
             return
 
         self.entry_titulo.delete(0, "end")
-        self.entry_titulo.insert(0, livro.get("title", ""))
+        self.entry_titulo.insert(0, resultado.get("title", ""))
         self.entry_editora.delete(0, "end")
-        self.entry_editora.insert(0, livro.get("publisher", ""))
+        self.entry_editora.insert(0, resultado.get("publisher", ""))
         self.entry_ano.delete(0, "end")
-        self.entry_ano.insert(0, str(livro.get("year", "")) if livro.get("year") else "")
-
-        autores = livro.get("authors", "")
+        self.entry_ano.insert(0, str(resultado.get("year", "")) if resultado.get("year") else "")
         self.entry_sinopse.delete(0, "end")
-        self.entry_sinopse.insert(0, autores)
-        self._notificar("Dados preenchidos com base no ISBN.")
+        self.entry_sinopse.insert(0, resultado.get("authors", ""))
+
+        fonte = resultado.get("source", "desconhecida")
+        self._notificar(f"Encontrado via {fonte}!")
 
     def _excluir_selecionado(self):
         if not self._selecionado:
@@ -362,8 +494,7 @@ class TelaLivros(ctk.CTkFrame):
         if not self._selecionado:
             self._notificar("Selecione um livro para editar.")
             return
-        id_livro = self._selecionado[0]
-        dados = buscar_livro_por_id(id_livro)
+        dados = buscar_livro_por_id(self._selecionado[0])
         if not dados:
             self._notificar("Livro nao encontrado.")
             return
@@ -374,27 +505,36 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_editora.insert(0, editora or '')
         self.entry_ano.insert(0, str(ano) if ano else '')
         self.entry_sinopse.insert(0, sinopse or '')
+        # Preenche o campo de categoria
         for nome, cid in self._cat_map.items():
             if cid == id_cat:
-                self.combo_categoria.set(nome)
+                self._cat_selecionada_id = cid
+                self.entry_busca_cat.delete(0, "end")
+                self.entry_busca_cat.insert(0, nome)
                 break
-        self.btn_cadastrar.configure(text="Salvar Alteracoes", command=self._salvar_edicao)
-        self._editando_id = id_livro
+        self.btn_cadastrar.configure(text="Salvar Alterações", command=self._salvar_edicao)
+        self._editando_id = self._selecionado[0]
 
     def _salvar_edicao(self):
-        titulo = self.entry_titulo.get().strip()
-        isbn = self.entry_isbn.get().strip()
-        cat_nome = self.combo_categoria.get()
+        titulo  = self.entry_titulo.get().strip()
+        isbn    = self.entry_isbn.get().strip()
         editora = self.entry_editora.get().strip()
-        ano = self.entry_ano.get().strip()
+        ano     = self.entry_ano.get().strip()
         sinopse = self.entry_sinopse.get().strip()
 
-        if not titulo or not isbn:
-            self._notificar("Titulo e ISBN sao obrigatorios.")
-            return
-        if cat_nome not in self._cat_map:
-            self._notificar("Selecione uma categoria valida.")
-            return
+        ok, msg = validar_texto(titulo, "Título", min_len=2)
+        if not ok:
+            self._notificar(msg); return
+        if not isbn:
+            self._notificar("ISBN é obrigatório."); return
+        ok_isbn, msg_isbn = validar_isbn(isbn)
+        if not ok_isbn:
+            self._notificar(msg_isbn); return
+        if not self._cat_selecionada_id:
+            self._notificar("Selecione uma categoria válida."); return
+        ok, msg = validar_ano(ano)
+        if not ok:
+            self._notificar(msg); return
 
         from services.database_config import _conectar
         from mysql.connector import Error
@@ -404,8 +544,8 @@ class TelaLivros(ctk.CTkFrame):
             cursor.execute(
                 """UPDATE livro SET titulo=%s, isbn=%s, id_categoria=%s,
                    editora=%s, ano_publicacao=%s, sinopse=%s WHERE id_livro=%s""",
-                (titulo, isbn, self._cat_map[cat_nome], editora or None,
-                 int(ano) if ano.isdigit() else None, sinopse or None, self._editando_id)
+                (titulo, isbn, self._cat_selecionada_id, editora or None,
+                 int(ano) if ano else None, sinopse or None, self._editando_id)
             )
             conn.commit()
             conn.close()
@@ -426,6 +566,8 @@ class TelaLivros(ctk.CTkFrame):
     def _limpar_campos(self):
         for e in [self.entry_titulo, self.entry_isbn, self.entry_editora, self.entry_ano, self.entry_sinopse]:
             e.delete(0, "end")
+        self.entry_busca_cat.delete(0, "end")
+        self._cat_selecionada_id = None
 
     def _voltar(self):
         if self.controller: self.controller.voltar()
@@ -433,4 +575,5 @@ class TelaLivros(ctk.CTkFrame):
     def _notificar(self, msg):
         self.lbl_notificacao.configure(text=msg, text_color=COR_DOURADO, font=("Segoe UI", 14, "bold"))
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
-        self.after(3000, lambda: self.lbl_notificacao.configure(text=""))
+        self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
+        self.after(5000, lambda: self.lbl_notificacao.configure(text=""))

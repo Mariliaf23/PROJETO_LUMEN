@@ -33,9 +33,7 @@ class TelaLogin(ctk.CTkFrame):
 
         # Procura o arquivo da logo
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Pasta raiz
-        caminho_logo = os.path.join(caminho_base, "logo_lumen.png")  # Caminho da logo
-        if not os.path.exists(caminho_logo):         # Se não encontrou na raiz
-            caminho_logo = os.path.join(os.path.dirname(__file__), "logo_lumen.png")  # Tenta na pasta screen
+        caminho_logo = os.path.join(caminho_base, "assets", "logo_lumen.png")  # Caminho da logo (mesmo padrão das outras telas)
 
         # ===== PAINEL ESQUERDO: Logo grande =====
         painel_esquerdo = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, corner_radius=0)  # Fundo azul escuro
@@ -115,8 +113,8 @@ class TelaLogin(ctk.CTkFrame):
             self._mostrar_erro("Informe a senha.")   # Mostra erro
             return
 
-        self.btn_entrar.configure(text="Carregando...", state="disabled")  # Desabilita botão
-        self.after(500, lambda: self._verificar(usuario, senha))  # Espera 500ms e verifica
+        self.btn_entrar.configure(text="Carregando...", state="disabled")
+        self._verificar(usuario, senha)
 
     def _verificar(self, usuario, senha):
         """Verifica se o usuário e senha estão corretos no banco de dados."""

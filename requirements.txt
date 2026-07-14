@@ -3,4 +3,6 @@ Pillow
 python-dotenv
 fpdf2
 customtkinter
+python-barcode
+openpyxl
 

@@ -50,8 +50,10 @@ secrets.toml
 *.swo
 .DS_Store
 
+# Barcodes gerados
+assets/barcodes/*.png
+
+# Arquivos temporários
 1781931839859-crisp-canyon.md
 
 .mimocode\
-
-1781931839859-crisp-canyon.md
