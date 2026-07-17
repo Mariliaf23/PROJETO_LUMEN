@@ -485,7 +485,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         filtros.pack(fill="x", padx=30, pady=(0, 10))
 
         self.entry_busca = criar_entry(filtros, placeholder="Buscar por nome…", width=260, height=36)
-        self.entry_busca.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.entry_busca.pack(side="left", fill="x", expand=False, padx=(0, 10))
         self.entry_busca.bind("<KeyRelease>", lambda e: self._buscar())
 
         ctk.CTkButton(

@@ -430,13 +430,15 @@ class Dashboard(ctk.CTkFrame):
             self._graf_pizza.atualizar_dados(dados_pizza)
 
         # Reconstrói os rankings (barras horizontais não suportam atualização in-place)
-        for widget in self._frame_ranking_alunos.winfo_children():
-            widget.destroy()
-        self._criar_lista_ranking(self._frame_ranking_alunos, self._top_alunos)
+        if getattr(self, '_frame_ranking_alunos', None):
+            for widget in self._frame_ranking_alunos.winfo_children():
+                widget.destroy()
+            self._criar_lista_ranking(self._frame_ranking_alunos, self._top_alunos)
 
-        for widget in self._frame_ranking_turmas.winfo_children():
-            widget.destroy()
-        self._criar_lista_ranking(self._frame_ranking_turmas, self._ranking_turmas)
+        if getattr(self, '_frame_ranking_turmas', None):
+            for widget in self._frame_ranking_turmas.winfo_children():
+                widget.destroy()
+            self._criar_lista_ranking(self._frame_ranking_turmas, self._ranking_turmas)
 
     def _criar_cards(self, parent):
         cards_frame = ctk.CTkFrame(parent, fg_color="transparent")

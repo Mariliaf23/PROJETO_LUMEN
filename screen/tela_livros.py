@@ -1,3 +1,4 @@
+from email import header
 import os
 import sys
 import threading
@@ -15,7 +16,8 @@ from services.database_config import (
 from services.styles import (
     COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
     criar_entry, criar_botao, criar_label, criar_titulo,
-    criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout
+    criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout,
+    criar_botao_primario, criar_botao_secundario, criar_botao_perigo
 )
 from services.validador import validar_isbn, validar_ano, validar_texto, validar_autor
 
@@ -55,7 +57,7 @@ class TelaLivros(ctk.CTkFrame):
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
-        # Logo reduzida para 55x55 liberando preciosa altura vertical
+        # Logo reduzida para 55x55
         if os.path.exists(logo_path):
             try:
                 img_logo = ctk.CTkImage(Image.open(logo_path), size=(55, 55))
@@ -66,18 +68,11 @@ class TelaLivros(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
-        # Título reduzido de 38 para 24
         criar_label(header_left, "Cadastro de Livros", font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
 
-        # Botão voltar com dimensões mais equilibradas (height=36)
-        btn_voltar = ctk.CTkButton(
-            header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
-        )
-        btn_voltar.pack(side="right", padx=15, pady=5)
+        criar_botao_secundario(header, "Voltar", command=self._voltar, width=100, height=36).pack(side="right", padx=15, pady=5)
 
-        # === FORMULÁRIO DE CADASTRO COMPACTADO ===
+        # === FORMULÁRIO DE CADASTRO ===
         form_card = criar_card(self)
         form_card.grid(row=1, column=0, sticky="ew", padx=30, pady=(5, 10))
 
@@ -85,7 +80,6 @@ class TelaLivros(ctk.CTkFrame):
         form_frame.pack(fill="x", padx=20, pady=12)
         form_frame.grid_columnconfigure((0, 1), weight=1)
 
-        # Altura dos inputs reduzida de 50 para 36px. Pady reduzido de 12 para 6.
         ALTURA_INPUT = 36
         FONTE_INPUT = ("Segoe UI", 14)
 
@@ -98,14 +92,12 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_isbn.grid(row=0, column=1, padx=(10, 10), pady=6, sticky="ew")
         self.entry_isbn.bind("<Return>", lambda e: self._buscar_isbn())
 
-        self.btn_buscar_isbn = ctk.CTkButton(
-            form_frame, text="Buscar ISBN", width=110, height=ALTURA_INPUT,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 13, "bold"), command=self._buscar_isbn
+        self.btn_buscar_isbn = criar_botao_secundario(
+            form_frame, text="Buscar ISBN", command=self._buscar_isbn, width=110, height=ALTURA_INPUT
         )
         self.btn_buscar_isbn.grid(row=0, column=2, padx=(0, 0), pady=6, sticky="ew")
 
-        # Categoria com busca + Botão [+]
+        # Categoria
         cat_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         cat_frame.grid(row=1, column=0, padx=(0, 10), pady=6, sticky="ew")
         cat_frame.grid_columnconfigure(0, weight=1)
@@ -116,16 +108,13 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_busca_cat.bind("<KeyRelease>", self._atualizar_sugestoes_cat)
         self.entry_busca_cat.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_cat))
 
-        self._frame_sugestoes_cat = ctk.CTkScrollableFrame(
-            cat_frame, fg_color="#1E293B", height=120, corner_radius=8
-        )
+        self._frame_sugestoes_cat = ctk.CTkScrollableFrame(cat_frame, fg_color="#1E293B", height=120, corner_radius=8)
         self._cat_selecionada_id = None
 
         btn_add_cat = ctk.CTkButton(
             cat_frame, text="+", width=40, height=ALTURA_INPUT,
-            fg_color="#0052CC", text_color="#FFFFFF",
-            hover_color="#003399", font=("Segoe UI", 18, "bold"),
-            command=self._adicionar_categoria
+            fg_color="#0052CC", text_color="#FFFFFF", hover_color="#003399",
+            font=("Segoe UI", 18, "bold"), command=self._adicionar_categoria
         )
         btn_add_cat.grid(row=0, column=1)
 
@@ -141,45 +130,31 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_sinopse.configure(font=FONTE_INPUT)
         self.entry_sinopse.grid(row=2, column=1, columnspan=2, padx=(10, 0), pady=6, sticky="ew")
 
-        # Botões Principais de Ação (Ajustados para altura 38 e menor espaçamento vertical)
+        # === BOTÕES DE AÇÃO ===
         botoes_container = ctk.CTkFrame(form_frame, fg_color="transparent")
         botoes_container.grid(row=3, column=0, columnspan=3, pady=(12, 0))
 
-        self.btn_cadastrar = ctk.CTkButton(
-            botoes_container, text="Cadastrar Livro", command=self._cadastrar,
-            width=180, height=38,
-            fg_color="#0052CC", text_color="#FFFFFF",
-            hover_color="#003399", font=("Segoe UI", 14, "bold")
+        self.btn_cadastrar = criar_botao_primario(
+            botoes_container, "Cadastrar Livro", command=self._cadastrar, width=180
         )
         self.btn_cadastrar.pack(side="left", padx=6)
 
-        self.btn_editar = ctk.CTkButton(
-            botoes_container, text="Editar Selecionado", command=self._editar_selecionado,
-            width=180, height=38,
-            fg_color="#0F172A", text_color="#FFFFFF",
-            border_color=COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+        self.btn_editar = criar_botao_secundario(
+            botoes_container, "Editar Selecionado", command=self._editar_selecionado, width=180
         )
         self.btn_editar.pack(side="left", padx=6)
 
-        self.btn_atualizar = ctk.CTkButton(
-            botoes_container, text="Atualizar Lista", command=self._carregar_tabela,
-            width=150, height=38,
-            fg_color="#0F172A", text_color="#FFFFFF",
-            border_color=COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+        self.btn_atualizar = criar_botao_secundario(
+            botoes_container, "Atualizar Lista", command=self._carregar_tabela, width=150
         )
         self.btn_atualizar.pack(side="left", padx=6)
 
-        self.btn_excluir = ctk.CTkButton(
-            botoes_container, text="Excluir Selecionado", command=self._excluir_selecionado,
-            width=180, height=38,
-            fg_color="#7F1D1D", text_color="#FCA5A5",
-            hover_color="#991B1B", font=("Segoe UI", 14, "bold")
+        self.btn_excluir = criar_botao_perigo(
+            botoes_container, "Excluir Selecionado", command=self._excluir_selecionado, width=180
         )
         self.btn_excluir.pack(side="left", padx=6)
 
-        # === LISTA / TABELA (Espaço Maximizado) ===
+        # === LISTA / TABELA ===
         lista_card = criar_card(self)
         lista_card.grid(row=2, column=0, sticky="nsew", padx=30, pady=(5, 20))
 
@@ -194,30 +169,27 @@ class TelaLivros(ctk.CTkFrame):
         ]
         COMPENSA_SCROLLBAR = 18
 
-        # Barra de busca da tabela
         busca_frame = ctk.CTkFrame(lista_card, fg_color="transparent")
         busca_frame.pack(fill="x", padx=20, pady=(12, 0))
 
         self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por título, ISBN ou categoria…", height=34)
         self.entry_filtro.configure(font=("Segoe UI", 13))
-        self.entry_filtro.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.entry_filtro.pack(side="left", fill="x", expand=False, padx=(0, 8))
         self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
 
         ctk.CTkButton(
             busca_frame, text="↺ Limpar", width=90, height=34,
-            fg_color="#333", font=("Segoe UI", 13, "bold"),
-            command=self._limpar_filtro
+            fg_color="#333", font=("Segoe UI", 13, "bold"), command=self._limpar_filtro
         ).pack(side="left")
 
-        # Cabeçalho da tabela (grid)
+        # Cabeçalho
         header_tab = ctk.CTkFrame(lista_card, fg_color="transparent")
         header_tab.pack(fill="x", padx=(20, 20 + COMPENSA_SCROLLBAR), pady=(8, 2))
 
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_LIVROS):
             header_tab.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"),
-                         text_color=COR_TEXTO, anchor="center"
-                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
+                         text_color=COR_TEXTO, anchor="center").grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color=COR_CARD)
         self.lista_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
@@ -225,20 +197,21 @@ class TelaLivros(ctk.CTkFrame):
         self._colunas_livros = COLUNAS_LIVROS
 
         self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
+        self.lbl_notificacao.configure(text="TESTE - esta label está visível?")
 
-        # ── Label único de erro de validação (flutuante, não ocupa espaço no grid) ──
+        # Validações
         self._lbl_erro_campo = criar_label(form_card, "", font=("Segoe UI", 12))
         self._lbl_erro_campo.place(relx=0.01, rely=0.97, anchor="sw")
 
-        _entries = [self.entry_titulo, self.entry_isbn, self.entry_editora,
-                    self.entry_ano, self.entry_sinopse]
-        aplicar_validacao_focusout(self.entry_titulo,  lambda v: validar_texto(v, "Título", min_len=2),                                           self._lbl_erro_campo, _entries)
+        _entries = [self.entry_titulo, self.entry_isbn, self.entry_editora, self.entry_ano, self.entry_sinopse]
+        aplicar_validacao_focusout(self.entry_titulo,  lambda v: validar_texto(v, "Título", min_len=2), self._lbl_erro_campo, _entries)
         aplicar_validacao_focusout(self.entry_isbn,    lambda v: validar_isbn(v), self._lbl_erro_campo, _entries)
-        aplicar_validacao_focusout(self.entry_editora, lambda v: validar_texto(v, "Editora", min_len=2, obrigatorio=False),                         self._lbl_erro_campo, _entries)
-        aplicar_validacao_focusout(self.entry_ano,     lambda v: validar_ano(v),                                                                    self._lbl_erro_campo, _entries)
-        aplicar_validacao_focusout(self.entry_sinopse, lambda v: validar_autor(v),                                                                  self._lbl_erro_campo, _entries)
-        self.after(300, self._forcar_placeholder)
+        aplicar_validacao_focusout(self.entry_editora, lambda v: validar_texto(v, "Editora", min_len=2, obrigatorio=False), self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_ano,     lambda v: validar_ano(v), self._lbl_erro_campo, _entries)
+        aplicar_validacao_focusout(self.entry_sinopse, lambda v: validar_autor(v), self._lbl_erro_campo, _entries)
 
+        self.after(300, self._forcar_placeholder)
     def _forcar_placeholder(self):
         """Força redesenho dos placeholders — workaround para CustomTkinter no Python 3.14."""
         entries = [self.entry_titulo, self.entry_isbn, self.entry_editora,
@@ -443,11 +416,13 @@ class TelaLivros(ctk.CTkFrame):
 
     def _buscar_isbn(self):
         isbn = self.entry_isbn.get().strip()
+        print(f"ISBN digitado: '{isbn}'")
         if not isbn:
             self._notificar("Informe um ISBN antes de buscar.")
             return
 
         ok_isbn, msg_isbn = validar_isbn(isbn)
+        print(f"Validação ISBN: ok={ok_isbn}, msg={msg_isbn}")
         if not ok_isbn:
             self._notificar(msg_isbn)
             return
@@ -459,6 +434,7 @@ class TelaLivros(ctk.CTkFrame):
 
     def _buscar_isbn_async(self, isbn):
         resultado = buscar_por_isbn(isbn)
+        print(f"Resultado da busca: {resultado}")
         self.after(0, lambda: self._finalizar_busca_isbn(resultado))
 
     def _finalizar_busca_isbn(self, resultado):

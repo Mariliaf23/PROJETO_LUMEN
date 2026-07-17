@@ -396,34 +396,51 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.entry_isbn_emp.grid(row=1, column=0, columnspan=2, pady=(0, 8), sticky="ew")
         self.entry_isbn_emp.bind("<Return>", lambda e: self._buscar_isbn_emprestimo())
 
-        # Aluno — Linha 2-3
+# Aluno — linha única (busca com sugestões suspensas)
         criar_label(form, "Aluno", font=("Segoe UI", 13, "bold")).grid(row=2, column=0, sticky="w", pady=(0, 2))
-        self.entry_busca_aluno = criar_entry(form, placeholder="Buscar aluno...", height=ALTURA_INPUT)
+
+        aluno_container = ctk.CTkFrame(form, fg_color="transparent")
+        aluno_container.grid(row=3, column=0, padx=(0, 10), pady=(0, 10), sticky="ew")
+        aluno_container.grid_columnconfigure(0, weight=1)
+
+        self.entry_busca_aluno = criar_entry(aluno_container, placeholder="Buscar aluno...", height=ALTURA_INPUT)
         self.entry_busca_aluno.configure(font=FONTE_INPUT)
-        self.entry_busca_aluno.grid(row=3, column=0, padx=(0, 10), pady=(0, 5), sticky="ew")
-        self.entry_busca_aluno.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_aluno.get(), self.combo_aluno, self._alunos_map))
+        self.entry_busca_aluno.grid(row=0, column=0, sticky="ew")
+        self.entry_busca_aluno.bind("<KeyRelease>", self._atualizar_sugestoes_aluno)
+        self.entry_busca_aluno.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_aluno))
 
-        self.combo_aluno = criar_combo(form, height=ALTURA_INPUT)
-        self.combo_aluno.grid(row=4, column=0, padx=(0, 10), pady=(0, 10), sticky="ew")
+        self._frame_sugestoes_aluno = ctk.CTkScrollableFrame(
+            aluno_container, fg_color="#1E293B", height=120, corner_radius=8
+        )
+        self._aluno_selecionado_id = None
 
-        # Exemplar — Linha 2-3
+        # Exemplar — linha única (busca com sugestões suspensas)
         criar_label(form, "Exemplar", font=("Segoe UI", 13, "bold")).grid(row=2, column=1, sticky="w", pady=(0, 2))
-        self.entry_busca_exemplar = criar_entry(form, placeholder="Buscar exemplar...", height=ALTURA_INPUT)
+
+        exemplar_container = ctk.CTkFrame(form, fg_color="transparent")
+        exemplar_container.grid(row=3, column=1, padx=(10, 0), pady=(0, 10), sticky="ew")
+        exemplar_container.grid_columnconfigure(0, weight=1)
+
+        self.entry_busca_exemplar = criar_entry(exemplar_container, placeholder="Buscar exemplar...", height=ALTURA_INPUT)
         self.entry_busca_exemplar.configure(font=FONTE_INPUT)
-        self.entry_busca_exemplar.grid(row=3, column=1, padx=(10, 0), pady=(0, 5), sticky="ew")
-        self.entry_busca_exemplar.bind("<KeyRelease>", lambda e: self._filtrar_dados(self.entry_busca_exemplar.get(), self.combo_exemplar, self._exemplares_map))
+        self.entry_busca_exemplar.grid(row=0, column=0, sticky="ew")
+        self.entry_busca_exemplar.bind("<KeyRelease>", self._atualizar_sugestoes_exemplar)
+        self.entry_busca_exemplar.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_exemplar))
 
-        self.combo_exemplar = criar_combo(form, height=ALTURA_INPUT)
-        self.combo_exemplar.grid(row=4, column=1, padx=(10, 0), pady=(0, 10), sticky="ew")
+        self._frame_sugestoes_exemplar = ctk.CTkScrollableFrame(
+            exemplar_container, fg_color="#1E293B", height=120, corner_radius=8
+        )
+        self._exemplar_selecionado_id = None
 
-        # Prazo — Linha 5
-        criar_label(form, "Prazo para Devolução", font=("Segoe UI", 13, "bold")).grid(row=5, column=0, sticky="w", pady=(4, 2))
+        # Prazo — Linha 4
+        criar_label(form, "Prazo para Devolução", font=("Segoe UI", 13, "bold")).grid(row=4, column=0, sticky="w", pady=(4, 2))
         self.entry_vencimento = criar_entry(form, placeholder="Ex: 7 ou 2026-12-31", height=ALTURA_INPUT)
         self.entry_vencimento.configure(font=FONTE_INPUT)
-        self.entry_vencimento.grid(row=6, column=0, padx=(0, 10), sticky="ew")
+        self.entry_vencimento.grid(row=5, column=0, padx=(0, 10), sticky="ew")
 
         botoes_frame = ctk.CTkFrame(form, fg_color="transparent")
-        botoes_frame.grid(row=6, column=1, padx=(10, 0), sticky="ew")
+        botoes_frame.grid(row=5, column=1, padx=(10, 0), sticky="ew")
+
         botoes_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
         self.btn_cadastrar = ctk.CTkButton(
@@ -485,6 +502,69 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.lista_emprestimos = criar_scroll_frame(lista_card, fg_color=COR_CARD)
         self.lista_emprestimos.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+
+    def _atualizar_sugestoes_aluno(self, event=None):
+        termo = self.entry_busca_aluno.get().strip().lower()
+        for w in self._frame_sugestoes_aluno.winfo_children():
+            w.destroy()
+        if not termo:
+            self._esconder_sugestoes_aluno()
+            return
+        resultados = [n for n in self._alunos_map.keys() if termo in n.lower()]
+        if not resultados:
+            self._esconder_sugestoes_aluno()
+            return
+        self._frame_sugestoes_aluno.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        for nome in resultados[:20]:
+            ctk.CTkButton(
+                self._frame_sugestoes_aluno, text=nome, anchor="w",
+                fg_color="transparent", text_color=self.cor_texto,
+                hover_color=COR_AZUL_HOVER, font=("Segoe UI", 14),
+                height=36, corner_radius=4,
+                command=lambda n=nome: self._escolher_aluno(n)
+            ).pack(fill="x", pady=1)
+
+    def _escolher_aluno(self, nome):
+        self._aluno_selecionado_id = self._alunos_map.get(nome)
+        self.entry_busca_aluno.delete(0, "end")
+        self.entry_busca_aluno.insert(0, nome)
+        self._esconder_sugestoes_aluno()
+
+    def _esconder_sugestoes_aluno(self):
+        self._frame_sugestoes_aluno.grid_forget()
+
+    def _atualizar_sugestoes_exemplar(self, event=None):
+        termo = self.entry_busca_exemplar.get().strip().lower()
+        for w in self._frame_sugestoes_exemplar.winfo_children():
+            w.destroy()
+        if not termo:
+            self._esconder_sugestoes_exemplar()
+            return
+        resultados = [n for n in self._exemplares_map.keys() if termo in n.lower()]
+        if not resultados:
+            self._esconder_sugestoes_exemplar()
+            return
+        self._frame_sugestoes_exemplar.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        for nome in resultados[:20]:
+            ctk.CTkButton(
+                self._frame_sugestoes_exemplar, text=nome, anchor="w",
+                fg_color="transparent", text_color=self.cor_texto,
+                hover_color=COR_AZUL_HOVER, font=("Segoe UI", 14),
+                height=36, corner_radius=4,
+                command=lambda n=nome: self._escolher_exemplar(n)
+            ).pack(fill="x", pady=1)
+
+    def _escolher_exemplar(self, nome):
+        self._exemplar_selecionado_id = self._exemplares_map.get(nome)
+        self.entry_busca_exemplar.delete(0, "end")
+        self.entry_busca_exemplar.insert(0, nome)
+        self._esconder_sugestoes_exemplar()
+
+    def _esconder_sugestoes_exemplar(self):
+        self._frame_sugestoes_exemplar.grid_forget()
+
+
+
 
     def _construir_aba_reservas(self):
         frame = self._frame_reservas
@@ -564,15 +644,15 @@ class TelaEmprestimos(ctk.CTkFrame):
     # ==================== MÉTODOS EMPRÉSTIMOS ====================
 
     def _cadastrar_emprestimo(self):
-        aluno_sel = self.combo_aluno.get()
-        exemplar_sel = self.combo_exemplar.get()
+        aluno_sel = self.entry_busca_aluno.get().strip()
+        exemplar_sel = self.entry_busca_exemplar.get().strip()
         vencimento = self.entry_vencimento.get().strip()
 
-        if not aluno_sel or aluno_sel not in self._alunos_map:
-            self._notificar("Selecione um aluno válido.")
+        if not aluno_sel or not self._aluno_selecionado_id:
+            self._notificar("Selecione um aluno válido na lista de sugestões.")
             return
-        if not exemplar_sel or exemplar_sel not in self._exemplares_map:
-            self._notificar("Selecione um exemplar disponível.")
+        if not exemplar_sel or not self._exemplar_selecionado_id:
+            self._notificar("Selecione um exemplar disponível na lista de sugestões.")
             return
         if not vencimento:
             self._notificar("Informe a data de devolução.")
@@ -583,8 +663,8 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar(f"Erro na data: {erro}")
             return
 
-        id_usuario = self._alunos_map[aluno_sel]
-        id_exemplar = self._exemplares_map[exemplar_sel]
+        id_usuario = self._aluno_selecionado_id
+        id_exemplar = self._exemplar_selecionado_id
         id_funcionario = self.controller.usuario_logado['id'] if self.controller and hasattr(self.controller, 'usuario_logado') else 1
 
         if usuario_tem_multa_pendente(id_usuario):
@@ -639,6 +719,8 @@ class TelaEmprestimos(ctk.CTkFrame):
             self.entry_vencimento.delete(0, "end")
             self.entry_busca_aluno.delete(0, "end")
             self.entry_busca_exemplar.delete(0, "end")
+            self._aluno_selecionado_id = None
+            self._exemplar_selecionado_id = None
             self._recarregar_emprestimos()
         else:
             self._notificar("Erro ao salvar empréstimo.")
@@ -759,24 +841,13 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._selecionado = None
 
         alunos = listar_alunos()
-        self._alunos_map = {}
-        nomes_alunos = [a[1] for a in alunos]  # Apenas o nome, sem ID
-        for a in alunos:
-            self._alunos_map[a[1]] = a[0]
-        self.combo_aluno.configure(values=nomes_alunos if nomes_alunos else ["Selecione..."])
-        if nomes_alunos:
-            self.combo_aluno.set(nomes_alunos[0])
+        self._alunos_map = {a[1]: a[0] for a in alunos}
 
         exemplares = listar_exemplares_disponiveis()
         self._exemplares_map = {}
-        nomes_exemplares = [f"{e[2]} ({e[1]})" if len(e) > 2 else str(e[0]) for e in exemplares]
         for e in exemplares:
             key = f"{e[2]} ({e[1]})" if len(e) > 2 else str(e[0])
             self._exemplares_map[key] = e[0]
-        self.combo_exemplar.configure(values=nomes_exemplares if nomes_exemplares else ["Selecione..."])
-        if nomes_exemplares:
-            self.combo_exemplar.set(nomes_exemplares[0])
-
         emprestimos = emprestimos_filtrados if emprestimos_filtrados is not None else listar_emprestimos_ativos()
         for emp in map(list, list(emprestimos)):
             self._criar_item_emp(emp)
@@ -931,13 +1002,16 @@ class TelaEmprestimos(ctk.CTkFrame):
             return
 
         # Filtra o combo de exemplares para mostrar apenas os deste livro
-        nomes = [f"{e[1]} ({e[2]})" for e in exemplares]
-        self.combo_exemplar.configure(values=nomes)
-        self.combo_exemplar.set(nomes[0])
+        primeiro = exemplares[0]
+        nome = f"{primeiro[1]} ({primeiro[2]})"
+        self._exemplar_selecionado_id = primeiro[0]
+        self.entry_busca_exemplar.delete(0, "end")
+        self.entry_busca_exemplar.insert(0, nome)
+        self._esconder_sugestoes_exemplar()
 
-        titulo = exemplares[0][2] if exemplares else ""
-        self._notificar(f"Encontrado: {titulo} ({len(exemplares)} disponível(is)")
-
+        titulo = primeiro[2]
+        self._notificar(f"Encontrado: {titulo} ({len(exemplares)} disponível(is))")
+        
     def _cadastrar_emprestimo(self):
         aluno_sel = self.combo_aluno.get()
         exemplar_sel = self.combo_exemplar.get()

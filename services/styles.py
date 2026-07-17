@@ -48,6 +48,14 @@ COR_INPUT_BG = "#1E293B"        # Fundo dos campos de entrada (cinza azulado)
 COR_INPUT_BORDER = "#334155"    # Borda dos campos de entrada
 COR_HOVER = "#E6C79C"           # Cor ao passar o mouse sobre botões
 COR_ATIVO = "#1E293B"           # Cor de fundo do item ativo no menu
+COR_AZUL_PRINCIPAL = "#1E3A8A"
+COR_AZUL_HOVER = "#1D4ED8"
+COR_SEL = "#1D4ED8"
+COR_SUCESSO = "#10B981"
+COR_AVISO = "#EAB308"
+COR_PERIGO = "#EF4444"
+COR_LINHA_PAR = "#1e1e2e"
+COR_LINHA_IMPAR = "#16161f"
 
 # ======================== FONTES ========================
 
@@ -192,3 +200,39 @@ def criar_scroll_frame(parent, **kwargs):
     )
     defaults.update(kwargs)
     return ctk.CTkScrollableFrame(parent, **defaults)  # Retorna o frame scrollável
+
+def criar_botao_primario(parent, text, command=None, **kwargs):
+    """Botão de ação principal: cadastrar, confirmar, salvar."""
+    defaults = dict(
+        text=text, font=FONTE_BOTAO,
+        fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+        text_color="#FFFFFF", corner_radius=8, height=38,
+        command=command,
+    )
+    defaults.update(kwargs)
+    return ctk.CTkButton(parent, **defaults)
+
+
+def criar_botao_secundario(parent, text, command=None, **kwargs):
+    """Botão neutro: voltar, limpar, atualizar."""
+    defaults = dict(
+        text=text, font=FONTE_BOTAO,
+        fg_color="#0F172A", text_color="#FFFFFF",
+        border_color=COR_INPUT_BORDER, border_width=1,
+        hover_color="#1E293B", corner_radius=8, height=38,
+        command=command,
+    )
+    defaults.update(kwargs)
+    return ctk.CTkButton(parent, **defaults)
+
+
+def criar_botao_perigo(parent, text, command=None, **kwargs):
+    """Botão destrutivo: excluir, cancelar reserva."""
+    defaults = dict(
+        text=text, font=FONTE_BOTAO,
+        fg_color="#7F1D1D", text_color="#FCA5A5",
+        hover_color="#991B1B", corner_radius=8, height=38,
+        command=command,
+    )
+    defaults.update(kwargs)
+    return ctk.CTkButton(parent, **defaults)

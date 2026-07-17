@@ -274,7 +274,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por patrimônio, livro ou localização…", height=34)
         self.entry_filtro.configure(font=("Segoe UI", 13))
-        self.entry_filtro.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.entry_filtro.pack(side="left", fill="x", expand=False, padx=(0, 8))
         self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
 
         ctk.CTkButton(

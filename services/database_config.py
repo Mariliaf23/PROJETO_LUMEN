@@ -256,10 +256,10 @@ def listar_livros():
         # Junta livro com categoria para mostrar o nome da categoria
         cursor.execute(
             """SELECT l.id_livro, l.titulo, l.isbn, c.nome_categoria, l.editora,
-                      YEAR(l.ano_publicacao) AS ano, l.status_livro, l.sinopse
-               FROM livro l
-               JOIN categoria c ON l.id_categoria = c.id_categoria
-               ORDER BY l.titulo"""
+                    l.ano_publicacao AS ano, l.status_livro, l.sinopse
+                FROM livro l
+                JOIN categoria c ON l.id_categoria = c.id_categoria
+                ORDER BY l.titulo"""
         )
         dados = cursor.fetchall()
         conn.close()
@@ -289,8 +289,8 @@ def buscar_livro_por_id(id_livro):
         cursor = conn.cursor()
         cursor.execute(
             """SELECT l.id_livro, l.titulo, l.isbn, l.id_categoria, l.editora,
-                      YEAR(l.ano_publicacao) AS ano, l.sinopse
-               FROM livro l WHERE l.id_livro = %s""",
+                        l.ano_publicacao AS ano, l.sinopse
+                FROM livro l WHERE l.id_livro = %s""",
             (id_livro,)
         )
         dados = cursor.fetchone()               # Pega um único resultado
@@ -318,29 +318,27 @@ def cadastrar_exemplar(codigo_patrimonio, id_livro, localizacao=''):
         print(f"Erro ao cadastrar exemplar: {e}")
         return False
 
-
-def obter_proximo_patrimonio(id_livro):
+def obter_proximo_patrimonio(id_livro=None):
     """
-    Retorna o próximo código de patrimônio disponível para um livro.
-    Formato: PAT-XXXXX (5 dígitos)
-    Ex: Se já existe PAT-00001 e PAT-00002, retorna PAT-00003.
+    Retorna o próximo código de patrimônio disponível GLOBALMENTE.
+    Formato: PAT-XXXXX (5 dígitos), único em toda a tabela exemplar.
+    O parâmetro id_livro é mantido por compatibilidade, mas não é mais usado no filtro.
     """
     try:
         conn = _conectar()
         cursor = conn.cursor()
 
-        # Busca o maior número de patrimônio para este livro
+        # Busca o maior número de patrimônio em TODA a tabela exemplar
         cursor.execute(
             """SELECT codigo_patrimonio FROM exemplar
-               WHERE id_livro = %s AND codigo_patrimonio LIKE 'PAT-%%'
-               ORDER BY codigo_patrimonio DESC LIMIT 1""",
-            (id_livro,)
+               WHERE codigo_patrimonio LIKE 'PAT-%%'
+               ORDER BY CAST(SUBSTRING(codigo_patrimonio, 5) AS UNSIGNED) DESC
+               LIMIT 1"""
         )
         resultado = cursor.fetchone()
         conn.close()
 
         if resultado:
-            # Extrai o número do patrimônio existente
             codigo = resultado[0]
             try:
                 numero = int(codigo.replace("PAT-", ""))
@@ -355,7 +353,7 @@ def obter_proximo_patrimonio(id_livro):
     except Error as e:
         print(f"Erro ao obter próximo patrimônio: {e}")
         return "PAT-00001"
-
+    
 
 def listar_exemplares(id_livro=None):
     """Lista exemplares. Se id_livro for informado, filtra por livro."""
