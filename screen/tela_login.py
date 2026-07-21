@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # 
 import customtkinter as ctk                                        # Interface gráfica
 from services.database_config import verificar_login                # Função para verificar login
 from services.styles import (                                       # Estilos e cores
-    COR_BG, COR_SIDEBAR, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_label, criar_titulo
 )
 
@@ -19,10 +19,27 @@ class TelaLogin(ctk.CTkFrame):
 
     def __init__(self, master=None, controller=None):
         """Inicializa a tela de login."""
-        super().__init__(master, fg_color=COR_BG)   # Frame com fundo escuro
+        super().__init__(master, fg_color=cores.COR_BG)   # Frame com fundo escuro
         self.controller = controller                 # Controlador de navegação
         self._usuario_logado = None                  # Usuário que fez login
         self._construir_ui()                         # Monta a interface
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
+        self._construir_ui()
 
     def _construir_ui(self):
         """Monta toda a interface da tela de login."""
@@ -36,7 +53,7 @@ class TelaLogin(ctk.CTkFrame):
         caminho_logo = os.path.join(caminho_base, "assets", "logo_lumen.png")  # Caminho da logo (mesmo padrão das outras telas)
 
         # ===== PAINEL ESQUERDO: Logo grande =====
-        painel_esquerdo = ctk.CTkFrame(self, fg_color=COR_SIDEBAR, corner_radius=0)  # Fundo azul escuro
+        painel_esquerdo = ctk.CTkFrame(self, fg_color=cores.COR_SIDEBAR, corner_radius=0)  # Fundo azul escuro
         painel_esquerdo.grid(row=0, column=0, sticky="nsew")  # Preenche toda a coluna esquerda
 
         container_logo = ctk.CTkFrame(painel_esquerdo, fg_color="transparent")  # Container centralizado
@@ -58,16 +75,16 @@ class TelaLogin(ctk.CTkFrame):
             criar_titulo(container_logo, "LUMEN", font=("Cinzel", 60, "bold")).pack()  # Mostra texto
 
         # ===== PAINEL DIREITO: Formulário de Login =====
-        painel_direito = ctk.CTkFrame(self, fg_color=COR_BG, corner_radius=0)  # Fundo escuro
+        painel_direito = ctk.CTkFrame(self, fg_color=cores.COR_BG, corner_radius=0)  # Fundo escuro
         painel_direito.grid(row=0, column=1, sticky="nsew")  # Preenche toda a coluna direita
 
         container_form = ctk.CTkFrame(painel_direito, fg_color="transparent")  # Container centralizado
         container_form.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza
 
         # Título "Bem-vindo"
-        criar_titulo(container_form, "Bem-vindo", font=("Segoe UI", 42, "bold"), text_color=COR_TEXTO).pack(anchor="w", pady=(0, 5))
+        criar_titulo(container_form, "Bem-vindo", font=("Segoe UI", 42, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", pady=(0, 5))
         # Subtítulo explicativo
-        criar_label(container_form, "Acesse a plataforma da biblioteca Lumen", font=("Segoe UI Light", 16), text_color=COR_TEXTO2).pack(anchor="w", pady=(0, 40))
+        criar_label(container_form, "Acesse a plataforma da biblioteca Lumen", font=("Segoe UI Light", 16), text_color=cores.COR_TEXTO2).pack(anchor="w", pady=(0, 40))
 
         # Campo de entrada: Usuário
         self.entry_usuario = criar_entry(container_form, placeholder="Usuário", width=380, height=50)
@@ -99,7 +116,7 @@ class TelaLogin(ctk.CTkFrame):
 
         
         # Label para mensagens de erro (inicialmente vazio)
-        self.lbl_erro = criar_label(container_form, "", text_color=COR_TEXTO2, font=("Segoe UI", 12))
+        self.lbl_erro = criar_label(container_form, "", text_color=cores.COR_TEXTO2, font=("Segoe UI", 12))
 
     def _entrar(self):
         """ Chamado ao clicar no botão 'Entrar' — valida campos e verifica login."""

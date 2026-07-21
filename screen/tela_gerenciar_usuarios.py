@@ -11,25 +11,11 @@ from services.database_config import (
     buscar_usuarios_por_nome, cadastrar_usuario, listar_turmas
 )
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_INPUT_BORDER, FONTE_TITULO, FONTE_SUBTITULO,
+    cores, FONTE_TITULO, FONTE_SUBTITULO,
     criar_entry, criar_botao_preenchido, criar_botao, criar_label, criar_titulo, criar_combo,
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Paleta auxiliar
-# ─────────────────────────────────────────────────────────────────────────────
-COR_LINHA_PAR   = "#1e1e2e"
-COR_LINHA_IMPAR = "#16161f"
-COR_PERIGO      = "#EF4444"
-COR_SUCESSO     = "#10B981"
-COR_AVISO       = "#EAB308"
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER     = "#1D4ED8"
-
-COR_SEL = "#1D4ED8"
 
 COMPENSA_SCROLLBAR = 18
 
@@ -55,7 +41,7 @@ class JanelaUsuario(ctk.CTkToplevel):
         self.title("Editar Usuário" if id_usuario else "Novo Usuário")
         self.geometry("420x580")
         self.resizable(False, False)
-        self.configure(fg_color=COR_BG)
+        self.configure(fg_color=cores.COR_BG)
         self.grab_set()
         self._construir()
         if id_usuario:
@@ -72,16 +58,16 @@ class JanelaUsuario(ctk.CTkToplevel):
                 img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
                 ctk.CTkLabel(self, image=img_logo, text="").pack(pady=(20, 0))
             except:
-                ctk.CTkLabel(self, text="LUMEN", font=FONTE_TITULO, text_color=COR_AZUL_PRINCIPAL).pack(pady=(20, 0), **pad)
+                ctk.CTkLabel(self, text="LUMEN", font=FONTE_TITULO, text_color=cores.COR_AZUL_PRINCIPAL).pack(pady=(20, 0), **pad)
         else:
-            ctk.CTkLabel(self, text="LUMEN", font=FONTE_TITULO, text_color=COR_AZUL_PRINCIPAL).pack(pady=(20, 0), **pad)
+            ctk.CTkLabel(self, text="LUMEN", font=FONTE_TITULO, text_color=cores.COR_AZUL_PRINCIPAL).pack(pady=(20, 0), **pad)
 
         titulo = "Editar Usuário" if self.id_usuario else "Novo Usuário"
-        criar_label(self, titulo, font=FONTE_SUBTITULO, text_color=COR_TEXTO).pack(pady=(0, 16), **pad)
+        criar_label(self, titulo, font=FONTE_SUBTITULO, text_color=cores.COR_TEXTO).pack(pady=(0, 16), **pad)
 
         self.combo_tipo = criar_combo(
             self, values=["aluno", "professor", "bibliotecario"], width=340, height=40,
-            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
+            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_tipo.set("aluno")
         self.combo_tipo.configure(command=self._tipo_mudou)
@@ -89,7 +75,7 @@ class JanelaUsuario(ctk.CTkToplevel):
 
         self.combo_status = criar_combo(
             self, values=["ativo", "inativo"], width=340, height=40,
-            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
+            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_status.set("ativo")
         self.combo_status.pack(pady=(0, 10), **pad)
@@ -115,7 +101,7 @@ class JanelaUsuario(ctk.CTkToplevel):
         turma_labels = [f"{c} - {t}" for _, c, t in self._turmas] if self._turmas else ["(nenhuma turma cadastrada)"]
         self.combo_turma = criar_combo(
             self.frame_aluno_prof, values=turma_labels, width=340, height=40,
-            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
+            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_turma.set(turma_labels[0])
         self.combo_turma.pack()
@@ -130,10 +116,10 @@ class JanelaUsuario(ctk.CTkToplevel):
         # Botão Salvar (sempre por último)
         ctk.CTkButton(self, text="Salvar", command=self._salvar,
                       width=340, height=42,
-                      fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-                      hover_color=COR_AZUL_HOVER).pack(pady=(14, 6), **pad)
+                      fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                      hover_color=cores.COR_AZUL_HOVER).pack(pady=(14, 6), **pad)
 
-        self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notif = criar_label(self, "", text_color=cores.COR_TEXTO2)
         self.lbl_notif.pack()
 
         # ── Label único de erro flutuante ──
@@ -276,7 +262,7 @@ class LinhaUsuario(ctk.CTkFrame):
     )
 
     def __init__(self, master, dados, indice, on_editar, on_alternar, on_excluir, turmas_map=None, on_selecionar=None, **kw):
-        cor = COR_LINHA_PAR if indice % 2 == 0 else COR_LINHA_IMPAR
+        cor = cores.COR_LINHA_PAR if indice % 2 == 0 else cores.COR_LINHA_IMPAR
         self._cor_original = cor
         super().__init__(master, fg_color=cor, corner_radius=0, **kw)
 
@@ -296,7 +282,7 @@ class LinhaUsuario(ctk.CTkFrame):
         ):
             self.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             texto = _truncar(valor, max_chars)
-            cor_val = COR_SUCESSO if valor == "ativo" else (COR_PERIGO if valor == "inativo" else COR_TEXTO)
+            cor_val = cores.COR_SUCESSO if valor == "ativo" else (cores.COR_PERIGO if valor == "inativo" else cores.COR_TEXTO)
             ancora = "w" if rotulo == "NOME" else "center"
             lbl = criar_label(self, texto, text_color=cor_val, anchor=ancora,
                         font=("Segoe UI", 15))
@@ -318,13 +304,13 @@ class LinhaUsuario(ctk.CTkFrame):
 
         ctk.CTkButton(
             frame_acoes, text="Editar", width=self.LARGURA_BTN_EDITAR, height=32,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
             command=lambda: on_editar(id_u)
         ).pack(side="left", padx=(0, self.GAP_BOTOES))
 
         label_status = "Ativar" if status == "inativo" else "Desativar"
-        cor_status   = COR_SUCESSO if status == "inativo" else COR_AVISO
+        cor_status   = cores.COR_SUCESSO if status == "inativo" else cores.COR_AVISO
         ctk.CTkButton(
             frame_acoes, text=label_status, width=self.LARGURA_BTN_STATUS, height=32,
             fg_color=cor_status, text_color="#fff", font=("Segoe UI", 13, "bold"),
@@ -333,14 +319,14 @@ class LinhaUsuario(ctk.CTkFrame):
 
         ctk.CTkButton(
             frame_acoes, text="✕", width=self.LARGURA_BTN_EXCLUIR, height=32,
-            fg_color=COR_PERIGO, text_color="#fff", font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_PERIGO, text_color="#fff", font=("Segoe UI", 13, "bold"),
             command=lambda: on_excluir(id_u, nome)
         ).pack(side="left")
 
     def selecionar(self):
-        self.configure(fg_color=COR_SEL)
+        self.configure(fg_color=cores.COR_SEL)
         for lbl in self._labels:
-            lbl.configure(fg_color=COR_SEL, text_color="#FFFFFF")
+            lbl.configure(fg_color=cores.COR_SEL, text_color="#FFFFFF")
 
     def desselecionar(self):
         self.configure(fg_color=self._cor_original)
@@ -355,14 +341,14 @@ class LinhaUsuario(ctk.CTkFrame):
 
         ctk.CTkButton(
             frame_acoes, text="Editar", width=self.LARGURA_BTN_EDITAR, height=32,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER,
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold"),
             command=lambda: on_editar(id_u)
         ).pack(side="left", padx=(0, self.GAP_BOTOES))
 
         label_status = "Ativar" if status == "inativo" else "Desativar"
-        cor_status   = COR_SUCESSO if status == "inativo" else COR_AVISO
+        cor_status   = cores.COR_SUCESSO if status == "inativo" else cores.COR_AVISO
         ctk.CTkButton(
             frame_acoes, text=label_status, width=self.LARGURA_BTN_STATUS, height=32,
             fg_color=cor_status, text_color="#fff",
@@ -372,7 +358,7 @@ class LinhaUsuario(ctk.CTkFrame):
 
         ctk.CTkButton(
             frame_acoes, text="✕", width=self.LARGURA_BTN_EXCLUIR, height=32,
-            fg_color=COR_PERIGO, text_color="#fff",
+            fg_color=cores.COR_PERIGO, text_color="#fff",
             font=("Segoe UI", 13, "bold"),
             command=lambda: on_excluir(id_u, nome)
         ).pack(side="left")
@@ -387,7 +373,7 @@ class CabecalhoTabela(ctk.CTkFrame):
 
         for idx, (rotulo, peso, minsize, _max_chars) in enumerate(LinhaUsuario.COLUNAS):
             self.grid_columnconfigure(idx, weight=peso, minsize=minsize)
-            criar_label(self, rotulo, text_color=COR_TEXTO,
+            criar_label(self, rotulo, text_color=cores.COR_TEXTO,
                         anchor="center",
                         font=("Segoe UI", 14, "bold")
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
@@ -395,7 +381,7 @@ class CabecalhoTabela(ctk.CTkFrame):
         col_acoes = len(LinhaUsuario.COLUNAS)
         self.grid_columnconfigure(col_acoes, weight=0, minsize=LinhaUsuario.LARGURA_COL_ACOES)
 
-        criar_label(self, "AÇÕES", text_color=COR_TEXTO,
+        criar_label(self, "AÇÕES", text_color=cores.COR_TEXTO,
                     anchor="center",
                     font=("Segoe UI", 14, "bold")
                     ).grid(row=0, column=col_acoes, sticky="ew", padx=(4, 10), pady=8)
@@ -410,13 +396,13 @@ class DialogoConfirmacao(ctk.CTkToplevel):
         self.title("Confirmar exclusão")
         self.geometry("360x170")
         self.resizable(False, False)
-        self.configure(fg_color=COR_BG)
+        self.configure(fg_color=cores.COR_BG)
         self.grab_set()
 
         criar_label(self, f'Excluir "{nome}" permanentemente?',
-                    text_color=COR_TEXTO, wraplength=320).pack(pady=(30, 6), padx=20)
+                    text_color=cores.COR_TEXTO, wraplength=320).pack(pady=(30, 6), padx=20)
         criar_label(self, "Esta ação não pode ser desfeita.",
-                    text_color=COR_TEXTO2, font=("", 11)).pack(pady=(0, 20))
+                    text_color=cores.COR_TEXTO2, font=("", 11)).pack(pady=(0, 20))
 
         frame_btns = ctk.CTkFrame(self, fg_color="transparent")
         frame_btns.pack()
@@ -428,7 +414,7 @@ class DialogoConfirmacao(ctk.CTkToplevel):
 
         ctk.CTkButton(
             frame_btns, text="Excluir", width=130, height=36,
-            fg_color=COR_PERIGO,
+            fg_color=cores.COR_PERIGO,
             command=lambda: (on_confirmar(), self.destroy())
         ).pack(side="left", padx=8)
 
@@ -438,9 +424,27 @@ class DialogoConfirmacao(ctk.CTkToplevel):
 # ─────────────────────────────────────────────────────────────────────────────
 class TelaGerenciarUsuarios(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._linha_selecionada = None
+        self._construir_ui()
+        self._carregar()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
         self._carregar()
 
@@ -467,18 +471,18 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
-        criar_label(header_left, "Gerenciar Usuários", font=FONTE_TITULO, text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Gerenciar Usuários", font=FONTE_TITULO, text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             topo, text="Voltar", command=self.controller.voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         linha_contador = ctk.CTkFrame(self, fg_color="transparent")
         linha_contador.pack(fill="x", padx=30, pady=(0, 4))
 
-        self.lbl_total = criar_label(linha_contador, "", text_color=COR_TEXTO2)
+        self.lbl_total = criar_label(linha_contador, "", text_color=cores.COR_TEXTO2)
         self.lbl_total.pack(side="right")
 
         filtros = ctk.CTkFrame(self, fg_color="transparent")
@@ -490,8 +494,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtros, text="Buscar", width=100, height=42,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 16, "bold"),
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16, "bold"),
             command=self._buscar
         ).pack(side="left", padx=(0, 16))
 
@@ -499,7 +503,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             filtros,
             values=["Todos", "aluno", "professor", "bibliotecario"],
             width=160, height=36,
-            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
+            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_filtro.set("Todos")
         self.combo_filtro.configure(command=lambda _: self._carregar())
@@ -514,8 +518,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         ctk.CTkButton(
             filtros, text="+ Novo Usuário", command=self._abrir_cadastro,
             width=160, height=42,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
         ).pack(side="left")
 
         CabecalhoTabela(self).pack(fill="x", padx=(30, 30 + COMPENSA_SCROLLBAR))
@@ -523,7 +527,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True, padx=30, pady=(0, 20))
 
-        self.lbl_notif = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notif = criar_label(self, "", text_color=cores.COR_TEXTO2)
         self.lbl_notif.pack(pady=(0, 8))
 
     def _selecionar_linha(self, linha):

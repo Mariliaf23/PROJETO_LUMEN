@@ -7,15 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import customtkinter as ctk
 from services.database_config import listar_livros, listar_categorias
 from services.styles import (
-    COR_BG, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
-    FONTE_TITULO, criar_entry, criar_label, criar_titulo, criar_card
+    cores, FONTE_TITULO, criar_entry, criar_label, criar_titulo, criar_card
 )
-
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER     = "#1D4ED8"
-COR_LINHA_PAR      = "#1e1e2e"
-COR_LINHA_IMPAR    = "#16161f"
-COR_DOURADO        = "#D4A373"
 
 COLUNAS = [
     ("TÍTULO",     5, 280, 36),
@@ -40,14 +33,14 @@ class CabecalhoCatalogo(ctk.CTkFrame):
         super().__init__(master, fg_color="#0d0d1a", corner_radius=0, **kw)
         for idx, (rotulo, peso, minsize, _) in enumerate(COLUNAS):
             self.grid_columnconfigure(idx, weight=peso, minsize=minsize)
-            criar_label(self, rotulo, text_color=COR_TEXTO,
+            criar_label(self, rotulo, text_color=cores.COR_TEXTO,
                         anchor="center", font=("Segoe UI", 14, "bold")
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
 
 class LinhaLivro(ctk.CTkFrame):
     def __init__(self, master, dados, indice, **kw):
-        cor = COR_LINHA_PAR if indice % 2 == 0 else COR_LINHA_IMPAR
+        cor = cores.COR_LINHA_PAR if indice % 2 == 0 else cores.COR_LINHA_IMPAR
         super().__init__(master, fg_color=cor, corner_radius=0, **kw)
 
         id_livro, titulo, isbn, categoria, editora, ano, status, *_ = dados
@@ -65,9 +58,9 @@ class LinhaLivro(ctk.CTkFrame):
                 elif s in ("atrasado", "inativo", "cancelada"):
                     cor_txt = "#EF4444"
                 else:
-                    cor_txt = COR_TEXTO2
+                    cor_txt = cores.COR_TEXTO2
             else:
-                cor_txt = COR_TEXTO
+                cor_txt = cores.COR_TEXTO
             ancora = "w" if rotulo == "TÍTULO" else "center"
             criar_label(self, texto, text_color=cor_txt, anchor=ancora,
                         font=("Segoe UI", 14)).grid(
@@ -77,10 +70,27 @@ class LinhaLivro(ctk.CTkFrame):
 
 class TelaCatalogo(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._todos_livros = []
         self._categorias   = []
+        self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
 
     def _ao_visitar(self):
@@ -107,18 +117,18 @@ class TelaCatalogo(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         criar_label(header_left, "Catálogo de Livros", font=FONTE_TITULO,
-                    text_color=COR_TEXTO).pack(side="left")
+                    text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             topo, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         # ── Contador ──
         linha_contador = ctk.CTkFrame(self, fg_color="transparent")
         linha_contador.pack(fill="x", padx=30, pady=(0, 4))
-        self.lbl_total = criar_label(linha_contador, "", text_color=COR_TEXTO2)
+        self.lbl_total = criar_label(linha_contador, "", text_color=cores.COR_TEXTO2)
         self.lbl_total.pack(side="right")
 
         # ── Filtros ──

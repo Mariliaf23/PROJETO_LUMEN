@@ -2,8 +2,109 @@
 
 import customtkinter as ctk   # Biblioteca de interface gráfica moderna
 
-COR_ERRO   = "#EF4444"   # borda vermelha de erro
-COR_OK     = "#10B981"   # borda verde de sucesso
+COR_ERRO   = "#EF4444"   # borda vermelha de erro (não muda com tema)
+COR_OK     = "#10B981"   # borda verde de sucesso (não muda com tema)
+
+
+class _Cores:
+    """Paletas de cores dinâmicas — alterna entre claro e escuro."""
+    DARK = {
+        "COR_BG"           : "#0B1220",
+        "COR_CARD"         : "#1A1F2E",
+        "COR_SIDEBAR"      : "#0F172A",
+        "COR_DOURADO"      : "#D4A373",
+        "COR_DOURADO_CLARO": "#E6C79C",
+        "COR_TEXTO"        : "#FFFFFF",
+        "COR_TEXTO2"       : "#CBD5E1",
+        "COR_INPUT_BG"     : "#1A2235",
+        "COR_INPUT_BORDER" : "#506070",
+        "COR_HOVER"        : "#E6C79C",
+        "COR_ATIVO"        : "#2B5CD4",
+        "COR_AZUL_PRINCIPAL": "#2B5CD4",
+        "COR_AZUL_HOVER"   : "#4B7BFF",
+        "COR_SEL"          : "#4B7BFF",
+        "COR_SUCESSO"      : "#10B981",
+        "COR_AVISO"        : "#EAB308",
+        "COR_PERIGO"       : "#EF4444",
+        "COR_LINHA_PAR"    : "#1e1e2e",
+        "COR_LINHA_IMPAR"  : "#16161f",
+    }
+    LIGHT = {
+        "COR_BG"           : "#F5F7FA",
+        "COR_CARD"         : "#FFFFFF",
+        "COR_SIDEBAR"      : "#E2E8F0",
+        "COR_DOURADO"      : "#8B6B00",
+        "COR_DOURADO_CLARO": "#D4A373",
+        "COR_TEXTO"        : "#0F172A",
+        "COR_TEXTO2"       : "#1E293B",
+        "COR_INPUT_BG"     : "#F1F5F9",
+        "COR_INPUT_BORDER" : "#94A3B8",
+        "COR_HOVER"        : "#D4A373",
+        "COR_ATIVO"        : "#1D4ED8",
+        "COR_AZUL_PRINCIPAL": "#1D4ED8",
+        "COR_AZUL_HOVER"   : "#3B82F6",
+        "COR_SEL"          : "#3B82F6",
+        "COR_SUCESSO"      : "#059669",
+        "COR_AVISO"        : "#A16207",
+        "COR_PERIGO"       : "#DC2626",
+        "COR_LINHA_PAR"    : "#F8FAFC",
+        "COR_LINHA_IMPAR"  : "#F1F5F9",
+    }
+
+    def __init__(self):
+        self._modo = "dark"
+        self._paleta = dict(self.DARK)  # cópia inicial
+        self._listeners = []            # callbacks registrados pelas telas abertas
+
+    # ---------------- Observer de tema ----------------
+
+    def registrar_listener(self, callback):
+        """Registra uma função para ser chamada sempre que o tema mudar.
+
+        Cada tela deve chamar isto no __init__, passando um método que
+        reconstrói (ou reestiliza) seus widgets, ex: self._reconstruir_ui.
+        """
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+
+    def remover_listener(self, callback):
+        """Remove um listener. Deve ser chamado quando a tela é destruída,
+        para evitar chamadas em widgets que não existem mais."""
+        if callback in self._listeners:
+            self._listeners.remove(callback)
+
+    def _notificar_listeners(self):
+        # Itera sobre uma cópia da lista, pois callbacks podem se
+        # registrar/remover durante a notificação.
+        for callback in list(self._listeners):
+            try:
+                callback()
+            except Exception as e:
+                print(f"[styles] Erro ao notificar listener de tema: {e}")
+
+    # ---------------------------------------------------
+
+    def alternar(self):
+        """Alterna entre claro e escuro, notifica todas as telas registradas
+        e retorna o novo modo."""
+        self._modo = "light" if self._modo == "dark" else "dark"
+        self._paleta.clear()
+        self._paleta.update(self.LIGHT if self._modo == "light" else self.DARK)
+        ctk.set_appearance_mode(self._modo)
+        self._notificar_listeners()
+        return self._modo
+
+    @property
+    def modo(self):
+        return self._modo
+
+    def __getattr__(self, nome):
+        if nome.startswith("_"):
+            raise AttributeError(nome)
+        return self._paleta.get(nome, "")
+
+
+cores = _Cores()  # instância única — importe como: from services.styles import cores
 
 
 def aplicar_validacao_focusout(entry, fn_validar, lbl_erro_global, todos_entries):
@@ -15,7 +116,7 @@ def aplicar_validacao_focusout(entry, fn_validar, lbl_erro_global, todos_entries
             return
         valor = entry.get().strip()
         if not valor:
-            entry.configure(border_color=COR_INPUT_BORDER)
+            entry.configure(border_color=cores.COR_INPUT_BORDER)
             lbl_erro_global.configure(text="")
             return
         ok, msg = fn_validar(valor)
@@ -26,7 +127,7 @@ def aplicar_validacao_focusout(entry, fn_validar, lbl_erro_global, todos_entries
         entry._tocado = True
         entry._validacao_ativa = True
         for e in todos_entries:
-            e.configure(border_color=COR_INPUT_BORDER)
+            e.configure(border_color=cores.COR_INPUT_BORDER)
         lbl_erro_global.configure(text="")
 
     entry.bind("<FocusOut>", lambda e: _ao_sair())
@@ -34,28 +135,6 @@ def aplicar_validacao_focusout(entry, fn_validar, lbl_erro_global, todos_entries
 
 ctk.set_appearance_mode("dark")              # Define o tema escuro para toda a aplicação
 ctk.set_default_color_theme("dark-blue")     # Tema de cores padrão: azul escuro
-
-# ======================== CORES ========================
-
-COR_BG = "#0B1220"              # Cor de fundo principal (azul muito escuro)
-COR_CARD = "#111827"            # Cor dos cards e painéis (cinza escuro)
-COR_SIDEBAR = "#0F172A"         # Cor da barra lateral (azul marinho escuro)
-COR_DOURADO = "#D4A373"         # Cor dourada (destaques e botões)
-COR_DOURADO_CLARO = "#E6C79C"   # Cor dourada clara (hover)
-COR_TEXTO = "#F8FAFC"           # Cor do texto principal (branco quase puro)
-COR_TEXTO2 = "#94A3B8"          # Cor do texto secundário (cinza claro)
-COR_INPUT_BG = "#1E293B"        # Fundo dos campos de entrada (cinza azulado)
-COR_INPUT_BORDER = "#334155"    # Borda dos campos de entrada
-COR_HOVER = "#E6C79C"           # Cor ao passar o mouse sobre botões
-COR_ATIVO = "#1E293B"           # Cor de fundo do item ativo no menu
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER = "#1D4ED8"
-COR_SEL = "#1D4ED8"
-COR_SUCESSO = "#10B981"
-COR_AVISO = "#EAB308"
-COR_PERIGO = "#EF4444"
-COR_LINHA_PAR = "#1e1e2e"
-COR_LINHA_IMPAR = "#16161f"
 
 # ======================== FONTES ========================
 
@@ -72,140 +151,119 @@ FONTE_SMALL = ("Segoe UI", 10)                       # Fonte para textos pequeno
 # ======================== FUNÇÕES AUXILIARES ========================
 
 def criar_entry(parent, placeholder="", **kwargs):
-    """Cria um campo de entrada de texto com estilo padronizado."""
     defaults = dict(
-        placeholder_text=placeholder,      # Texto placeholder (dica ao usuário)
-        font=FONTE_INPUT,                  # Fonte do campo
-        fg_color=COR_INPUT_BG,            # Cor de fundo
-        border_color=COR_INPUT_BORDER,    # Cor da borda
-        text_color=COR_TEXTO,             # Cor do texto digitado
-        placeholder_text_color=COR_TEXTO2, # Cor do placeholder
-        corner_radius=8,                  # Arredondamento dos cantos
-        height=38,                        # Altura do campo
+        placeholder_text=placeholder,
+        font=FONTE_INPUT,
+        fg_color=cores.COR_INPUT_BG,
+        border_color=cores.COR_INPUT_BORDER,
+        text_color=cores.COR_TEXTO,
+        placeholder_text_color=cores.COR_TEXTO2,
+        corner_radius=8,
+        height=38,
     )
-    defaults.update(kwargs)                # Permite sobrescrever qualquer configuração
-    return ctk.CTkEntry(parent, **defaults)  # Retorna o campo de entrada
+    defaults.update(kwargs)
+    return ctk.CTkEntry(parent, **defaults)
 
 
 def criar_botao(parent, text, command=None, **kwargs):
-    """Cria um botão com borda dourada e efeito hover (inverter cores ao passar o mouse)."""
     defaults = dict(
-        text=text,                        # Texto do botão
-        font=FONTE_BOTAO,                # Fonte
-        fg_color="transparent",           # Fundo transparente (só borda visível)
-        border_color=COR_DOURADO,         # Borda dourada
-        border_width=1,                   # Espessura da borda
-        text_color=COR_DOURADO,           # Texto dourado
-        corner_radius=8,                  # Cantos arredondados
-        height=40,                        # Altura do botão
-        command=command,                  # Função chamada ao clicar
-        hover_color=COR_DOURADO,          # Cor ao passar o mouse
+        text=text, font=FONTE_BOTAO,
+        fg_color="transparent",
+        border_color=cores.COR_DOURADO,
+        border_width=1,
+        text_color=cores.COR_DOURADO,
+        corner_radius=8, height=40,
+        command=command,
+        hover_color=cores.COR_DOURADO,
     )
-    defaults.update(kwargs)               # Permite personalizar
-    btn = ctk.CTkButton(parent, **defaults)  # Cria o botão
-
-    # Efeito hover: inverte as cores quando o mouse entra/sai
-    original_enter = btn.bind("<Enter>", lambda e: None)  # Remove binding padrão
-    original_leave = btn.bind("<Leave>", lambda e: None)  # Remove binding padrão
+    defaults.update(kwargs)
+    btn = ctk.CTkButton(parent, **defaults)
 
     def on_enter(e):
-        """Quando o mouse entra no botão: fundo dourado, texto escuro."""
-        btn.configure(fg_color=COR_DOURADO, text_color=COR_BG)
+        btn.configure(fg_color=cores.COR_DOURADO, text_color=cores.COR_BG)
 
     def on_leave(e):
-        """Quando o mouse sai do botão: fundo transparente, texto dourado."""
-        btn.configure(fg_color="transparent", text_color=COR_DOURADO)
+        btn.configure(fg_color="transparent", text_color=cores.COR_DOURADO)
 
-    btn.bind("<Enter>", on_enter)         # Liga o evento de entrada do mouse
-    btn.bind("<Leave>", on_leave)         # Liga o evento de saída do mouse
-
-    return btn                             # Retorna o botão
+    btn.bind("<Enter>", on_enter)
+    btn.bind("<Leave>", on_leave)
+    return btn
 
 
 def criar_botao_preenchido(parent, text, command=None, **kwargs):
-    """Cria um botão com fundo dourado sólido (preenchido)."""
     defaults = dict(
-        text=text,                        # Texto do botão
-        font=FONTE_BOTAO,                # Fonte
-        fg_color=COR_DOURADO,            # Fundo dourado
-        hover_color=COR_HOVER,           # Cor ao passar o mouse
-        text_color=COR_BG,               # Texto escuro (contraste com fundo dourado)
-        corner_radius=8,                  # Cantos arredondados
-        height=40,                        # Altura
-        command=command,                  # Ação ao clicar
+        text=text, font=FONTE_BOTAO,
+        fg_color=cores.COR_DOURADO,
+        hover_color=cores.COR_HOVER,
+        text_color=cores.COR_BG,
+        corner_radius=8, height=40,
+        command=command,
     )
-    defaults.update(kwargs)               # Permite personalizar
-    return ctk.CTkButton(parent, **defaults)  # Retorna o botão
+    defaults.update(kwargs)
+    return ctk.CTkButton(parent, **defaults)
 
 
 def criar_label(parent, text, **kwargs):
-    """Cria um rótulo de texto com estilo padronizado."""
     defaults = dict(
-        text=text,                        # Texto do label
-        font=FONTE_LABEL,                # Fonte padrão
-        text_color=COR_TEXTO2,           # Cor cinza clara
+        text=text, font=FONTE_LABEL,
+        text_color=cores.COR_TEXTO2,
     )
     defaults.update(kwargs)
-    return ctk.CTkLabel(parent, **defaults)  # Retorna o label
+    return ctk.CTkLabel(parent, **defaults)
 
 
 def criar_titulo(parent, text, **kwargs):
-    """Cria um título grande com cor dourada."""
     defaults = dict(
-        text=text,                        # Texto do título
-        font=FONTE_TITULO,               # Fonte grande e negrita
-        text_color=COR_DOURADO,          # Cor dourada
+        text=text, font=FONTE_TITULO,
+        text_color=cores.COR_DOURADO,
     )
     defaults.update(kwargs)
-    return ctk.CTkLabel(parent, **defaults)  # Retorna o label de título
+    return ctk.CTkLabel(parent, **defaults)
 
 
 def criar_card(parent, **kwargs):
-    """Cria um card (painel) com fundo escuro e borda sutil."""
     defaults = dict(
-        fg_color=COR_CARD,               # Fundo cinza escuro
-        corner_radius=20,                # Cantos bem arredondados (moderno)
-        border_width=1,                  # Borda fina
-        border_color=COR_INPUT_BORDER,   # Cor da borda
+        fg_color=cores.COR_CARD,
+        corner_radius=20,
+        border_width=1,
+        border_color=cores.COR_INPUT_BORDER,
     )
     defaults.update(kwargs)
-    return ctk.CTkFrame(parent, **defaults)  # Retorna o frame/card
+    return ctk.CTkFrame(parent, **defaults)
 
 
 def criar_combo(parent, values=None, **kwargs):
-    """Cria um menu suspenso (dropdown) com estilo padronizado."""
     defaults = dict(
-        values=values or [" Selecione..."],  # Opções disponíveis
-        font=FONTE_INPUT,                     # Fonte
-        fg_color=COR_INPUT_BG,               # Fundo do campo
-        button_color="#1E3A8A",              # Cor do botão de abertura (azul)
-        button_hover_color="#1D4ED8",        # Cor ao passar o mouse no botão (azul escuro)
-        dropdown_fg_color=COR_CARD,           # Fundo da lista suspensa
-        dropdown_hover_color=COR_ATIVO,       # Cor ao passar mouse nas opções
-        text_color=COR_TEXTO,                 # Cor do texto selecionado
-        corner_radius=8,                      # Cantos arredondados
-        height=38,                            # Altura
+        values=values or [" Selecione..."],
+        font=FONTE_INPUT,
+        fg_color=cores.COR_INPUT_BG,
+        button_color=cores.COR_AZUL_PRINCIPAL,
+        button_hover_color=cores.COR_AZUL_HOVER,
+        dropdown_fg_color=cores.COR_CARD,
+        dropdown_hover_color=cores.COR_ATIVO,
+        text_color=cores.COR_TEXTO,
+        corner_radius=8, height=38,
     )
     defaults.update(kwargs)
-    return ctk.CTkOptionMenu(parent, **defaults)  # Retorna o menu suspenso
+    return ctk.CTkOptionMenu(parent, **defaults)
 
 
 def criar_scroll_frame(parent, **kwargs):
-    """Cria um frame com barra de rolagem."""
     defaults = dict(
-        fg_color=COR_CARD,               # Fundo cinza escuro
-        corner_radius=12,                # Cantos arredondados
-        border_width=1,                  # Borda fina
-        border_color=COR_INPUT_BORDER,   # Cor da borda
+        fg_color=cores.COR_CARD,
+        corner_radius=12,
+        border_width=1,
+        border_color=cores.COR_INPUT_BORDER,
     )
     defaults.update(kwargs)
-    return ctk.CTkScrollableFrame(parent, **defaults)  # Retorna o frame scrollável
+    return ctk.CTkScrollableFrame(parent, **defaults)
+
 
 def criar_botao_primario(parent, text, command=None, **kwargs):
-    """Botão de ação principal: cadastrar, confirmar, salvar."""
     defaults = dict(
         text=text, font=FONTE_BOTAO,
-        fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+        fg_color=cores.COR_AZUL_PRINCIPAL,
+        hover_color=cores.COR_AZUL_HOVER,
         text_color="#FFFFFF", corner_radius=8, height=38,
         command=command,
     )
@@ -214,12 +272,11 @@ def criar_botao_primario(parent, text, command=None, **kwargs):
 
 
 def criar_botao_secundario(parent, text, command=None, **kwargs):
-    """Botão neutro: voltar, limpar, atualizar."""
     defaults = dict(
         text=text, font=FONTE_BOTAO,
-        fg_color="#0F172A", text_color="#FFFFFF",
-        border_color=COR_INPUT_BORDER, border_width=1,
-        hover_color="#1E293B", corner_radius=8, height=38,
+        fg_color=cores.COR_SIDEBAR, text_color=cores.COR_TEXTO,
+        border_color=cores.COR_INPUT_BORDER, border_width=1,
+        hover_color=cores.COR_ATIVO, corner_radius=8, height=38,
         command=command,
     )
     defaults.update(kwargs)
@@ -227,7 +284,6 @@ def criar_botao_secundario(parent, text, command=None, **kwargs):
 
 
 def criar_botao_perigo(parent, text, command=None, **kwargs):
-    """Botão destrutivo: excluir, cancelar reserva."""
     defaults = dict(
         text=text, font=FONTE_BOTAO,
         fg_color="#7F1D1D", text_color="#FCA5A5",

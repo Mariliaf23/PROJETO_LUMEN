@@ -9,8 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import customtkinter as ctk
 
 from services.styles import (
-    COR_BG, COR_CARD, COR_SIDEBAR, COR_DOURADO, COR_TEXTO, COR_TEXTO2,
-    COR_INPUT_BG, COR_INPUT_BORDER, COR_ATIVO,
+    cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo, criar_botao_preenchido,
 )
 from services.notificacoes import (
@@ -18,21 +17,35 @@ from services.notificacoes import (
     resetar_templates, carregar_historico, limpar_historico, testar_whatsapp,
 )
 
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER = "#1D4ED8"
-COR_VERDE = "#10B981"
-COR_VERMELHO = "#EF4444"
+
 
 
 class TelaNotificacoes(ctk.CTkFrame):
     """Tela principal da Central de Notificações."""
 
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._aba_atual = "dashboard"
         self._config = carregar_config()
         self._templates = carregar_templates()
+        self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
 
     def _ao_visitar(self):
@@ -49,7 +62,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         # Header
-        header = ctk.CTkFrame(self, fg_color=COR_CARD)
+        header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
         header_left = ctk.CTkFrame(header, fg_color="transparent")
@@ -68,11 +81,11 @@ class TelaNotificacoes(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
         criar_label(header_left, "Central de Notificações",
-                    font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
+                    font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
@@ -93,11 +106,11 @@ class TelaNotificacoes(ctk.CTkFrame):
             is_atual = (tag == self._aba_atual)
             btn = ctk.CTkButton(
                 abas_container, text=nome, font=("Segoe UI", 11, "bold"),
-                fg_color=COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
+                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
                 text_color="#FFFFFF" if is_atual else "#94A3B8",
-                border_color=COR_AZUL_PRINCIPAL if is_atual else "#334155",
+                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#334155",
                 border_width=1 if is_atual else 0,
-                hover_color=COR_AZUL_HOVER,
+                hover_color=cores.COR_AZUL_HOVER,
                 width=110, height=30,
                 command=lambda n=tag: self._trocar_aba(n)
             )
@@ -105,14 +118,14 @@ class TelaNotificacoes(ctk.CTkFrame):
             self._botoes_abas.append((btn, tag))
 
         # Container de conteúdo
-        self._frame_conteudo = ctk.CTkFrame(self, fg_color=COR_BG)
+        self._frame_conteudo = ctk.CTkFrame(self, fg_color=cores.COR_BG)
         self._frame_conteudo.grid(row=2, column=0, sticky="nsew", padx=30, pady=(5, 20))
         self._frame_conteudo.grid_columnconfigure(0, weight=1)
         self._frame_conteudo.grid_rowconfigure(0, weight=1)
 
         self._frames = {}
         for tag in [t[1] for t in abas]:
-            frame = ctk.CTkFrame(self._frame_conteudo, fg_color=COR_BG)
+            frame = ctk.CTkFrame(self._frame_conteudo, fg_color=cores.COR_BG)
             frame.grid_columnconfigure(0, weight=1)
             frame.grid_rowconfigure(0, weight=1)
             self._frames[tag] = frame
@@ -123,15 +136,15 @@ class TelaNotificacoes(ctk.CTkFrame):
         self._construir_aba_templates()
         self._construir_aba_historico()
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
         self._trocar_aba("dashboard")
 
     def _trocar_aba(self, nome):
         self._aba_atual = nome
         for btn, n in self._botoes_abas:
             if n == nome:
-                btn.configure(fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-                              border_color=COR_AZUL_PRINCIPAL, border_width=1)
+                btn.configure(fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                              border_color=cores.COR_AZUL_PRINCIPAL, border_width=1)
             else:
                 btn.configure(fg_color="#1E293B", text_color="#94A3B8",
                               border_color="#334155", border_width=0)
@@ -155,7 +168,7 @@ class TelaNotificacoes(ctk.CTkFrame):
             self.controller.voltar()
 
     def _notificar(self, msg, cor=None):
-        self.lbl_notificacao.configure(text=msg, text_color=cor or COR_DOURADO)
+        self.lbl_notificacao.configure(text=msg, text_color=cor or cores.COR_DOURADO)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))
@@ -176,7 +189,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         status_inner = ctk.CTkFrame(self._frame_status, fg_color="transparent")
         status_inner.pack(fill="x", padx=20, pady=15)
 
-        self._lbl_status_geral = criar_label(status_inner, "", font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO)
+        self._lbl_status_geral = criar_label(status_inner, "", font=("Segoe UI", 16, "bold"), text_color=cores.COR_TEXTO)
         self._lbl_status_geral.pack(side="left")
 
         self._btn_toggle = ctk.CTkButton(
@@ -197,9 +210,9 @@ class TelaNotificacoes(ctk.CTkFrame):
             card = criar_card(cards_frame)
             card.grid(row=0, column=i, padx=5, pady=5, sticky="nsew")
 
-            criar_label(card, titulo.upper(), font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO2).pack(
+            criar_label(card, titulo.upper(), font=("Segoe UI", 11, "bold"), text_color=cores.COR_TEXTO2).pack(
                 anchor="w", padx=15, pady=(15, 5))
-            lbl_valor = criar_label(card, "—", font=("Segoe UI", 28, "bold"), text_color=COR_DOURADO)
+            lbl_valor = criar_label(card, "—", font=("Segoe UI", 28, "bold"), text_color=cores.COR_DOURADO)
             lbl_valor.pack(anchor="w", padx=15, pady=(0, 15))
             self._lbl_cards.append(lbl_valor)
 
@@ -213,11 +226,11 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         self._lbl_status_geral.configure(
             text="🟢 Notificações ativas" if habilitado else "🔴 Notificações desabilitadas",
-            text_color=COR_VERDE if habilitado else COR_VERMELHO
+            text_color=cores.COR_SUCESSO if habilitado else cores.COR_PERIGO
         )
         self._btn_toggle.configure(
             text="Desabilitar" if habilitado else "Habilitar",
-            fg_color=COR_VERMELHO if habilitado else COR_VERDE,
+            fg_color=cores.COR_PERIGO if habilitado else cores.COR_SUCESSO,
         )
 
         historico = carregar_historico()
@@ -251,7 +264,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         card_geral.grid(row=0, column=0, sticky="ew", pady=(0, 10), padx=5)
 
         criar_label(card_geral, "CONFIGURAÇÕES GERAIS", font=("Segoe UI", 14, "bold"),
-                    text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+                    text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         self._chk_habilitado_var = ctk.BooleanVar(value=self._config.get("habilitado", True))
         self._chk_abrir_var = ctk.BooleanVar(value=self._config.get("abrir_automatico", True))
@@ -268,8 +281,8 @@ class TelaNotificacoes(ctk.CTkFrame):
         for var, texto in checks:
             ctk.CTkCheckBox(
                 card_geral, text=texto, variable=var,
-                font=("Segoe UI", 13), text_color=COR_TEXTO,
-                fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+                font=("Segoe UI", 13), text_color=cores.COR_TEXTO,
+                fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
                 command=self._salvar_configuracoes
             ).pack(anchor="w", padx=20, pady=4)
 
@@ -278,7 +291,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         card_teste.grid(row=1, column=0, sticky="ew", pady=(0, 10), padx=5)
 
         criar_label(card_teste, "TESTAR WHATSAPP", font=("Segoe UI", 14, "bold"),
-                    text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+                    text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         teste_frame = ctk.CTkFrame(card_teste, fg_color="transparent")
         teste_frame.pack(fill="x", padx=20, pady=(0, 15))
@@ -288,7 +301,7 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             teste_frame, text="📱 Testar WhatsApp", width=180, height=40,
-            fg_color=COR_VERDE, text_color="#FFFFFF",
+            fg_color=cores.COR_SUCESSO, text_color="#FFFFFF",
             hover_color="#059669", font=("Segoe UI", 13, "bold"),
             command=self._teste_whatsapp
         ).pack(side="left")
@@ -304,13 +317,13 @@ class TelaNotificacoes(ctk.CTkFrame):
     def _teste_whatsapp(self):
         telefone = self._entry_teste_telefone.get().strip()
         if not telefone:
-            self._notificar("Informe um número de telefone.", COR_VERMELHO)
+            self._notificar("Informe um número de telefone.", cores.COR_PERIGO)
             return
         sucesso, resultado = testar_whatsapp(telefone)
         if sucesso:
-            self._notificar("WhatsApp Web aberto! Verifique o navegador.", COR_VERDE)
+            self._notificar("WhatsApp Web aberto! Verifique o navegador.", cores.COR_SUCESSO)
         else:
-            self._notificar(f"Erro: {resultado}", COR_VERMELHO)
+            self._notificar(f"Erro: {resultado}", cores.COR_PERIGO)
 
     # ═══════════════════════════════════════════════════════════════════════
     # ABA EVENTOS
@@ -325,10 +338,10 @@ class TelaNotificacoes(ctk.CTkFrame):
         card.grid(row=0, column=0, sticky="nsew", padx=5)
 
         criar_label(card, "EVENTOS DE NOTIFICAÇÃO", font=("Segoe UI", 14, "bold"),
-                    text_color=COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
+                    text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         criar_label(card, "Habilite ou desabilite notificações para cada tipo de evento:",
-                    font=("Segoe UI", 12), text_color=COR_TEXTO2).pack(anchor="w", padx=20, pady=(0, 10))
+                    font=("Segoe UI", 12), text_color=cores.COR_TEXTO2).pack(anchor="w", padx=20, pady=(0, 10))
 
         self._chk_eventos = {}
         eventos_hab = self._config.get("eventos_habilitados", {})
@@ -342,16 +355,16 @@ class TelaNotificacoes(ctk.CTkFrame):
 
             ctk.CTkCheckBox(
                 row_frame, text=nome, variable=var,
-                font=("Segoe UI", 13), text_color=COR_TEXTO,
-                fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+                font=("Segoe UI", 13), text_color=cores.COR_TEXTO,
+                fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
                 command=lambda k=chave: self._toggle_evento(k)
             ).pack(side="left")
 
         # Botão salvar
         ctk.CTkButton(
             card, text="Salvar Alterações", width=200, height=40,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
             command=self._salvar_eventos
         ).pack(anchor="w", padx=20, pady=(20, 15))
 
@@ -383,11 +396,11 @@ class TelaNotificacoes(ctk.CTkFrame):
         info_card.pack(fill="x", pady=(0, 10), padx=5)
 
         criar_label(info_card, "VARIÁVEIS DISPONÍVEIS", font=("Segoe UI", 13, "bold"),
-                    text_color=COR_TEXTO).pack(anchor="w", padx=15, pady=(12, 5))
+                    text_color=cores.COR_TEXTO).pack(anchor="w", padx=15, pady=(12, 5))
 
         variaveis_texto = "{nome}  {livro}  {patrimonio}  {emprestimo}  {devolucao}  {resumo}"
         criar_label(info_card, variaveis_texto, font=("Consolas", 11),
-                    text_color=COR_DOURADO).pack(anchor="w", padx=15, pady=(0, 12))
+                    text_color=cores.COR_DOURADO).pack(anchor="w", padx=15, pady=(0, 12))
 
         self._entry_templates = {}
 
@@ -396,12 +409,12 @@ class TelaNotificacoes(ctk.CTkFrame):
             card.pack(fill="x", pady=(0, 8), padx=5)
 
             criar_label(card, nome.upper(), font=("Segoe UI", 12, "bold"),
-                        text_color=COR_TEXTO).pack(anchor="w", padx=15, pady=(12, 5))
+                        text_color=cores.COR_TEXTO).pack(anchor="w", padx=15, pady=(12, 5))
 
             txt_edit = ctk.CTkTextbox(
                 card, height=120, font=("Consolas", 11),
-                fg_color=COR_INPUT_BG, text_color=COR_TEXTO,
-                border_color=COR_INPUT_BORDER, border_width=1,
+                fg_color=cores.COR_INPUT_BG, text_color=cores.COR_TEXTO,
+                border_color=cores.COR_INPUT_BORDER, border_width=1,
                 corner_radius=8
             )
             txt_edit.pack(fill="x", padx=15, pady=(0, 10))
@@ -414,14 +427,14 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             btn_frame, text="💾 Salvar Templates", width=200, height=40,
-            fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
             command=self._salvar_templates
         ).pack(side="left", padx=(0, 10))
 
         ctk.CTkButton(
             btn_frame, text="↺ Restaurar Padrão", width=200, height=40,
-            fg_color="#333", text_color=COR_TEXTO,
+            fg_color="#333", text_color=cores.COR_TEXTO,
             hover_color="#444", font=("Segoe UI", 13, "bold"),
             command=self._resetar_templates
         ).pack(side="left")
@@ -478,13 +491,13 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtro, text="🗑 Limpar Histórico", width=140, height=30,
-            fg_color=COR_VERMELHO, font=("Segoe UI", 11, "bold"),
+            fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold"),
             command=self._limpar_historico
         ).pack(side="right")
 
         # Tabela
-        self._frame_hist_tabela = ctk.CTkScrollableFrame(frame, fg_color=COR_CARD, corner_radius=12,
-                                                          border_width=1, border_color=COR_INPUT_BORDER)
+        self._frame_hist_tabela = ctk.CTkScrollableFrame(frame, fg_color=cores.COR_CARD, corner_radius=12,
+                                                          border_width=1, border_color=cores.COR_INPUT_BORDER)
         self._frame_hist_tabela.grid(row=1, column=0, sticky="nsew", padx=5)
 
         self._atualizar_historico()
@@ -505,7 +518,7 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         for i, (col, larg) in enumerate(zip(colunas, larguras)):
             ctk.CTkLabel(header_frame, text=col, font=("Segoe UI", 11, "bold"),
-                         text_color=COR_TEXTO, width=larg, anchor="w").grid(
+                         text_color=cores.COR_TEXTO, width=larg, anchor="w").grid(
                 row=0, column=i, padx=8, pady=8, sticky="w")
 
         if not dados:
@@ -529,9 +542,9 @@ class TelaNotificacoes(ctk.CTkFrame):
             ]
 
             for i, (val, larg) in enumerate(zip(valores, larguras)):
-                cor_status = COR_VERDE if val == "Enviado" else (COR_VERMELHO if val == "Erro" else COR_TEXTO)
+                cor_status = cores.COR_SUCESSO if val == "Enviado" else (cores.COR_PERIGO if val == "Erro" else cores.COR_TEXTO)
                 ctk.CTkLabel(row, text=val, font=("Segoe UI", 10),
-                             text_color=cor_status if i == 5 else COR_TEXTO,
+                             text_color=cor_status if i == 5 else cores.COR_TEXTO,
                              width=larg, anchor="w").grid(
                     row=0, column=i, padx=8, pady=5, sticky="w")
 

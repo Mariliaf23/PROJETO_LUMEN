@@ -16,15 +16,10 @@ from services.database_config import (
 )
 from services.notificacoes import enviar_notificacao
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame, criar_combo,
     criar_botao_preenchido, FONTE_LABEL, FONTE_SUBTITULO
 )
-
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER = "#1D4ED8"
-COR_AZUL_CLARO = "#3B82F6"
-COR_SEL = "#1D4ED8"
 
 COLUNAS_EMP = [
     ("ID",           1,  60,  6),
@@ -73,7 +68,7 @@ class DetalheGrupo(ctk.CTkToplevel):
         self.title("Detalhes do Grupo de Empréstimo")
         self.geometry("500x450")
         self.resizable(False, False)
-        self.configure(fg_color=COR_BG)
+        self.configure(fg_color=cores.COR_BG)
         self.grab_set()
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -84,11 +79,11 @@ class DetalheGrupo(ctk.CTkToplevel):
                 img_logo = ctk.CTkImage(Image.open(logo_path), size=(60, 60))
                 ctk.CTkLabel(self, image=img_logo, text="").pack(pady=(10, 0))
             except:
-                criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold"), text_color="#1E3A8A").pack(pady=(10, 0))
+                criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold"), text_color=cores.COR_DOURADO).pack(pady=(10, 0))
         else:
-            criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold"), text_color="#1E3A8A").pack(pady=(10, 0))
+            criar_titulo(self, "LUMEN", font=("Cinzel", 20, "bold"), text_color=cores.COR_DOURADO).pack(pady=(10, 0))
 
-        criar_label(self, "Detalhes do Grupo", font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(pady=(5, 10))
+        criar_label(self, "Detalhes do Grupo", font=("Segoe UI", 16, "bold"), text_color=cores.COR_TEXTO).pack(pady=(5, 10))
 
         # Cabeçalho do grupo
         card_header = criar_card(self)
@@ -109,8 +104,8 @@ class DetalheGrupo(ctk.CTkToplevel):
         for rotulo, valor in campos_header:
             linha = ctk.CTkFrame(card_header, fg_color="transparent")
             linha.pack(fill="x", padx=15, pady=3)
-            criar_label(linha, f"{rotulo}:", font=("Segoe UI", 12, "bold"), text_color="#1E3A8A").pack(side="left")
-            cor_valor = COR_TEXTO
+            criar_label(linha, f"{rotulo}:", font=("Segoe UI", 12, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
+            cor_valor = cores.COR_TEXTO
             if rotulo == "Status":
                 s = str(valor).lower()
                 if s == "atrasado":
@@ -122,7 +117,7 @@ class DetalheGrupo(ctk.CTkToplevel):
             criar_label(linha, valor, font=("Segoe UI", 12), text_color=cor_valor).pack(side="right")
 
         # Lista de livros do grupo
-        criar_label(self, "Livros no Grupo:", font=("Segoe UI", 13, "bold"), text_color=COR_TEXTO).pack(pady=(5, 5))
+        criar_label(self, "Livros no Grupo:", font=("Segoe UI", 13, "bold"), text_color=cores.COR_TEXTO).pack(pady=(5, 5))
 
         card_livros = criar_card(self)
         card_livros.pack(fill="both", expand=True, padx=20, pady=(0, 10))
@@ -139,7 +134,7 @@ class DetalheGrupo(ctk.CTkToplevel):
             patrimonio = livro.get('codigo_patrimonio', '')
             status_livro = livro.get('status', '')
 
-            cor_status = COR_TEXTO
+            cor_status = cores.COR_TEXTO
             if status_livro == "atrasado":
                 cor_status = "#EF4444"
             elif status_livro == "finalizado":
@@ -147,7 +142,7 @@ class DetalheGrupo(ctk.CTkToplevel):
             elif status_livro == "ativo":
                 cor_status = "#EAB308"
 
-            criar_label(linha, f"{titulo} ({patrimonio})", font=("Segoe UI", 11), text_color=COR_TEXTO).pack(side="left")
+            criar_label(linha, f"{titulo} ({patrimonio})", font=("Segoe UI", 11), text_color=cores.COR_TEXTO).pack(side="left")
             criar_label(linha, status_livro, font=("Segoe UI", 11, "bold"), text_color=cor_status).pack(side="right")
 
         ctk.CTkButton(self, text="Fechar", command=self.destroy, width=160, height=36,
@@ -173,7 +168,7 @@ class DetalheEmprestimo(ctk.CTkToplevel):
         self.title("Detalhes do Empréstimo")
         self.geometry("420x520")
         self.resizable(False, False)
-        self.configure(fg_color=COR_BG)
+        self.configure(fg_color=cores.COR_BG)
         self.grab_set()
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -184,11 +179,11 @@ class DetalheEmprestimo(ctk.CTkToplevel):
                 img_logo = ctk.CTkImage(Image.open(logo_path), size=(80, 80))
                 ctk.CTkLabel(self, image=img_logo, text="").pack(pady=(15, 0))
             except:
-                criar_titulo(self, "LUMEN", font=("Cinzel", 24, "bold"), text_color="#1E3A8A").pack(pady=(15, 0))
+                criar_titulo(self, "LUMEN", font=("Cinzel", 24, "bold"), text_color=cores.COR_DOURADO).pack(pady=(15, 0))
         else:
-            criar_titulo(self, "LUMEN", font=("Cinzel", 24, "bold"), text_color="#1E3A8A").pack(pady=(15, 0))
+            criar_titulo(self, "LUMEN", font=("Cinzel", 24, "bold"), text_color=cores.COR_DOURADO).pack(pady=(15, 0))
 
-        criar_label(self, "Detalhes do Empréstimo", font=("Segoe UI", 16, "bold"), text_color=COR_TEXTO).pack(pady=(5, 15))
+        criar_label(self, "Detalhes do Empréstimo", font=("Segoe UI", 16, "bold"), text_color=cores.COR_TEXTO).pack(pady=(5, 15))
 
         card = criar_card(self)
         card.pack(fill="x", padx=30, pady=(0, 10))
@@ -209,8 +204,8 @@ class DetalheEmprestimo(ctk.CTkToplevel):
         for rotulo, valor in campos:
             linha = ctk.CTkFrame(card, fg_color="transparent")
             linha.pack(fill="x", padx=15, pady=4)
-            criar_label(linha, f"{rotulo}:", font=("Segoe UI", 13, "bold"), text_color="#1E3A8A").pack(side="left")
-            cor_valor = COR_TEXTO
+            criar_label(linha, f"{rotulo}:", font=("Segoe UI", 13, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
+            cor_valor = cores.COR_TEXTO
             if rotulo == "Status":
                 s = str(valor).lower()
                 if s == "atrasado":
@@ -240,10 +235,10 @@ class DetalheEmprestimo(ctk.CTkToplevel):
 
 class TelaEmprestimos(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        self.cor_bg = str(COR_BG)
-        self.cor_card = str(COR_CARD)
-        self.cor_texto = str(COR_TEXTO)
-        self.cor_texto2 = str(COR_TEXTO2)
+        self.cor_bg = str(cores.COR_BG)
+        self.cor_card = str(cores.COR_CARD)
+        self.cor_texto = str(cores.COR_TEXTO)
+        self.cor_texto2 = str(cores.COR_TEXTO2)
 
         super().__init__(master, fg_color=self.cor_bg)
         self.controller = controller
@@ -252,6 +247,29 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._itens_reserva = []
         self._selecionado = None
         self._reserva_selecionada = None
+        self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        # Recalcula as cores base, pois a paleta pode ter mudado
+        self.cor_bg = str(cores.COR_BG)
+        self.cor_card = str(cores.COR_CARD)
+        self.cor_texto = str(cores.COR_TEXTO)
+        self.cor_texto2 = str(cores.COR_TEXTO2)
+        self.configure(fg_color=self.cor_bg)
+
+        for widget in self.winfo_children():
+            widget.destroy()
         self._construir_ui()
 
     def _ao_visitar(self):
@@ -288,7 +306,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         # HEADER compactado (mesmo padrão das outras telas)
-        header = ctk.CTkFrame(self, fg_color=COR_CARD)
+        header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
         header_left = ctk.CTkFrame(header, fg_color="transparent")
@@ -307,12 +325,12 @@ class TelaEmprestimos(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
-        titulo = criar_label(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO)
+        titulo = criar_label(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO)
         titulo.pack(side="left")
 
         btn_voltar = ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 14, "bold")
         )
         btn_voltar.pack(side="right", padx=15, pady=5)
@@ -328,11 +346,11 @@ class TelaEmprestimos(ctk.CTkFrame):
 
             btn = ctk.CTkButton(
                 abas_frame, text=nome, font=("Segoe UI", 14, "bold"),
-                fg_color=COR_AZUL_PRINCIPAL if is_atual else "transparent",
+                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else "transparent",
                 text_color="#FFFFFF" if is_atual else self.cor_texto,
-                border_color=COR_AZUL_PRINCIPAL if is_atual else self.cor_bg,
+                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else self.cor_bg,
                 border_width=1 if is_atual else 0,
-                hover_color=COR_AZUL_HOVER,
+                hover_color=cores.COR_AZUL_HOVER,
                 width=140, height=36,
                 command=lambda n=tag: self._mostrar_aba(n)
             )
@@ -357,8 +375,8 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._aba_atual = nome
         for btn, n in self._botoes_abas:
             if n == nome:
-                btn.configure(fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-                              border_color=COR_AZUL_PRINCIPAL, border_width=1)
+                btn.configure(fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                              border_color=cores.COR_AZUL_PRINCIPAL, border_width=1)
             else:
                 btn.configure(fg_color="transparent", text_color=self.cor_texto,
                               border_color=self.cor_bg, border_width=0)
@@ -445,28 +463,28 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.btn_cadastrar = ctk.CTkButton(
             botoes_frame, text="Confirmar", command=self._cadastrar_emprestimo,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 12, "bold")
         )
         self.btn_cadastrar.grid(row=0, column=0, padx=(0, 4), sticky="ew")
 
         self.btn_finalizar = ctk.CTkButton(
             botoes_frame, text="Finalizar", command=self._finalizar_emprestimo,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 12, "bold")
         )
         self.btn_finalizar.grid(row=0, column=1, padx=(0, 4), sticky="ew")
 
         self.btn_renovar = ctk.CTkButton(
             botoes_frame, text="Renovar", command=self._renovar_emprestimo,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 12, "bold")
         )
         self.btn_renovar.grid(row=0, column=2, padx=(0, 4), sticky="ew")
 
         self.btn_detalhes = ctk.CTkButton(
             botoes_frame, text="Detalhes", command=self._abrir_detalhes,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 12, "bold")
         )
         self.btn_detalhes.grid(row=0, column=3, sticky="ew")
@@ -497,10 +515,10 @@ class TelaEmprestimos(ctk.CTkFrame):
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_EMP):
             header_tab.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"),
-                         text_color=COR_TEXTO, anchor="center"
+                         text_color=cores.COR_TEXTO, anchor="center"
                          ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
-        self.lista_emprestimos = criar_scroll_frame(lista_card, fg_color=COR_CARD)
+        self.lista_emprestimos = criar_scroll_frame(lista_card, fg_color=cores.COR_CARD)
         self.lista_emprestimos.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
     def _atualizar_sugestoes_aluno(self, event=None):
@@ -519,7 +537,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             ctk.CTkButton(
                 self._frame_sugestoes_aluno, text=nome, anchor="w",
                 fg_color="transparent", text_color=self.cor_texto,
-                hover_color=COR_AZUL_HOVER, font=("Segoe UI", 14),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda n=nome: self._escolher_aluno(n)
             ).pack(fill="x", pady=1)
@@ -549,7 +567,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             ctk.CTkButton(
                 self._frame_sugestoes_exemplar, text=nome, anchor="w",
                 fg_color="transparent", text_color=self.cor_texto,
-                hover_color=COR_AZUL_HOVER, font=("Segoe UI", 14),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda n=nome: self._escolher_exemplar(n)
             ).pack(fill="x", pady=1)
@@ -604,14 +622,14 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         self.btn_reservar = ctk.CTkButton(
             botoes, text="Nova Reserva", command=self._reservar,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold")
         )
         self.btn_reservar.pack(side="left", padx=(0, 8))
 
         self.btn_cancelar_reserva = ctk.CTkButton(
             botoes, text="Cancelar", command=self._cancelar_reserva,
-            height=ALTURA_INPUT, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            height=ALTURA_INPUT, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold")
         )
         self.btn_cancelar_reserva.pack(side="left")
@@ -635,10 +653,10 @@ class TelaEmprestimos(ctk.CTkFrame):
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_RES):
             header_tab.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"),
-                         text_color=COR_TEXTO, anchor="center"
+                         text_color=cores.COR_TEXTO, anchor="center"
                          ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
-        self.lista_reservas = criar_scroll_frame(lista_card, fg_color=COR_CARD)
+        self.lista_reservas = criar_scroll_frame(lista_card, fg_color=cores.COR_CARD)
         self.lista_reservas.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
     # ==================== MÉTODOS EMPRÉSTIMOS ====================
@@ -903,10 +921,10 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._selecionado = emp
         for item, e in self._itens_lista:
             if e == emp:
-                item.configure(fg_color=COR_SEL)
+                item.configure(fg_color=cores.COR_SEL)
                 for widget in item.winfo_children():
                     if isinstance(widget, ctk.CTkLabel):
-                        widget.configure(text_color="#FFFFFF", fg_color=COR_SEL)
+                        widget.configure(text_color="#FFFFFF", fg_color=cores.COR_SEL)
             else:
                 item.configure(fg_color=self.cor_card)
                 for idx, widget in enumerate(item.winfo_children()):
@@ -1012,87 +1030,6 @@ class TelaEmprestimos(ctk.CTkFrame):
         titulo = primeiro[2]
         self._notificar(f"Encontrado: {titulo} ({len(exemplares)} disponível(is))")
         
-    def _cadastrar_emprestimo(self):
-        aluno_sel = self.combo_aluno.get()
-        exemplar_sel = self.combo_exemplar.get()
-        vencimento = self.entry_vencimento.get().strip()
-
-        if not aluno_sel or aluno_sel not in self._alunos_map:
-            self._notificar("Selecione um aluno válido.")
-            return
-        if not exemplar_sel or exemplar_sel not in self._exemplares_map:
-            self._notificar("Selecione um exemplar disponível.")
-            return
-        if not vencimento:
-            self._notificar("Informe a data de devolução.")
-            return
-
-        sucesso, data_convertida, erro = validar_e_converter_data(vencimento)
-        if not sucesso:
-            self._notificar(f"Erro na data: {erro}")
-            return
-
-        id_usuario = self._alunos_map[aluno_sel]
-        id_exemplar = self._exemplares_map[exemplar_sel]
-        id_funcionario = self.controller.usuario_logado['id'] if self.controller and hasattr(self.controller, 'usuario_logado') else 1
-
-        if usuario_tem_multa_pendente(id_usuario):
-            self._notificar("Aluno com multa pendente! Regularize primeiro.")
-            return
-
-        if aluno_tem_max_emprestimos(id_usuario):
-            self._notificar("Limite atingido! Máximo de 3 livros (empréstimos + reservas).")
-            return
-
-        self.btn_cadastrar.configure(text="Processando...", state="disabled")
-        self._salvar_emprestimo(id_usuario, id_exemplar, data_convertida, id_funcionario)
-
-    def _salvar_emprestimo(self, id_usuario, id_exemplar, vencimento, id_funcionario):
-        sucesso = cadastrar_emprestimo(id_usuario, id_exemplar, vencimento, id_funcionario)
-        if sucesso:
-            self._notificar("Empréstimo registrado com sucesso!")
-
-            # Notificação WhatsApp
-            try:
-                from services.database_config import _conectar
-                conn = _conectar()
-                cursor = conn.cursor()
-                cursor.execute(
-                    """SELECT u.nome, l.titulo, e.codigo_patrimonio
-                       FROM usuario u, livro l, exemplar e
-                       WHERE u.id_usuario = %s AND e.id_exemplar = %s AND l.id_livro = e.id_livro""",
-                    (id_usuario, id_exemplar)
-                )
-                dados = cursor.fetchone()
-                conn.close()
-                if dados:
-                    from datetime import date, timedelta
-                    data_emp = date.today().strftime("%d/%m/%Y")
-                    try:
-                        if "-" in str(vencimento):
-                            partes = str(vencimento).split("-")
-                            data_prev = f"{partes[2]}/{partes[1]}/{partes[0]}"
-                        else:
-                            data_prev = (date.today() + timedelta(days=int(vencimento))).strftime("%d/%m/%Y")
-                    except Exception:
-                        data_prev = str(vencimento)
-                    enviar_notificacao(id_usuario, "emprestimo_realizado", {
-                        "livro": dados[1],
-                        "patrimonio": dados[2],
-                        "emprestimo": data_emp,
-                        "devolucao": data_prev,
-                    })
-            except Exception:
-                pass
-
-            self.entry_vencimento.delete(0, "end")
-            self.entry_busca_aluno.delete(0, "end")
-            self.entry_busca_exemplar.delete(0, "end")
-            self._recarregar_emprestimos()
-        else:
-            self._notificar("Erro ao salvar empréstimo.")
-        self.btn_cadastrar.configure(text="Confirmar", state="normal")
-
     # ==================== MÉTODOS RESERVAS ====================
 
     def _recarregar_reservas(self):
@@ -1160,10 +1097,10 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._reserva_selecionada = r
         for item, v in self._itens_reserva:
             if v == r:
-                item.configure(fg_color=COR_SEL)
+                item.configure(fg_color=cores.COR_SEL)
                 for widget in item.winfo_children():
                     if isinstance(widget, ctk.CTkLabel):
-                        widget.configure(text_color="#FFFFFF", fg_color=COR_SEL)
+                        widget.configure(text_color="#FFFFFF", fg_color=cores.COR_SEL)
             else:
                 item.configure(fg_color=self.cor_card)
                 for widget in item.winfo_children():
@@ -1242,7 +1179,7 @@ class TelaEmprestimos(ctk.CTkFrame):
             self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_AZUL_CLARO)
+        self.lbl_notificacao.configure(text=mensagem, text_color=cores.COR_AZUL_HOVER)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))

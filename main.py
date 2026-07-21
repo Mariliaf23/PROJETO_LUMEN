@@ -1,4 +1,3 @@
-
 from services.conector import init_db
 from services.app_controller import AppController
 import customtkinter as ctk
@@ -8,11 +7,52 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
+def _configurar_tela_cheia(root):
+    """Faz a janela entrar em tela cheia de verdade (cobrindo até a barra
+    de tarefas do Windows) sempre que o usuário clicar em maximizar.
+
+    O truque de manter a barra de título e só ajustar o tamanho da janela
+    NÃO cobre a barra de tarefas de forma confiável — o Windows sempre a
+    redesenha por cima. A única forma garantida de cobrir tudo é usar o
+    modo fullscreen real do sistema operacional, que remove a barra de
+    título (sem botões de minimizar/fechar visíveis).
+
+    Por isso, oferecemos duas formas de sair da tela cheia:
+      - Tecla ESC: volta para janela normal (restaurada)
+      - Tecla F11: alterna entre tela cheia e janela normal
+    """
+    _em_transicao = {"ativo": False}
+
+    def _ao_configurar(event=None):
+        if event is not None and event.widget is not root:
+            return
+        if _em_transicao["ativo"]:
+            return
+        if root.state() == "zoomed" and not root.attributes("-fullscreen"):
+            _em_transicao["ativo"] = True
+            root.attributes("-fullscreen", True)
+            root.after(50, lambda: _em_transicao.__setitem__("ativo", False))
+
+    def _sair_tela_cheia(event=None):
+        if root.attributes("-fullscreen"):
+            root.attributes("-fullscreen", False)
+            root.state("normal")
+
+    def _alternar_tela_cheia(event=None):
+        root.attributes("-fullscreen", not root.attributes("-fullscreen"))
+
+    root.bind("<Map>", _ao_configurar)
+    root.bind("<Configure>", _ao_configurar)
+    root.bind("<Escape>", _sair_tela_cheia)
+    root.bind("<F11>", _alternar_tela_cheia)
+
+
 if __name__ == "__main__":                            # Só executa se for o arquivo principal
     if not init_db():                                # Tenta criar/verificar o banco de dados
         print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
 
     root = ctk.CTk()                                 # Cria a janela principal do aplicativo
+    _configurar_tela_cheia(root)                     # Ativa tela cheia real ao maximizar
     controller = AppController(root)                  # Cria o controlador de navegação
     controller.usuario_logado = None                  # Nenhum usuário logado no início
 

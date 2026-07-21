@@ -16,16 +16,12 @@ from services.barcode_gen import (
     gerar_pagina_etiquetas
 )
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_botao, criar_label, criar_titulo,
     criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout
 )
 from services.validador import validar_patrimonio, validar_texto
 
-COR_SEL        = "#1D4ED8"
-COR_VERDE      = "#10B981"   # disponivel
-COR_AMARELO    = "#EAB308"   # emprestado, manutencao
-COR_VERMELHO   = "#EF4444"   # (reservado para uso futuro)
 
 COLUNAS_EXEMPLARES = [
     ("Patrimônio",  2, 140, 16),
@@ -43,7 +39,7 @@ class JanelaBarcode(ctk.CTkToplevel):
         self.title(f"Código de Barras - {patrimonio}")
         self.geometry("350x420")
         self.resizable(False, False)
-        self.configure(fg_color=COR_BG)
+        self.configure(fg_color=cores.COR_BG)
         self.grab_set()
 
         # Logo
@@ -56,10 +52,10 @@ class JanelaBarcode(ctk.CTkToplevel):
             except:
                 pass
 
-        criar_titulo(self, "LUMEN", font=("Cinzel", 18, "bold"), text_color="#1E3A8A").pack()
+        criar_titulo(self, "LUMEN", font=("Cinzel", 18, "bold"), text_color=cores.COR_DOURADO).pack()
 
         criar_label(self, "Código de Barras", font=("Segoe UI", 14, "bold"),
-                    text_color=COR_TEXTO).pack(pady=(5, 10))
+                    text_color=cores.COR_TEXTO).pack(pady=(5, 10))
 
         # Card com barcode
         card = criar_card(self)
@@ -83,7 +79,7 @@ class JanelaBarcode(ctk.CTkToplevel):
 
         # Código abaixo do barcode
         criar_label(self, patrimonio, font=("Consolas", 16, "bold"),
-                    text_color=COR_TEXTO).pack(pady=(0, 15))
+                    text_color=cores.COR_TEXTO).pack(pady=(0, 15))
 
         # Botões
         botoes = ctk.CTkFrame(self, fg_color="transparent")
@@ -123,12 +119,29 @@ class JanelaBarcode(ctk.CTkToplevel):
 
 class TelaExemplares(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller      = controller
         self._itens_lista    = []
         self._selecionado    = None
         self._livros_map     = {}
         self._editando_id    = None
+        self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
 
     def _ao_visitar(self):
@@ -141,7 +154,7 @@ class TelaExemplares(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         # Header compactado (mesmo padrão da tela de livros)
-        header = ctk.CTkFrame(self, fg_color=COR_CARD)
+        header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -161,11 +174,11 @@ class TelaExemplares(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
         criar_label(header_left, "Gerenciamento de Exemplares",
-                    font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
+                    font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
@@ -207,7 +220,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         # Prefixo PAT-
         lbl_prefixo = ctk.CTkLabel(patrimonio_container, text="PAT-", font=("Segoe UI", 14, "bold"),
-                                    text_color="#1E3A8A", width=50)
+                                    text_color=cores.COR_TEXTO, width=50)
         lbl_prefixo.grid(row=0, column=0, padx=(0, 2))
 
         self.entry_patrimonio = criar_entry(patrimonio_container, placeholder="00001", height=ALTURA_INPUT)
@@ -238,7 +251,7 @@ class TelaExemplares(ctk.CTkFrame):
         self.btn_editar = ctk.CTkButton(
             botoes_frame, text="✎ Editar", command=self._editar_selecionado,
             height=BTN_H, fg_color="#0F172A", text_color="#FFFFFF",
-            border_color=COR_INPUT_BORDER, border_width=1,
+            border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=BTN_FONT
         )
         self.btn_editar.grid(row=0, column=1, padx=(0, 3), sticky="ew")
@@ -290,13 +303,13 @@ class TelaExemplares(ctk.CTkFrame):
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_EXEMPLARES):
             header_lista.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             criar_label(header_lista, nome.upper(), font=("Segoe UI", 12, "bold"),
-                        text_color=COR_TEXTO, anchor="center"
+                        text_color=cores.COR_TEXTO, anchor="center"
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
         self.lista_frame = criar_scroll_frame(lista_card, fg_color="transparent")
         self.lista_frame.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
 
         # ── Label único de erro flutuante ──
         self._lbl_erro_campo = criar_label(form_card, "", font=("Segoe UI", 12))
@@ -336,7 +349,7 @@ class TelaExemplares(ctk.CTkFrame):
         for texto in resultados[:20]:
             btn = ctk.CTkButton(
                 self._frame_sugestoes, text=texto, anchor="w",
-                fg_color="transparent", text_color=COR_TEXTO,
+                fg_color="transparent", text_color=cores.COR_TEXTO,
                 hover_color="#1D4ED8", font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda t=texto: self._escolher_livro(t)
@@ -377,7 +390,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         if not exemplares:
             criar_label(self.lista_frame, "Nenhum exemplar encontrado.",
-                        font=("Segoe UI", 14), text_color=COR_TEXTO).pack(pady=30)
+                        font=("Segoe UI", 14), text_color=cores.COR_TEXTO).pack(pady=30)
             return
         for exc in exemplares:
             self._criar_item(exc)
@@ -405,7 +418,7 @@ class TelaExemplares(ctk.CTkFrame):
             self._selecionar(self._itens_lista[0][1])
 
     def _criar_item(self, exc):
-        item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=6, height=40)
+        item = ctk.CTkFrame(self.lista_frame, fg_color=cores.COR_CARD, corner_radius=6, height=40)
         item.pack(fill="x", pady=2)
         item.pack_propagate(False)
         item._dados = exc
@@ -423,13 +436,13 @@ class TelaExemplares(ctk.CTkFrame):
             if nome == "Status":
                 s = str(valor).strip().lower() if valor else ""
                 if "disponivel" in s:
-                    cor = COR_VERDE
+                    cor = cores.COR_SUCESSO
                 elif "emprestado" in s or "manutenc" in s:
-                    cor = COR_AMARELO
+                    cor = cores.COR_AVISO
                 else:
-                    cor = COR_TEXTO
+                    cor = cores.COR_TEXTO
             else:
-                cor = COR_TEXTO
+                cor = cores.COR_TEXTO
             lbl = ctk.CTkLabel(item, text=texto, font=("Segoe UI", 14), text_color=cor, anchor="center")
             lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
             lbl.bind("<Button-1>", lambda e, it=item: self._selecionar(it))
@@ -445,25 +458,25 @@ class TelaExemplares(ctk.CTkFrame):
             dados_exibicao = [exc[1], exc[4], exc[2], exc[3]] if len(exc) > 4 else exc
 
             if selecionado:
-                linha.configure(fg_color=COR_SEL)
+                linha.configure(fg_color=cores.COR_SEL)
                 for widget in linha.winfo_children():
                     if isinstance(widget, ctk.CTkLabel):
-                        widget.configure(text_color="#FFFFFF", fg_color=COR_SEL)
+                        widget.configure(text_color="#FFFFFF", fg_color=cores.COR_SEL)
             else:
-                linha.configure(fg_color=COR_CARD)
+                linha.configure(fg_color=cores.COR_CARD)
                 for i, widget in enumerate(linha.winfo_children()):
                     if isinstance(widget, ctk.CTkLabel):
                         if i == 2:
                             s = str(dados_exibicao[2]).strip().lower()
                             if "disponivel" in s:
-                                cor = COR_VERDE
+                                cor = cores.COR_SUCESSO
                             elif "emprestado" in s or "manutenc" in s:
-                                cor = COR_AMARELO
+                                cor = cores.COR_AVISO
                             else:
-                                cor = COR_TEXTO
+                                cor = cores.COR_TEXTO
                         else:
-                            cor = COR_TEXTO
-                        widget.configure(text_color=cor, fg_color=COR_CARD)
+                            cor = cores.COR_TEXTO
+                        widget.configure(text_color=cor, fg_color=cores.COR_CARD)
 
         self.lista_frame.update_idletasks()
 
@@ -669,7 +682,7 @@ class TelaExemplares(ctk.CTkFrame):
             self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_DOURADO, font=("Segoe UI", 15, "bold"))
+        self.lbl_notificacao.configure(text=mensagem, text_color=cores.COR_DOURADO, font=("Segoe UI", 15, "bold"))
         self.lbl_notificacao.place(relx=0.5, rely=0.96, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))

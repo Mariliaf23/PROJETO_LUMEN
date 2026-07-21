@@ -14,7 +14,7 @@ from services.database_config import (
     listar_autores, listar_autores_livro, associar_autor_livro, desassociar_autor_livro
 )
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_botao, criar_label, criar_titulo,
     criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout,
     criar_botao_primario, criar_botao_secundario, criar_botao_perigo
@@ -23,11 +23,30 @@ from services.validador import validar_isbn, validar_ano, validar_texto, validar
 
 class TelaLivros(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._itens_lista = []
         self._selecionado = None
         self._cat_map = {}
+        self._construir_ui()
+        self._carregar_categorias()
+        self._carregar_tabela()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
         self._carregar_categorias()
         self._carregar_tabela()
@@ -48,7 +67,7 @@ class TelaLivros(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         # === HEADER COMPACTADO (Otimização de Espaço) ===
-        header = ctk.CTkFrame(self, fg_color=COR_CARD)
+        header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,7 +87,7 @@ class TelaLivros(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
-        criar_label(header_left, "Cadastro de Livros", font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Cadastro de Livros", font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         criar_botao_secundario(header, "Voltar", command=self._voltar, width=100, height=36).pack(side="right", padx=15, pady=5)
 
@@ -172,7 +191,7 @@ class TelaLivros(ctk.CTkFrame):
         busca_frame = ctk.CTkFrame(lista_card, fg_color="transparent")
         busca_frame.pack(fill="x", padx=20, pady=(12, 0))
 
-        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por título, ISBN ou categoria…", height=34)
+        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por título, ISBN ou categoria…", height=40, width=300)
         self.entry_filtro.configure(font=("Segoe UI", 13))
         self.entry_filtro.pack(side="left", fill="x", expand=False, padx=(0, 8))
         self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
@@ -189,14 +208,14 @@ class TelaLivros(ctk.CTkFrame):
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_LIVROS):
             header_tab.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             ctk.CTkLabel(header_tab, text=nome.upper(), font=("Segoe UI", 12, "bold"),
-                         text_color=COR_TEXTO, anchor="center").grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
+                         text_color=cores.COR_TEXTO, anchor="center").grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
-        self.lista_frame = criar_scroll_frame(lista_card, fg_color=COR_CARD)
+        self.lista_frame = criar_scroll_frame(lista_card, fg_color=cores.COR_CARD)
         self.lista_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
         self._colunas_livros = COLUNAS_LIVROS
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.lbl_notificacao.configure(text="TESTE - esta label está visível?")
 
@@ -244,7 +263,7 @@ class TelaLivros(ctk.CTkFrame):
         for cat in resultados[:15]:
             ctk.CTkButton(
                 self._frame_sugestoes_cat, text=cat, anchor="w",
-                fg_color="transparent", text_color=COR_TEXTO,
+                fg_color="transparent", text_color=cores.COR_TEXTO,
                 hover_color="#1D4ED8", font=("Segoe UI", 13),
                 height=30, corner_radius=4,
                 command=lambda c=cat: self._escolher_categoria(c)
@@ -300,14 +319,14 @@ class TelaLivros(ctk.CTkFrame):
         self._itens_lista.clear()
         if not livros:
             criar_label(self.lista_frame, "Nenhum livro encontrado.",
-                        font=("Segoe UI", 14), text_color=COR_TEXTO).pack(pady=30)
+                        font=("Segoe UI", 14), text_color=cores.COR_TEXTO).pack(pady=30)
             return
         for idx, livro in enumerate(livros):
             self._criar_item(livro, idx)
         self.lista_frame.update_idletasks()
 
     def _criar_item(self, livro, idx=0):
-        item = ctk.CTkFrame(self.lista_frame, fg_color=COR_CARD, corner_radius=6, height=40)
+        item = ctk.CTkFrame(self.lista_frame, fg_color=cores.COR_CARD, corner_radius=6, height=40)
         item.pack(fill="x", pady=2)
         item.pack_propagate(False)
         item.bind("<Button-1>", lambda e, l=livro: self._selecionar(l))
@@ -323,7 +342,7 @@ class TelaLivros(ctk.CTkFrame):
             texto = "-" if valor is None or valor == "" else str(valor)
             if len(texto) > max_chars:
                 texto = texto[:max_chars - 1].rstrip() + "…"
-            cor_txt = COR_TEXTO
+            cor_txt = cores.COR_TEXTO
             if nome == "Status":
                 s = str(dados[idx_col]).lower() if dados[idx_col] else ""
                 if "dispon" in s:
@@ -333,7 +352,7 @@ class TelaLivros(ctk.CTkFrame):
                 elif "atrasado" in s or "inativo" in s:
                     cor_txt = "#EF4444"
                 else:
-                    cor_txt = COR_TEXTO2
+                    cor_txt = cores.COR_TEXTO2
             ancora = "w" if nome == "Título" else "center"
             lbl = ctk.CTkLabel(item, text=texto, font=("Segoe UI", 14), text_color=cor_txt, anchor=ancora)
             lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
@@ -354,7 +373,7 @@ class TelaLivros(ctk.CTkFrame):
                     if isinstance(widget, ctk.CTkLabel):
                         widget.configure(text_color="#FFFFFF", fg_color="#1D4ED8")
             else:
-                item.configure(fg_color=COR_CARD, border_width=0)
+                item.configure(fg_color=cores.COR_CARD, border_width=0)
                 for idx, widget in enumerate(item.winfo_children()):
                     if isinstance(widget, ctk.CTkLabel):
                         _, _, _, _, _, _, status_l, *_ = (*l, None, None)
@@ -367,10 +386,10 @@ class TelaLivros(ctk.CTkFrame):
                             elif "atrasado" in s or "inativo" in s:
                                 cor = "#EF4444"
                             else:
-                                cor = COR_TEXTO2
+                                cor = cores.COR_TEXTO2
                         else:
-                            cor = COR_TEXTO
-                        widget.configure(text_color=cor, fg_color=COR_CARD)
+                            cor = cores.COR_TEXTO
+                        widget.configure(text_color=cor, fg_color=cores.COR_CARD)
 
         self.lista_frame.update_idletasks()
 
@@ -549,7 +568,7 @@ class TelaLivros(ctk.CTkFrame):
         if self.controller: self.controller.voltar()
 
     def _notificar(self, msg):
-        self.lbl_notificacao.configure(text=msg, text_color=COR_DOURADO, font=("Segoe UI", 14, "bold"))
+        self.lbl_notificacao.configure(text=msg, text_color=cores.COR_DOURADO, font=("Segoe UI", 14, "bold"))
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))

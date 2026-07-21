@@ -9,22 +9,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import customtkinter as ctk
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo
 )
 from services.database_config import listar_turmas, cadastrar_turma, excluir_turma
 
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER = "#1D4ED8"
-COR_AZUL_CLARO = "#3B82F6"
-
 
 class TelaConfiguracoes(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        self.cor_bg = str(COR_BG)
-        self.cor_card = str(COR_CARD)
-        self.cor_texto = str(COR_TEXTO)
-        self.cor_texto2 = str(COR_TEXTO2)
+        self.cor_bg = str(cores.COR_BG)
+        self.cor_card = str(cores.COR_CARD)
+        self.cor_texto = str(cores.COR_TEXTO)
+        self.cor_texto2 = str(cores.COR_TEXTO2)
 
         super().__init__(master, fg_color=self.cor_bg)
         self.controller = controller
@@ -36,6 +32,14 @@ class TelaConfiguracoes(ctk.CTkFrame):
         self._logo_ctk = None
         self._carregar_valores()
         self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir)
 
     def _carregar_valores(self):
         load_dotenv(self._env_path, override=True)
@@ -58,7 +62,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         container.pack(fill="both", expand=True, padx=30, pady=15)
 
         # HEADER compactado
-        header = ctk.CTkFrame(container, fg_color=COR_CARD)
+        header = ctk.CTkFrame(container, fg_color=cores.COR_CARD)
         header.pack(fill="x", pady=(0, 10))
 
         header_left = ctk.CTkFrame(header, fg_color="transparent")
@@ -74,7 +78,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         else:
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
-        criar_label(header_left, "Configurações do Sistema", font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Configurações do Sistema", font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         # Botões: Salvar + Voltar (lado a lado)
         header_right = ctk.CTkFrame(header, fg_color="transparent")
@@ -82,7 +86,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         self.btn_salvar = ctk.CTkButton(
             header_right, text="Salvar", command=self._salvar,
-            width=100, height=36, fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            width=100, height=36, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 14, "bold")
         )
         self.btn_salvar.pack(side="left", padx=(0, 5))
@@ -90,11 +94,11 @@ class TelaConfiguracoes(ctk.CTkFrame):
         ctk.CTkButton(
             header_right, text="Voltar", command=self._voltar,
             width=100, height=36, fg_color="#0F172A", text_color="#FFFFFF",
-            border_color=COR_INPUT_BORDER, border_width=1,
+            border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 14, "bold")
         ).pack(side="left", padx=(0, 10))
 
-        self.lbl_notificacao = ctk.CTkLabel(header_right, text="", font=("Segoe UI", 12, "bold"), text_color=COR_AZUL_CLARO)
+        self.lbl_notificacao = ctk.CTkLabel(header_right, text="", font=("Segoe UI", 12, "bold"), text_color=cores.COR_AZUL_HOVER)
         self.lbl_notificacao.pack(side="left")
 
         scroll = ctk.CTkScrollableFrame(container, fg_color="transparent")
@@ -128,8 +132,8 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         # Área de visualização da logo
         self.lbl_logo_preview = ctk.CTkLabel(logo_area, text="Nenhuma logo inserida",
-                                              font=("Segoe UI", 13), text_color=COR_TEXTO2,
-                                              fg_color=COR_CARD, corner_radius=8,
+                                              font=("Segoe UI", 13), text_color=cores.COR_TEXTO2,
+                                              fg_color=cores.COR_CARD, corner_radius=8,
                                               width=200, height=200)
         self.lbl_logo_preview.pack(side="left", padx=(0, 15))
 
@@ -147,7 +151,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             botoes_logo, text="Inserir Logo", width=160, height=40,
-            fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold"),
             command=self._inserir_logo
         ).pack(pady=(0, 8))
@@ -223,14 +227,14 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         self.combo_turno = criar_combo(
             add_frame, values=["Manhã", "Tarde", "Noite", "Integral"], width=140, height=36,
-            button_color=COR_AZUL_PRINCIPAL, button_hover_color=COR_AZUL_HOVER
+            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_turno.set("Manhã")
         self.combo_turno.pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
             add_frame, text="+ Adicionar", width=110, height=36,
-            fg_color=COR_AZUL_PRINCIPAL, hover_color=COR_AZUL_HOVER,
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold"),
             command=self._adicionar_turma
         ).pack(side="left")
@@ -312,6 +316,18 @@ class TelaConfiguracoes(ctk.CTkFrame):
             self._notificar(f"Não é possível remover: há usuários vinculados à turma {codigo}.")
 
     def _reconstruir(self):
+        """Destrói e reconstrói toda a tela — usado tanto ao revisitar quanto
+        ao receber notificação de troca de tema."""
+        if not self.winfo_exists():
+            return
+        # Recalcula as cores base capturadas no __init__, pois a paleta pode
+        # ter mudado (claro <-> escuro) desde a última construção.
+        self.cor_bg = str(cores.COR_BG)
+        self.cor_card = str(cores.COR_CARD)
+        self.cor_texto = str(cores.COR_TEXTO)
+        self.cor_texto2 = str(cores.COR_TEXTO2)
+        self.configure(fg_color=self.cor_bg)
+
         for widget in self.winfo_children():
             widget.destroy()
         self._construir_ui()
@@ -337,6 +353,6 @@ class TelaConfiguracoes(ctk.CTkFrame):
         self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_AZUL_CLARO)
+        self.lbl_notificacao.configure(text=mensagem, text_color=cores.COR_AZUL_HOVER)
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))
