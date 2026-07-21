@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # 
 import customtkinter as ctk                                        # Interface gráfica
 from services.database_config import cadastrar_usuario, listar_turmas  # Funções do banco
 from services.styles import (                                      # Estilos e cores
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo,
     aplicar_validacao_focusout
 )
@@ -21,11 +21,30 @@ class TelaCadastroUsuario(ctk.CTkFrame):
 
     def __init__(self, master=None, controller=None):
         """Inicializa a tela de cadastro."""
-        super().__init__(master, fg_color=COR_BG)   # Frame com fundo escuro
+        super().__init__(master, fg_color=cores.COR_BG)   # Frame com fundo escuro
         self.controller = controller                 # Controladora de navegação
         self._turmas = listar_turmas()               # Carrega turmas do banco
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
         self._construir_ui()                         # Monta a interface
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        self._turmas = listar_turmas()
+        self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
+        self._construir_ui()
 
     def _construir_ui(self):
         """Monta o formulário de cadastro de usuário."""
@@ -52,12 +71,12 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         else:                                        # Se não tem logo
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
-        criar_label(header_left, "Cadastro de Usuário", font=("Segoe UI", 38, "bold"), text_color=COR_TEXTO).pack(side="left")
+        criar_label(header_left, "Cadastro de Usuário", font=("Segoe UI", 38, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         # Botão voltar
         btn_voltar = ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
@@ -136,7 +155,7 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         )
         self.btn_cadastrar.pack(pady=10)
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
 
         # Validações em tempo real (focusout)
         self._lbl_erro_campo = criar_label(form_frame, "", font=("Segoe UI", 12))
@@ -248,7 +267,7 @@ class TelaCadastroUsuario(ctk.CTkFrame):
 
     def _notificar(self, mensagem):
         """Mostra uma mensagem de notificação temporária centralizada na base."""
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_DOURADO, font=("Segoe UI", 15, "bold"))
+        self.lbl_notificacao.configure(text=mensagem, text_color=cores.COR_DOURADO, font=("Segoe UI", 15, "bold"))
         self.lbl_notificacao.place(relx=0.5, rely=0.95, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))

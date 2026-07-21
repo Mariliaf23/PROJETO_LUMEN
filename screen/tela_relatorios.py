@@ -21,16 +21,12 @@ from services.report_export import (
     gerar_pdf_generico, gerar_excel_generico, SCHOOL_NAME
 )
 from services.styles import (
-    COR_BG, COR_DOURADO, COR_TEXTO, COR_TEXTO2, COR_CARD, COR_INPUT_BORDER,
+    cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo,
     criar_scroll_frame
 )
 
-COR_AZUL_PRINCIPAL = "#1E3A8A"
-COR_AZUL_HOVER = "#1D4ED8"
-COR_VERDE = "#10B981"
-COR_VERMELHO = "#EF4444"
-COR_AMARELO = "#EAB308"
+
 
 # Colunas para cada relatório
 COLUNAS_INVENTARIO = ["Patrimônio", "ISBN", "Título", "Autores", "Editora", "Categoria", "Localização", "Situação"]
@@ -44,10 +40,27 @@ COLUNAS_TOP_LEIT = ["Ranking", "Nome", "Contato", "Empréstimos"]
 
 class TelaRelatorios(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
-        super().__init__(master, fg_color=COR_BG)
+        super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._aba_atual = "inventario"
         self._alunos_map = {}
+        self._construir_ui()
+
+        cores.registrar_listener(self._reconstruir_tema)
+        self.bind("<Destroy>", self._ao_destruir)
+
+    def _ao_destruir(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        cores.remover_listener(self._reconstruir_tema)
+
+    def _reconstruir_tema(self):
+        """Reconstrói a tela ao trocar o tema claro/escuro."""
+        if not self.winfo_exists():
+            return
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
 
     def _ao_visitar(self):
@@ -58,7 +71,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         # Header
-        header = ctk.CTkFrame(self, fg_color=COR_CARD)
+        header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
         header_left = ctk.CTkFrame(header, fg_color="transparent")
@@ -77,11 +90,11 @@ class TelaRelatorios(ctk.CTkFrame):
             criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
         criar_label(header_left, "Relatórios da Biblioteca",
-                    font=("Segoe UI", 24, "bold"), text_color=COR_TEXTO).pack(side="left")
+                    font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=COR_INPUT_BORDER, border_width=1,
+            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
             hover_color="#1E293B", font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
@@ -104,11 +117,11 @@ class TelaRelatorios(ctk.CTkFrame):
             is_atual = (tag == self._aba_atual)
             btn = ctk.CTkButton(
                 abas_container, text=nome, font=("Segoe UI", 11, "bold"),
-                fg_color=COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
+                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
                 text_color="#FFFFFF" if is_atual else "#94A3B8",
-                border_color=COR_AZUL_PRINCIPAL if is_atual else "#334155",
+                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#334155",
                 border_width=1 if is_atual else 0,
-                hover_color=COR_AZUL_HOVER,
+                hover_color=cores.COR_AZUL_HOVER,
                 width=110, height=30,
                 command=lambda n=tag: self._mostrar_aba(n)
             )
@@ -116,7 +129,7 @@ class TelaRelatorios(ctk.CTkFrame):
             self._botoes_abas.append((btn, tag))
 
         # Container principal
-        self._frame_conteudo = ctk.CTkFrame(self, fg_color=COR_BG)
+        self._frame_conteudo = ctk.CTkFrame(self, fg_color=cores.COR_BG)
         self._frame_conteudo.grid(row=2, column=0, sticky="nsew", padx=30, pady=(5, 20))
         self._frame_conteudo.grid_columnconfigure(0, weight=1)
         self._frame_conteudo.grid_rowconfigure(0, weight=1)
@@ -124,7 +137,7 @@ class TelaRelatorios(ctk.CTkFrame):
         # Frames para cada relatório
         self._frames = {}
         for tag in [t[1] for t in abas]:
-            frame = ctk.CTkFrame(self._frame_conteudo, fg_color=COR_BG)
+            frame = ctk.CTkFrame(self._frame_conteudo, fg_color=cores.COR_BG)
             self._frames[tag] = frame
 
         self._construir_aba_inventario()
@@ -135,7 +148,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self._construir_aba_mais_emprestados()
         self._construir_aba_top_leitores()
 
-        self.lbl_notificacao = criar_label(self, "", text_color=COR_TEXTO2)
+        self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
 
         # Mostra a primeira aba
         self._mostrar_aba("inventario")
@@ -144,8 +157,8 @@ class TelaRelatorios(ctk.CTkFrame):
         self._aba_atual = nome
         for btn, n in self._botoes_abas:
             if n == nome:
-                btn.configure(fg_color=COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-                              border_color=COR_AZUL_PRINCIPAL, border_width=1)
+                btn.configure(fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+                              border_color=cores.COR_AZUL_PRINCIPAL, border_width=1)
             else:
                 btn.configure(fg_color="#1E293B", text_color="#94A3B8",
                               border_color="#334155", border_width=0)
@@ -187,7 +200,7 @@ class TelaRelatorios(ctk.CTkFrame):
 
         # Botões
         self.btn_inv_pesquisar = ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_inventario(),
-                                                width=90, height=30, fg_color=COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold"))
+                                                width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold"))
         self.btn_inv_pesquisar.grid(row=0, column=4, padx=3)
 
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_inventario(),
@@ -202,7 +215,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self.btn_inv_excel.grid(row=0, column=7, padx=3)
 
         # Tabela
-        self.lista_inv = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_inv = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_inv.grid(row=1, column=0, sticky="nsew")
 
         # Carrega dados iniciais
@@ -267,7 +280,7 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_disponiveis_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
-        self.lista_disp = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_disp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_disp.grid(row=1, column=0, sticky="nsew")
         self._todos_disp = relatorio_exemplares_disponiveis()
         self._preencher_tabela(self.lista_disp, COLUNAS_DISPONIVEIS, self._todos_disp)
@@ -326,7 +339,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_emp_data_fim.bind("<KeyRelease>", lambda e: self._formatar_data_ddmmaaaa(self.entry_emp_data_fim))
 
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_emprestimos(),
-                       width=90, height=30, fg_color=COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
+                       width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_emprestimos(),
                        width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=5, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_emprestimos_pdf(),
@@ -334,7 +347,7 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_emprestimos_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=7, padx=3)
 
-        self.lbl_emp_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO)
+        self.lbl_emp_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=cores.COR_TEXTO)
         self.lbl_emp_resumo.grid(row=0, column=0, sticky="se", padx=15, pady=5)
 
         # Campo de busca por usuário
@@ -349,7 +362,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_emp_busca_usuario.pack(side="left", padx=(0, 10))
         self.entry_emp_busca_usuario.bind("<KeyRelease>", lambda e: self._filtrar_emprestimos_usuario())
 
-        self.lista_emp = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_emp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_emp.grid(row=2, column=0, sticky="nsew")
         self._todos_emp = []
         self._pesquisar_emprestimos()
@@ -436,13 +449,13 @@ class TelaRelatorios(ctk.CTkFrame):
         filtro.pack(fill="x", padx=15, pady=10)
 
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_atrasos(),
-                       width=90, height=30, fg_color=COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=0, padx=3)
+                       width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=0, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_atrasos_pdf(),
                        width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=1, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_atrasos_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=2, padx=3)
 
-        self.lista_atrasos = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_atrasos = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_atrasos.grid(row=1, column=0, sticky="nsew")
         self._pesquisar_atrasos()
 
@@ -485,20 +498,20 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_hist_usu_nome.grid(row=0, column=1, padx=(0, 5))
         self.entry_hist_usu_nome.bind("<KeyRelease>", self._autocomplete_usuario)
 
-        self.lbl_hist_usu_selecionado = criar_label(filtro, "", font=("Segoe UI", 10), text_color=COR_VERDE)
+        self.lbl_hist_usu_selecionado = criar_label(filtro, "", font=("Segoe UI", 10), text_color=cores.COR_SUCESSO)
         self.lbl_hist_usu_selecionado.grid(row=0, column=2, padx=(0, 10))
 
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_historico_usuario(),
-                       width=90, height=30, fg_color=COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
+                       width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_hist_usu_pdf(),
                        width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_hist_usu_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=5, padx=3)
 
-        self.lbl_hist_usu_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=COR_TEXTO)
+        self.lbl_hist_usu_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=cores.COR_TEXTO)
         self.lbl_hist_usu_resumo.grid(row=0, column=0, sticky="se", padx=15, pady=5)
 
-        self.lista_hist_usu = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_hist_usu = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_hist_usu.grid(row=1, column=0, sticky="nsew")
 
     def _autocomplete_usuario(self, event=None):
@@ -575,7 +588,7 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_mais_emp_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
-        self.lista_mais_emp = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_mais_emp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_mais_emp.grid(row=1, column=0, sticky="nsew")
         self._todos_mais_emp = []
         self._pesquisar_mais_emprestados()
@@ -641,7 +654,7 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_top_leit_excel(),
                        width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
-        self.lista_top_leit = criar_scroll_frame(frame, fg_color=COR_CARD)
+        self.lista_top_leit = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_top_leit.grid(row=1, column=0, sticky="nsew")
         self._todos_top_leit = []
         self._pesquisar_top_leitores()
@@ -693,7 +706,7 @@ class TelaRelatorios(ctk.CTkFrame):
 
         if not dados:
             ctk.CTkLabel(frame, text="Nenhum registro encontrado.",
-                         font=("Segoe UI", 14), text_color=COR_TEXTO2).pack(pady=30)
+                         font=("Segoe UI", 14), text_color=cores.COR_TEXTO2).pack(pady=30)
             return
 
         num_colunas = len(colunas)
@@ -726,12 +739,12 @@ class TelaRelatorios(ctk.CTkFrame):
                 cell = ctk.CTkFrame(tabela, fg_color=cor_fundo, corner_radius=3)
                 cell.grid(row=r + 1, column=c, sticky="ew", padx=1, pady=1)
                 ctk.CTkLabel(cell, text=texto, font=("Segoe UI", 12),
-                             text_color=COR_TEXTO, anchor="center").pack(
+                             text_color=cores.COR_TEXTO, anchor="center").pack(
                     fill="x", padx=3, pady=4)
 
         # Total
         ctk.CTkLabel(frame, text=f"Total: {len(dados)} registros",
-                     font=("Segoe UI", 12, "bold"), text_color=COR_TEXTO).pack(pady=8)
+                     font=("Segoe UI", 12, "bold"), text_color=cores.COR_TEXTO).pack(pady=8)
 
     def _calcular_pesos(self, colunas, dados):
         """Calcula pesos para cada coluna baseado no conteúdo."""
@@ -778,7 +791,7 @@ class TelaRelatorios(ctk.CTkFrame):
             self.controller.voltar()
 
     def _notificar(self, mensagem):
-        self.lbl_notificacao.configure(text=mensagem, text_color=COR_AZUL_PRINCIPAL)
+        self.lbl_notificacao.configure(text=mensagem, text_color=cores.COR_AZUL_PRINCIPAL)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         self.lbl_notificacao.bind("<Button-1>", lambda e: self.lbl_notificacao.configure(text=""))
         self.after(5000, lambda: self.lbl_notificacao.configure(text=""))
