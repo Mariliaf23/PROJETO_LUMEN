@@ -30,13 +30,12 @@ def _truncar(valor, max_chars):
 
 class CabecalhoCatalogo(ctk.CTkFrame):
     def __init__(self, master, **kw):
-        super().__init__(master, fg_color="#0d0d1a", corner_radius=0, **kw)
+        super().__init__(master, fg_color=cores.COR_SIDEBAR, corner_radius=0, **kw)
         for idx, (rotulo, peso, minsize, _) in enumerate(COLUNAS):
             self.grid_columnconfigure(idx, weight=peso, minsize=minsize)
             criar_label(self, rotulo, text_color=cores.COR_TEXTO,
                         anchor="center", font=("Segoe UI", 14, "bold")
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
-
 
 class LinhaLivro(ctk.CTkFrame):
     def __init__(self, master, dados, indice, **kw):
@@ -52,11 +51,11 @@ class LinhaLivro(ctk.CTkFrame):
             if rotulo == "STATUS":
                 s = str(valor).lower()
                 if s == "disponivel":
-                    cor_txt = "#10B981"
+                    cor_txt = cores.COR_SUCESSO
                 elif s in ("emprestado", "manutencao"):
-                    cor_txt = "#EAB308"
+                    cor_txt = cores.COR_AVISO
                 elif s in ("atrasado", "inativo", "cancelada"):
-                    cor_txt = "#EF4444"
+                    cor_txt = cores.COR_PERIGO
                 else:
                     cor_txt = cores.COR_TEXTO2
             else:
@@ -76,13 +75,7 @@ class TelaCatalogo(ctk.CTkFrame):
         self._categorias   = []
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -121,8 +114,8 @@ class TelaCatalogo(ctk.CTkFrame):
 
         ctk.CTkButton(
             topo, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         # ── Contador ──
@@ -145,7 +138,7 @@ class TelaCatalogo(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtros, text="↺ Limpar", width=100, height=40,
-            fg_color="#333", font=("Segoe UI", 15, "bold"),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 15, "bold"),
             command=self._limpar
         ).pack(side="left")
 

@@ -32,13 +32,7 @@ class TelaLivros(ctk.CTkFrame):
         self._carregar_categorias()
         self._carregar_tabela()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -59,7 +53,7 @@ class TelaLivros(ctk.CTkFrame):
                   self.entry_ano, self.entry_sinopse]:
             e._tocado = False
             e._validacao_ativa = False
-            e.configure(border_color="#334155")
+            e.configure(border_color=cores.COR_INPUT_BORDER)
         self.after(100, self._forcar_placeholder)
 
     def _construir_ui(self):
@@ -127,12 +121,12 @@ class TelaLivros(ctk.CTkFrame):
         self.entry_busca_cat.bind("<KeyRelease>", self._atualizar_sugestoes_cat)
         self.entry_busca_cat.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_cat))
 
-        self._frame_sugestoes_cat = ctk.CTkScrollableFrame(cat_frame, fg_color="#1E293B", height=120, corner_radius=8)
+        self._frame_sugestoes_cat = ctk.CTkScrollableFrame(cat_frame, fg_color=cores.COR_INPUT_BG, height=120, corner_radius=8)
         self._cat_selecionada_id = None
 
         btn_add_cat = ctk.CTkButton(
             cat_frame, text="+", width=40, height=ALTURA_INPUT,
-            fg_color="#0052CC", text_color="#FFFFFF", hover_color="#003399",
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF", hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 18, "bold"), command=self._adicionar_categoria
         )
         btn_add_cat.grid(row=0, column=1)
@@ -198,7 +192,7 @@ class TelaLivros(ctk.CTkFrame):
 
         ctk.CTkButton(
             busca_frame, text="↺ Limpar", width=90, height=34,
-            fg_color="#333", font=("Segoe UI", 13, "bold"), command=self._limpar_filtro
+            fg_color=cores.COR_CARD, font=("Segoe UI", 13, "bold"), command=self._limpar_filtro
         ).pack(side="left")
 
         # Cabeçalho
@@ -217,7 +211,6 @@ class TelaLivros(ctk.CTkFrame):
 
         self.lbl_notificacao = criar_label(self, "", text_color=cores.COR_TEXTO2)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
-        self.lbl_notificacao.configure(text="TESTE - esta label está visível?")
 
         # Validações
         self._lbl_erro_campo = criar_label(form_card, "", font=("Segoe UI", 12))
@@ -264,7 +257,7 @@ class TelaLivros(ctk.CTkFrame):
             ctk.CTkButton(
                 self._frame_sugestoes_cat, text=cat, anchor="w",
                 fg_color="transparent", text_color=cores.COR_TEXTO,
-                hover_color="#1D4ED8", font=("Segoe UI", 13),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 13),
                 height=30, corner_radius=4,
                 command=lambda c=cat: self._escolher_categoria(c)
             ).pack(fill="x", pady=1)
@@ -346,11 +339,11 @@ class TelaLivros(ctk.CTkFrame):
             if nome == "Status":
                 s = str(dados[idx_col]).lower() if dados[idx_col] else ""
                 if "dispon" in s:
-                    cor_txt = "#10B981"
+                    cor_txt = cores.COR_SUCESSO
                 elif "emprestado" in s or "manutenc" in s:
-                    cor_txt = "#EAB308"
+                    cor_txt = cores.COR_AVISO
                 elif "atrasado" in s or "inativo" in s:
-                    cor_txt = "#EF4444"
+                    cor_txt = cores.COR_PERIGO
                 else:
                     cor_txt = cores.COR_TEXTO2
             ancora = "w" if nome == "Título" else "center"
@@ -368,10 +361,10 @@ class TelaLivros(ctk.CTkFrame):
             dados = l[1:] if len(l) > 6 else l
 
             if selecionado:
-                item.configure(fg_color="#1D4ED8", border_width=0)
+                item.configure(fg_color=cores.COR_AZUL_HOVER, border_width=0)
                 for widget in item.winfo_children():
                     if isinstance(widget, ctk.CTkLabel):
-                        widget.configure(text_color="#FFFFFF", fg_color="#1D4ED8")
+                        widget.configure(text_color="#FFFFFF", fg_color=cores.COR_AZUL_HOVER)
             else:
                 item.configure(fg_color=cores.COR_CARD, border_width=0)
                 for idx, widget in enumerate(item.winfo_children()):
@@ -380,11 +373,11 @@ class TelaLivros(ctk.CTkFrame):
                         if idx == 6:
                             s = str(status_l).lower() if status_l else ""
                             if "dispon" in s:
-                                cor = "#10B981"
+                                cor = cores.COR_SUCESSO
                             elif "emprestado" in s or "manutenc" in s:
-                                cor = "#EAB308"
+                                cor = cores.COR_AVISO
                             elif "atrasado" in s or "inativo" in s:
-                                cor = "#EF4444"
+                                cor = cores.COR_PERIGO
                             else:
                                 cor = cores.COR_TEXTO2
                         else:
@@ -447,7 +440,7 @@ class TelaLivros(ctk.CTkFrame):
             return
 
         self.btn_buscar_isbn.configure(text="Buscando...", state="disabled")
-        self.lbl_notificacao.configure(text="Consultando bases de dados...", text_color="#3B82F6")
+        self.lbl_notificacao.configure(text="Consultando bases de dados...", text_color=cores.COR_AZUL_HOVER)
         self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
         threading.Thread(target=self._buscar_isbn_async, args=(isbn,), daemon=True).start()
 

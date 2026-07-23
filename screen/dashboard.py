@@ -21,14 +21,14 @@ from services.styles import (
     criar_label, criar_card
 )
 
-COR_GRAF_AZUL = "#0091FF"
+COR_GRAF_AZUL = cores.COR_AZUL_PRINCIPAL
 
 MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 DIAS  = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
 
 def _cores_pizza():
-    return [COR_GRAF_AZUL, cores.COR_DOURADO, cores.COR_DOURADO_CLARO, cores.COR_INPUT_BORDER, "#1E293B"]
+    return [COR_GRAF_AZUL, cores.COR_DOURADO, cores.COR_DOURADO_CLARO, cores.COR_INPUT_BORDER, cores.COR_TEXTO2]
 
 
 def _cards_config():
@@ -36,7 +36,7 @@ def _cards_config():
         ("livros",            "TOTAL NO ACERVO",    "📚", "Títulos catalogados",  COR_GRAF_AZUL),
         ("emprestimos_ativos","EMPRÉSTIMOS ATIVOS", "🔄", "Livros em circulação", cores.COR_DOURADO),
         ("usuarios",          "LEITORES ATIVOS",    "👥", "Usuários na plataforma", cores.COR_TEXTO),
-        ("atrasados",         "ALERTAS DE ATRASO",  "⚠️", "Devoluções pendentes",  "#EF4444"),
+        ("atrasados",         "ALERTAS DE ATRASO",  "⚠️", "Devoluções pendentes",  cores.COR_PERIGO),
     ]
 
 
@@ -235,29 +235,33 @@ class Dashboard(ctk.CTkFrame):
         self._carregar_dados()                       # Busca dados do banco
         self._construir_ui()                         # Monta a interface
 
-        # Registra esta tela para ser reconstruída sempre que o tema mudar,
-        # mesmo que a mudança seja disparada por outra tela.
-        cores.registrar_listener(self._reconstruir_ui)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        """Remove o listener de tema quando esta tela é destruída, para não
-        chamar reconstrução em widgets que não existem mais."""
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_ui)
 
     def _reconstruir_ui(self):
-        """Destrói e reconstrói toda a tela para aplicar o tema atual."""
+        """Destrói e reconstrói toda a tela para aplicar o tema atual.
+
+        Se o dashboard não estiver visível no momento (usuário está em
+        outra tela), a reconstrução é adiada para a próxima visita —
+        evita reconstruir uma tela escondida a cada troca de tema.
+        """
         if not self.winfo_exists():
             return
+        if not self.winfo_ismapped():
+            self._tema_pendente = True
+            return
+        self._aplicar_reconstrucao_tema()
+
+    def _aplicar_reconstrucao_tema(self):
         for widget in self.winfo_children():
             widget.destroy()
         self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
+        self._tema_pendente = False
 
     def _ao_visitar(self):
         """Chamado quando o usuário navega para esta tela — atualiza tudo."""
+        if getattr(self, "_tema_pendente", False):
+            self._aplicar_reconstrucao_tema()
         self._carregar_dados()
         self._atualizar_conteudo()
 
@@ -303,24 +307,6 @@ class Dashboard(ctk.CTkFrame):
             font=("Segoe UI", 38, "bold"), text_color=cores.COR_TEXTO
         ).pack(side="left")
 
-        ctk.CTkButton(
-            linha_topo, text="Sair",
-            font=("Segoe UI", 13, "bold"),
-            fg_color="#7F1D1D", hover_color="#991B1B",
-            text_color="#FCA5A5", border_width=0,
-            width=90, height=36, corner_radius=8,
-            command=self._sair
-        ).pack(side="right", pady=(8, 0), padx=(0, 6))
-
-        ctk.CTkButton(
-            linha_topo, text="↻  Atualizar",
-            font=("Segoe UI", 13, "bold"),
-            fg_color=cores.COR_CARD, hover_color=cores.COR_ATIVO,
-            text_color=cores.COR_TEXTO2, border_width=1, border_color=cores.COR_INPUT_BORDER,
-            width=130, height=36, corner_radius=8,
-            command=self._atualizar
-        ).pack(side="right", pady=(8, 0))
-
         # Subtítulo + data/hora
         linha_sub = ctk.CTkFrame(header, fg_color="transparent")
         linha_sub.pack(fill="x", pady=(2, 0))
@@ -348,16 +334,6 @@ class Dashboard(ctk.CTkFrame):
         agora = datetime.now().strftime("%d/%m/%Y  %H:%M")
         self._lbl_hora.configure(text=agora)
         self._lbl_hora.after(60_000, self._atualizar_hora)
-
-    def _sair(self):
-        """Botão Sair: limpa sessão e volta para a tela de login."""
-        self.controller.usuario_logado = None
-        self.controller.navegar_para("login")
-
-    def _atualizar(self):
-        """Botão Atualizar: recarrega dados e atualiza na tela."""
-        self._carregar_dados()
-        self._atualizar_conteudo()
 
     def _atualizar_conteudo(self):
         """Atualiza dados dos cards e gráficos na tela."""
@@ -499,4 +475,3 @@ class Dashboard(ctk.CTkFrame):
             barra_fill.place(relx=0, rely=0, relwidth=largura, relheight=1)
 
             ctk.CTkLabel(barra_frame, text=str(total), font=("Segoe UI", 12, "bold"), text_color=cores.COR_TEXTO, width=40).pack(side="right")
-
