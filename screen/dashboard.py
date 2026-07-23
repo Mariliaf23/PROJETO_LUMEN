@@ -283,7 +283,7 @@ class Dashboard(ctk.CTkFrame):
 
     def _criar_conteudo(self):
         """Monta o conteúdo principal: header, cards e gráficos."""
-        self._conteudo = ctk.CTkScrollableFrame(self, fg_color="transparent", corner_radius=0)
+        self._conteudo = ctk.CTkScrollableFrame(self, fg_color=cores.COR_BG, corner_radius=0)
         self._conteudo.grid(row=0, column=0, sticky="nsew", padx=(25, 10), pady=30)
         self._conteudo.grid_columnconfigure(0, weight=1)
 

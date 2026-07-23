@@ -46,6 +46,8 @@ class TelaLivros(ctk.CTkFrame):
         self._carregar_tabela()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._carregar_categorias()
         self._carregar_tabela()
         self._limpar_campos()
