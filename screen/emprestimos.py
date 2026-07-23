@@ -109,11 +109,11 @@ class DetalheGrupo(ctk.CTkToplevel):
             if rotulo == "Status":
                 s = str(valor).lower()
                 if s == "atrasado":
-                    cor_valor = "#EF4444"
+                    cor_valor = cores.COR_PERIGO
                 elif s == "finalizado":
-                    cor_valor = "#10B981"
+                    cor_valor = cores.COR_SUCESSO
                 elif s == "ativo":
-                    cor_valor = "#EAB308"
+                    cor_valor = cores.COR_AVISO
             criar_label(linha, valor, font=("Segoe UI", 12), text_color=cor_valor).pack(side="right")
 
         # Lista de livros do grupo
@@ -136,17 +136,17 @@ class DetalheGrupo(ctk.CTkToplevel):
 
             cor_status = cores.COR_TEXTO
             if status_livro == "atrasado":
-                cor_status = "#EF4444"
+                cor_status = cores.COR_PERIGO
             elif status_livro == "finalizado":
-                cor_status = "#10B981"
+                cor_status = cores.COR_SUCESSO
             elif status_livro == "ativo":
-                cor_status = "#EAB308"
+                cor_status = cores.COR_AVISO
 
             criar_label(linha, f"{titulo} ({patrimonio})", font=("Segoe UI", 11), text_color=cores.COR_TEXTO).pack(side="left")
             criar_label(linha, status_livro, font=("Segoe UI", 11, "bold"), text_color=cor_status).pack(side="right")
 
         ctk.CTkButton(self, text="Fechar", command=self.destroy, width=160, height=36,
-                      fg_color="#1E3A8A", hover_color="#1D4ED8",
+                      fg_color=cores.COR_ATIVO, hover_color=cores.COR_AZUL_HOVER,
                       font=("Segoe UI", 13, "bold")).pack(pady=10)
 
     def _formatar_data(self, data):
@@ -209,15 +209,15 @@ class DetalheEmprestimo(ctk.CTkToplevel):
             if rotulo == "Status":
                 s = str(valor).lower()
                 if s == "atrasado":
-                    cor_valor = "#EF4444"
+                    cor_valor = cores.COR_PERIGO
                 elif s == "finalizado":
-                    cor_valor = "#10B981"
+                    cor_valor = cores.COR_SUCESSO
                 elif s == "ativo":
-                    cor_valor = "#EAB308"
+                    cor_valor = cores.COR_AVISO
             criar_label(linha, valor, font=("Segoe UI", 13), text_color=cor_valor).pack(side="right")
 
         ctk.CTkButton(self, text="Fechar", command=self.destroy, width=160, height=40,
-                      fg_color="#1E3A8A", hover_color="#1D4ED8",
+                      fg_color=cores.COR_ATIVO, hover_color=cores.COR_AZUL_HOVER,
                       font=("Segoe UI", 14, "bold")).pack(pady=15)
 
     def _formatar_data(self, data):
@@ -249,13 +249,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._reserva_selecionada = None
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -428,7 +422,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.entry_busca_aluno.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_aluno))
 
         self._frame_sugestoes_aluno = ctk.CTkScrollableFrame(
-            aluno_container, fg_color="#1E293B", height=120, corner_radius=8
+            aluno_container, fg_color=cores.COR_INPUT_BG, height=120, corner_radius=8
         )
         self._aluno_selecionado_id = None
 
@@ -446,7 +440,7 @@ class TelaEmprestimos(ctk.CTkFrame):
         self.entry_busca_exemplar.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_exemplar))
 
         self._frame_sugestoes_exemplar = ctk.CTkScrollableFrame(
-            exemplar_container, fg_color="#1E293B", height=120, corner_radius=8
+            exemplar_container, fg_color=cores.COR_INPUT_BG, height=120, corner_radius=8
         )
         self._exemplar_selecionado_id = None
 
@@ -504,7 +498,7 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtro_frame, text="Limpar", width=80, height=34,
-            fg_color="#333", font=("Segoe UI", 12, "bold"),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 12, "bold"),
             command=self._limpar_filtro_emprestimos
         ).pack(side="left")
 
@@ -905,11 +899,11 @@ class TelaEmprestimos(ctk.CTkFrame):
             if nome == "Status":
                 s = str(texto).lower() if texto else ""
                 if s == "atrasado":
-                    cor = "#EF4444"
+                    cor = cores.COR_PERIGO
                 elif s == "ativo":
-                    cor = "#EAB308"
+                    cor = cores.COR_AVISO
                 elif s == "finalizado":
-                    cor = "#10B981"
+                    cor = cores.COR_SUCESSO
 
             lbl = ctk.CTkLabel(item, text=texto_str, font=("Segoe UI", 13), text_color=cor, anchor="center")
             lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
@@ -933,11 +927,11 @@ class TelaEmprestimos(ctk.CTkFrame):
                         if nome_col == "Status":
                             st = str(e[7]).lower() if len(e) > 7 else ""
                             if st == "atrasado":
-                                cor_st = "#EF4444"
+                                cor_st = cores.COR_PERIGO
                             elif st == "finalizado":
-                                cor_st = "#10B981"
+                                cor_st = cores.COR_SUCESSO
                             elif st == "ativo":
-                                cor_st = "#EAB308"
+                                cor_st = cores.COR_AVISO
                             else:
                                 cor_st = self.cor_texto
                             widget.configure(text_color=cor_st, fg_color=self.cor_card)
@@ -1083,9 +1077,9 @@ class TelaEmprestimos(ctk.CTkFrame):
                 if nome == "Situação":
                     s = str(texto).lower() if texto else ""
                     if s == "ativa":
-                        cor = "#EAB308"
+                        cor = cores.COR_AVISO
                     elif s == "cancelada":
-                        cor = "#EF4444"
+                        cor = cores.COR_PERIGO
 
                 lbl = ctk.CTkLabel(item, text=texto_str, font=("Segoe UI", 13), text_color=cor, anchor="center")
                 lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)

@@ -24,13 +24,7 @@ class TelaLogin(ctk.CTkFrame):
         self._usuario_logado = None                  # Usuário que fez login
         self._construir_ui()                         # Monta a interface
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -97,8 +91,8 @@ class TelaLogin(ctk.CTkFrame):
         self.entry_senha.pack(pady=(0, 35))
 
         # Botão "Entrar" com cor azul vibrante
-        COR_BOTAO_CUSTOM = "#0091FF"                # Azul vibrante
-        COR_BOTAO_HOVER = "#0070C6"                 # Azul um pouco mais escuro (hover)
+        COR_BOTAO_CUSTOM = cores.COR_AZUL_PRINCIPAL
+        COR_BOTAO_HOVER = cores.COR_AZUL_HOVER
 
         self.btn_entrar = ctk.CTkButton(
             container_form,
@@ -155,6 +149,6 @@ class TelaLogin(ctk.CTkFrame):
 
     def _mostrar_erro(self, mensagem):
         """Mostra uma mensagem de erro por 3 segundos."""
-        self.lbl_erro.configure(text=mensagem, text_color="#d4b896")  # Cor dourada suave
+        self.lbl_erro.configure(text=mensagem, text_color=cores.COR_DOURADO_CLARO)
         self.lbl_erro.pack(pady=(5, 0))              # Mostra o label
         self.after(3000, lambda: self.lbl_erro.configure(text=""))  # Esconde após 3 segundos

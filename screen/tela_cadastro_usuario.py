@@ -27,13 +27,7 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
         self._construir_ui()                         # Monta a interface
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -76,8 +70,8 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         # Botão voltar
         btn_voltar = ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 
@@ -150,8 +144,8 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         self.btn_cadastrar = ctk.CTkButton(
             botoes_container, text="Confirmar e Salvar Registro", command=self._cadastrar,
             width=300, height=52,
-            fg_color="#0052CC", text_color="#FFFFFF",   # Azul sólido
-            hover_color="#003399", font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",   # Azul sólido
+            hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
         )
         self.btn_cadastrar.pack(pady=10)
 
