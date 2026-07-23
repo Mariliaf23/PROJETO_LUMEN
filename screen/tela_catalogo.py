@@ -87,6 +87,8 @@ class TelaCatalogo(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._carregar_dados()
 
     def _construir_ui(self):

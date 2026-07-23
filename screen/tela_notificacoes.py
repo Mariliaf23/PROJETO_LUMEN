@@ -43,6 +43,8 @@ class TelaNotificacoes(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._config = carregar_config()
         self._templates = carregar_templates()
         self._recarregar_aba()

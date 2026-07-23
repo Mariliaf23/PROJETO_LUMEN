@@ -267,6 +267,8 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         verificar_atrasos()
         verificar_suspensao_expirada()
         self._verificar_suspensao()

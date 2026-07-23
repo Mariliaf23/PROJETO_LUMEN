@@ -443,6 +443,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._carregar()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._carregar()
 
     def _construir_ui(self):

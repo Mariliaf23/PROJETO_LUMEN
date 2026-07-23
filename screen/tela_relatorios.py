@@ -58,7 +58,8 @@ class TelaRelatorios(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
-        pass
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
 
     def _construir_ui(self):
         self.grid_columnconfigure(0, weight=1)

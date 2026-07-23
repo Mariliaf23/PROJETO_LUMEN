@@ -359,13 +359,19 @@ class AppController:
                 widget.destroy()
             self._construir_sidebar()
 
+        for nome_tela, tela in self._telas.items():
+            tela._tema_pendente = True
+
         if self._tela_atual and self._tela_atual in self._telas:
             tela = self._telas[self._tela_atual]
-            tela.configure(fg_color=cores.COR_BG)
             for metodo in ('_reconstruir_ui', '_reconstruir_tema', '_reconstruir'):
                 if hasattr(tela, metodo):
                     getattr(tela, metodo)()
                     break
+            tela._tema_pendente = False
+            if self._modo_sidebar:
+                tela.grid(row=0, column=1, sticky="nsew")
+            tela.lift()
 
     def _atualizar_sidebar(self):
         """Atualiza cores/estilos dos botões da sidebar."""
