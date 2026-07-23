@@ -46,13 +46,7 @@ class TelaRelatorios(ctk.CTkFrame):
         self._alunos_map = {}
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -94,8 +88,8 @@ class TelaRelatorios(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Abas (scroll horizontal)
@@ -117,9 +111,9 @@ class TelaRelatorios(ctk.CTkFrame):
             is_atual = (tag == self._aba_atual)
             btn = ctk.CTkButton(
                 abas_container, text=nome, font=("Segoe UI", 11, "bold"),
-                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
-                text_color="#FFFFFF" if is_atual else "#94A3B8",
-                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#334155",
+                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else cores.COR_INPUT_BG,
+                text_color="#FFFFFF" if is_atual else cores.COR_TEXTO2,
+                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else cores.COR_INPUT_BORDER,
                 border_width=1 if is_atual else 0,
                 hover_color=cores.COR_AZUL_HOVER,
                 width=110, height=30,
@@ -160,8 +154,8 @@ class TelaRelatorios(ctk.CTkFrame):
                 btn.configure(fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
                               border_color=cores.COR_AZUL_PRINCIPAL, border_width=1)
             else:
-                btn.configure(fg_color="#1E293B", text_color="#94A3B8",
-                              border_color="#334155", border_width=0)
+                btn.configure(fg_color=cores.COR_INPUT_BG, text_color=cores.COR_TEXTO2,
+                              border_color=cores.COR_INPUT_BORDER, border_width=0)
 
         for tag, frame in self._frames.items():
             frame.grid_forget()
@@ -204,14 +198,14 @@ class TelaRelatorios(ctk.CTkFrame):
         self.btn_inv_pesquisar.grid(row=0, column=4, padx=3)
 
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_inventario(),
-                       width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=5, padx=3)
+                       width=70, height=30, fg_color=cores.COR_CARD, font=("Segoe UI", 11)).grid(row=0, column=5, padx=3)
 
         self.btn_inv_pdf = ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_inventario_pdf(),
-                                          width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold"))
+                                          width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold"))
         self.btn_inv_pdf.grid(row=0, column=6, padx=3)
 
         self.btn_inv_excel = ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_inventario_excel(),
-                                            width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold"))
+                                            width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold"))
         self.btn_inv_excel.grid(row=0, column=7, padx=3)
 
         # Tabela
@@ -274,11 +268,11 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_disp_busca.bind("<KeyRelease>", lambda e: self._filtrar_disponiveis())
 
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_disponiveis(),
-                       width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
+                       width=70, height=30, fg_color=cores.COR_CARD, font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_disponiveis_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_disponiveis_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
         self.lista_disp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_disp.grid(row=1, column=0, sticky="nsew")
@@ -341,11 +335,11 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_emprestimos(),
                        width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_emprestimos(),
-                       width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=5, padx=3)
+                       width=70, height=30, fg_color=cores.COR_CARD, font=("Segoe UI", 11)).grid(row=0, column=5, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_emprestimos_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=6, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=6, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_emprestimos_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=7, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=7, padx=3)
 
         self.lbl_emp_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=cores.COR_TEXTO)
         self.lbl_emp_resumo.grid(row=0, column=0, sticky="se", padx=15, pady=5)
@@ -451,9 +445,9 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_atrasos(),
                        width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=0, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_atrasos_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=1, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=1, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_atrasos_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=2, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=2, padx=3)
 
         self.lista_atrasos = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_atrasos.grid(row=1, column=0, sticky="nsew")
@@ -504,9 +498,9 @@ class TelaRelatorios(ctk.CTkFrame):
         ctk.CTkButton(filtro, text="Pesquisar", command=lambda: self._pesquisar_historico_usuario(),
                        width=90, height=30, fg_color=cores.COR_AZUL_PRINCIPAL, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_hist_usu_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_hist_usu_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=5, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=5, padx=3)
 
         self.lbl_hist_usu_resumo = criar_label(frame, "", font=("Segoe UI", 11, "bold"), text_color=cores.COR_TEXTO)
         self.lbl_hist_usu_resumo.grid(row=0, column=0, sticky="se", padx=15, pady=5)
@@ -582,11 +576,11 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_me_busca.bind("<KeyRelease>", lambda e: self._filtrar_mais_emp())
 
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_mais_emp(),
-                       width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
+                       width=70, height=30, fg_color=cores.COR_CARD, font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_mais_emp_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_mais_emp_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
         self.lista_mais_emp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_mais_emp.grid(row=1, column=0, sticky="nsew")
@@ -648,11 +642,11 @@ class TelaRelatorios(ctk.CTkFrame):
         self.entry_tl_busca.bind("<KeyRelease>", lambda e: self._filtrar_top_leitores())
 
         ctk.CTkButton(filtro, text="Limpar", command=lambda: self._limpar_top_leitores(),
-                       width=70, height=30, fg_color="#333", font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
+                       width=70, height=30, fg_color=cores.COR_CARD, font=("Segoe UI", 11)).grid(row=0, column=2, padx=3)
         ctk.CTkButton(filtro, text="PDF", command=lambda: self._exportar_top_leit_pdf(),
-                       width=50, height=30, fg_color="#DC2626", font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
+                       width=50, height=30, fg_color=cores.COR_PERIGO, font=("Segoe UI", 11, "bold")).grid(row=0, column=3, padx=3)
         ctk.CTkButton(filtro, text="Excel", command=lambda: self._exportar_top_leit_excel(),
-                       width=50, height=30, fg_color="#16A34A", font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
+                       width=50, height=30, fg_color=cores.COR_SUCESSO, font=("Segoe UI", 11, "bold")).grid(row=0, column=4, padx=3)
 
         self.lista_top_leit = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_top_leit.grid(row=1, column=0, sticky="nsew")
@@ -722,7 +716,7 @@ class TelaRelatorios(ctk.CTkFrame):
 
         # ── Cabeçalho (cada coluna é um widget separado no grid da tabela) ──
         for i, col in enumerate(colunas):
-            cell = ctk.CTkFrame(tabela, fg_color="#1E3A8A", corner_radius=4)
+            cell = ctk.CTkFrame(tabela, fg_color=cores.COR_ATIVO, corner_radius=4)
             cell.grid(row=0, column=i, sticky="ew", padx=1, pady=(0, 2))
             ctk.CTkLabel(cell, text=col.upper(), font=("Segoe UI", 12, "bold"),
                          text_color="#FFFFFF", anchor="center").pack(
@@ -730,7 +724,7 @@ class TelaRelatorios(ctk.CTkFrame):
 
         # ── Dados (cada célula é um widget separado no grid da tabela) ──
         for r, linha in enumerate(dados):
-            cor_fundo = "#1E293B" if r % 2 == 0 else "#0F172A"
+            cor_fundo = cores.COR_LINHA_PAR if r % 2 == 0 else cores.COR_LINHA_IMPAR
             for c, val in enumerate(linha):
                 texto = str(val) if val else "-"
                 if len(texto) > 35:

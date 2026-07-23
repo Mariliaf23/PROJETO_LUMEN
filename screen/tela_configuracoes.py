@@ -33,13 +33,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         self._carregar_valores()
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir)
 
     def _carregar_valores(self):
         load_dotenv(self._env_path, override=True)
@@ -93,9 +87,9 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             header_right, text="Voltar", command=self._voltar,
-            width=100, height=36, fg_color="#0F172A", text_color="#FFFFFF",
+            width=100, height=36, fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF",
             border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
         ).pack(side="left", padx=(0, 10))
 
         self.lbl_notificacao = ctk.CTkLabel(header_right, text="", font=("Segoe UI", 12, "bold"), text_color=cores.COR_AZUL_HOVER)
@@ -108,14 +102,14 @@ class TelaConfiguracoes(ctk.CTkFrame):
         escola_card = criar_card(scroll)
         escola_card.pack(fill="x", pady=(0, 15))
 
-        criar_label(escola_card, "ESCOLA", font=("Segoe UI", 20, "bold"), text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))
+        criar_label(escola_card, "ESCOLA", font=("Segoe UI", 20, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         escola_frame = ctk.CTkFrame(escola_card, fg_color="transparent")
         escola_frame.pack(fill="x", padx=20, pady=(0, 15))
         escola_frame.grid_columnconfigure(1, weight=1)
 
         # Nome da escola
-        criar_label(escola_frame, "Nome da Escola", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(
+        criar_label(escola_frame, "Nome da Escola", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(0, 3))
         self.entry_school_name = criar_entry(escola_frame, height=38)
         self.entry_school_name.insert(0, self.valores['SCHOOL_NAME'])
@@ -125,7 +119,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         logo_frame = ctk.CTkFrame(escola_frame, fg_color="transparent")
         logo_frame.grid(row=2, column=0, columnspan=2, padx=20, pady=(15, 0), sticky="ew")
 
-        criar_label(logo_frame, "Logo da Escola", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").pack(anchor="w", pady=(0, 8))
+        criar_label(logo_frame, "Logo da Escola", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", pady=(0, 8))
 
         logo_area = ctk.CTkFrame(logo_frame, fg_color="transparent")
         logo_area.pack(fill="x")
@@ -158,7 +152,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             botoes_logo, text="Remover Logo", width=160, height=40,
-            fg_color="#7F1D1D", hover_color="#991B1B",
+            fg_color=cores.COR_PERIGO, hover_color=cores.COR_PERIGO,
             font=("Segoe UI", 13, "bold"),
             command=self._remover_logo
         ).pack()
@@ -167,28 +161,28 @@ class TelaConfiguracoes(ctk.CTkFrame):
         db_card = criar_card(scroll)
         db_card.pack(fill="x", pady=(0, 15))
 
-        criar_label(db_card, "BANCO DE DADOS", font=("Segoe UI", 20, "bold"), text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))
+        criar_label(db_card, "BANCO DE DADOS", font=("Segoe UI", 20, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         db_frame = ctk.CTkFrame(db_card, fg_color="transparent")
         db_frame.pack(fill="x", padx=20, pady=(0, 15))
         db_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
 
-        criar_label(db_frame, "Host", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=0, column=0, sticky="w", padx=20, pady=(0, 3))
+        criar_label(db_frame, "Host", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=0, column=0, sticky="w", padx=20, pady=(0, 3))
         self.entry_db_host = criar_entry(db_frame, height=38)
         self.entry_db_host.insert(0, self.valores['DB_HOST'])
         self.entry_db_host.grid(row=1, column=0, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=0, column=1, sticky="w", padx=20, pady=(0, 3))
+        criar_label(db_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=0, column=1, sticky="w", padx=20, pady=(0, 3))
         self.entry_db_user = criar_entry(db_frame, height=38)
         self.entry_db_user.insert(0, self.valores['DB_USER'])
         self.entry_db_user.grid(row=1, column=1, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=2, column=0, sticky="w", padx=20, pady=(12, 3))
+        criar_label(db_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=2, column=0, sticky="w", padx=20, pady=(12, 3))
         self.entry_db_password = criar_entry(db_frame, height=38, show="*")
         self.entry_db_password.insert(0, self.valores['DB_PASSWORD'])
         self.entry_db_password.grid(row=3, column=0, padx=20, sticky="ew")
 
-        criar_label(db_frame, "Banco", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=2, column=1, sticky="w", padx=20, pady=(12, 3))
+        criar_label(db_frame, "Banco", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=2, column=1, sticky="w", padx=20, pady=(12, 3))
         self.entry_db_name = criar_entry(db_frame, height=38)
         self.entry_db_name.insert(0, self.valores['DB_NAME'])
         self.entry_db_name.grid(row=3, column=1, padx=20, sticky="ew")
@@ -197,18 +191,18 @@ class TelaConfiguracoes(ctk.CTkFrame):
         user_card = criar_card(scroll)
         user_card.pack(fill="x", pady=(0, 15))
 
-        criar_label(user_card, "USUÁRIO PADRÃO", font=("Segoe UI", 20, "bold"), text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))
+        criar_label(user_card, "USUÁRIO PADRÃO", font=("Segoe UI", 20, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         user_frame = ctk.CTkFrame(user_card, fg_color="transparent")
         user_frame.pack(fill="x", padx=20, pady=(0, 15))
         user_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
 
-        criar_label(user_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=0, column=0, sticky="w", padx=20, pady=(0, 3))
+        criar_label(user_frame, "Usuário", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=0, column=0, sticky="w", padx=20, pady=(0, 3))
         self.entry_default_user = criar_entry(user_frame, height=38)
         self.entry_default_user.insert(0, self.valores['DEFAULT_USER'])
         self.entry_default_user.grid(row=1, column=0, padx=20, sticky="ew")
 
-        criar_label(user_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color="#F1F5F9").grid(row=0, column=1, sticky="w", padx=20, pady=(0, 3))
+        criar_label(user_frame, "Senha", font=("Segoe UI", 15, "bold"), text_color=cores.COR_TEXTO).grid(row=0, column=1, sticky="w", padx=20, pady=(0, 3))
         self.entry_default_password = criar_entry(user_frame, height=38, show="*")
         self.entry_default_password.insert(0, self.valores['DEFAULT_PASSWORD'])
         self.entry_default_password.grid(row=1, column=1, padx=20, sticky="ew")
@@ -217,7 +211,7 @@ class TelaConfiguracoes(ctk.CTkFrame):
         turmas_card = criar_card(scroll)
         turmas_card.pack(fill="x", pady=(0, 15))
 
-        criar_label(turmas_card, "TURMAS", font=("Segoe UI", 20, "bold"), text_color="#F1F5F9").pack(anchor="w", padx=20, pady=(15, 10))
+        criar_label(turmas_card, "TURMAS", font=("Segoe UI", 20, "bold"), text_color=cores.COR_TEXTO).pack(anchor="w", padx=20, pady=(15, 10))
 
         add_frame = ctk.CTkFrame(turmas_card, fg_color="transparent")
         add_frame.pack(fill="x", padx=20, pady=(0, 8))
@@ -284,11 +278,11 @@ class TelaConfiguracoes(ctk.CTkFrame):
         for tid, codigo, turno in turmas:
             row = ctk.CTkFrame(self.frame_lista_turmas, fg_color="transparent")
             row.pack(fill="x", pady=2)
-            criar_label(row, f"{codigo} - {turno}", text_color="#F1F5F9",
+            criar_label(row, f"{codigo} - {turno}", text_color=cores.COR_TEXTO,
                         font=("Segoe UI", 13)).pack(side="left")
             ctk.CTkButton(
                 row, text="✕", width=28, height=28,
-                fg_color="#c0392b", text_color="#fff",
+                fg_color=cores.COR_PERIGO, text_color="#fff",
                 font=("Segoe UI", 12, "bold"),
                 command=lambda t=tid, c=codigo: self._remover_turma(t, c)
             ).pack(side="right")

@@ -369,7 +369,7 @@ class LinhaUsuario(ctk.CTkFrame):
 # ─────────────────────────────────────────────────────────────────────────────
 class CabecalhoTabela(ctk.CTkFrame):
     def __init__(self, master, **kw):
-        super().__init__(master, fg_color="#0d0d1a", corner_radius=0, **kw)
+        super().__init__(master, fg_color=cores.COR_SIDEBAR, corner_radius=0, **kw)
 
         for idx, (rotulo, peso, minsize, _max_chars) in enumerate(LinhaUsuario.COLUNAS):
             self.grid_columnconfigure(idx, weight=peso, minsize=minsize)
@@ -409,7 +409,7 @@ class DialogoConfirmacao(ctk.CTkToplevel):
 
         ctk.CTkButton(
             frame_btns, text="Cancelar", width=130, height=36,
-            fg_color="#333", command=self.destroy
+            fg_color=cores.COR_CARD, command=self.destroy
         ).pack(side="left", padx=8)
 
         ctk.CTkButton(
@@ -430,13 +430,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._construir_ui()
         self._carregar()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -475,8 +469,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         ctk.CTkButton(
             topo, text="Voltar", command=self.controller.voltar, width=130, height=45,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         linha_contador = ctk.CTkFrame(self, fg_color="transparent")
@@ -511,7 +505,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtros, text="↺ Limpar", width=100, height=42,
-            fg_color="#333", font=("Segoe UI", 16, "bold"),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 16, "bold"),
             command=self._limpar_filtros
         ).pack(side="left", padx=(0, 10))
 

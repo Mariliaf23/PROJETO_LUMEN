@@ -31,13 +31,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         self._templates = carregar_templates()
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -85,8 +79,8 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Abas
@@ -106,9 +100,9 @@ class TelaNotificacoes(ctk.CTkFrame):
             is_atual = (tag == self._aba_atual)
             btn = ctk.CTkButton(
                 abas_container, text=nome, font=("Segoe UI", 11, "bold"),
-                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#1E293B",
-                text_color="#FFFFFF" if is_atual else "#94A3B8",
-                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else "#334155",
+                fg_color=cores.COR_AZUL_PRINCIPAL if is_atual else cores.COR_INPUT_BG,
+                text_color="#FFFFFF" if is_atual else cores.COR_TEXTO2,
+                border_color=cores.COR_AZUL_PRINCIPAL if is_atual else cores.COR_INPUT_BORDER,
                 border_width=1 if is_atual else 0,
                 hover_color=cores.COR_AZUL_HOVER,
                 width=110, height=30,
@@ -146,8 +140,8 @@ class TelaNotificacoes(ctk.CTkFrame):
                 btn.configure(fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
                               border_color=cores.COR_AZUL_PRINCIPAL, border_width=1)
             else:
-                btn.configure(fg_color="#1E293B", text_color="#94A3B8",
-                              border_color="#334155", border_width=0)
+                btn.configure(fg_color=cores.COR_INPUT_BG, text_color=cores.COR_TEXTO2,
+                              border_color=cores.COR_INPUT_BORDER, border_width=0)
 
         for tag, frame in self._frames.items():
             frame.grid_forget()
@@ -302,7 +296,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         ctk.CTkButton(
             teste_frame, text="📱 Testar WhatsApp", width=180, height=40,
             fg_color=cores.COR_SUCESSO, text_color="#FFFFFF",
-            hover_color="#059669", font=("Segoe UI", 13, "bold"),
+            hover_color=cores.COR_SUCESSO, font=("Segoe UI", 13, "bold"),
             command=self._teste_whatsapp
         ).pack(side="left")
 
@@ -434,8 +428,8 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             btn_frame, text="↺ Restaurar Padrão", width=200, height=40,
-            fg_color="#333", text_color=cores.COR_TEXTO,
-            hover_color="#444", font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_CARD, text_color=cores.COR_TEXTO,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 13, "bold"),
             command=self._resetar_templates
         ).pack(side="left")
 
@@ -485,7 +479,7 @@ class TelaNotificacoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtro, text="Limpar", width=70, height=30,
-            fg_color="#333", font=("Segoe UI", 11),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 11),
             command=self._limpar_filtros_hist
         ).pack(side="left", padx=(0, 10))
 
@@ -513,7 +507,7 @@ class TelaNotificacoes(ctk.CTkFrame):
         colunas = ["Data", "Hora", "Usuário", "Evento", "Telefone", "Status", "Observações"]
         larguras = [80, 70, 150, 150, 120, 80, 200]
 
-        header_frame = ctk.CTkFrame(self._frame_hist_tabela, fg_color="#0d0d1a", corner_radius=0)
+        header_frame = ctk.CTkFrame(self._frame_hist_tabela, fg_color=cores.COR_BG, corner_radius=0)
         header_frame.pack(fill="x")
 
         for i, (col, larg) in enumerate(zip(colunas, larguras)):
@@ -527,7 +521,7 @@ class TelaNotificacoes(ctk.CTkFrame):
             return
 
         for idx, reg in enumerate(dados):
-            cor = "#1e1e2e" if idx % 2 == 0 else "#16161f"
+            cor = cores.COR_LINHA_PAR if idx % 2 == 0 else cores.COR_LINHA_IMPAR
             row = ctk.CTkFrame(self._frame_hist_tabela, fg_color=cor, corner_radius=0)
             row.pack(fill="x")
 

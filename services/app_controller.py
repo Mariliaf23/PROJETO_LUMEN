@@ -36,6 +36,8 @@ class AppController:
         self._btn_tema = None         # Botão de alternar tema na sidebar
         self._logo_img = None         # Imagem da logo (evita garbage collection)
 
+        cores.registrar_listener(self._ao_tema_mudou)
+
         self._centralizar()        # Centraliza a janela na tela do computador
 
     def verificar_acesso(self, tela):
@@ -234,8 +236,6 @@ class AppController:
         )
         self._sidebar_borda.grid(row=0, column=0, sticky="ns", padx=(259, 0))
 
-        cores.registrar_listener(self._reconstruir_sidebar)
-
         self._construir_sidebar()
 
     def _desativar_modo_sidebar(self):
@@ -243,8 +243,6 @@ class AppController:
         if not self._modo_sidebar:
             return
         self._modo_sidebar = False
-
-        cores.remover_listener(self._reconstruir_sidebar)
 
         if self._sidebar_frame:
             self._sidebar_frame.destroy()
@@ -348,17 +346,26 @@ class AppController:
         ctk.CTkLabel(self._sidebar_frame, text="v1.0 • LUMEN SYSTEM",
                      font=("Segoe UI", 11), text_color=cores.COR_TEXTO2).pack(side="bottom", pady=(4, 8))
 
-    def _reconstruir_sidebar(self):
-        """Reconstrói a sidebar quando o tema muda."""
-        if not self._modo_sidebar or not self._sidebar_frame:
-            return
-        self._container.configure(fg_color=cores.COR_BG)
-        self._sidebar_frame.configure(fg_color=cores.COR_SIDEBAR)
-        if hasattr(self, '_sidebar_borda') and self._sidebar_borda:
-            self._sidebar_borda.configure(fg_color=cores.COR_INPUT_BORDER)
-        for widget in self._sidebar_frame.winfo_children():
-            widget.destroy()
-        self._construir_sidebar()
+    def _ao_tema_mudou(self):
+        """Handler centralizado para mudanças de tema."""
+        self.root.configure(fg_color=cores.COR_BG)
+
+        if self._modo_sidebar and self._sidebar_frame:
+            self._container.configure(fg_color=cores.COR_BG)
+            self._sidebar_frame.configure(fg_color=cores.COR_SIDEBAR)
+            if hasattr(self, '_sidebar_borda') and self._sidebar_borda:
+                self._sidebar_borda.configure(fg_color=cores.COR_INPUT_BORDER)
+            for widget in self._sidebar_frame.winfo_children():
+                widget.destroy()
+            self._construir_sidebar()
+
+        if self._tela_atual and self._tela_atual in self._telas:
+            tela = self._telas[self._tela_atual]
+            tela.configure(fg_color=cores.COR_BG)
+            for metodo in ('_reconstruir_ui', '_reconstruir_tema', '_reconstruir'):
+                if hasattr(tela, metodo):
+                    getattr(tela, metodo)()
+                    break
 
     def _atualizar_sidebar(self):
         """Atualiza cores/estilos dos botões da sidebar."""
@@ -368,7 +375,7 @@ class AppController:
             btn.configure(
                 font=("Segoe UI", 15, "bold" if ativo else "normal"),
                 fg_color=cores.COR_ATIVO if ativo else "transparent",
-                text_color=cores.COR_TEXTO if ativo else cores.COR_TEXTO2,
+                text_color="#FFFFFF" if ativo else cores.COR_TEXTO2,
             )
 
     def _alternar_tema(self):

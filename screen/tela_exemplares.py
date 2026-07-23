@@ -75,7 +75,7 @@ class JanelaBarcode(ctk.CTkToplevel):
             lbl_img.image = img_ctk  # Referência para não ser coletado pelo GC
         except Exception as e:
             criar_label(card, f"Erro ao carregar imagem: {e}",
-                        font=("Segoe UI", 12), text_color="#EF4444").pack(pady=20)
+                        font=("Segoe UI", 12), text_color=cores.COR_PERIGO).pack(pady=20)
 
         # Código abaixo do barcode
         criar_label(self, patrimonio, font=("Consolas", 16, "bold"),
@@ -87,14 +87,14 @@ class JanelaBarcode(ctk.CTkToplevel):
 
         ctk.CTkButton(
             botoes, text="Imprimir", width=120, height=36,
-            fg_color="#1E3A8A", hover_color="#1D4ED8",
+            fg_color=cores.COR_ATIVO, hover_color=cores.COR_AZUL_HOVER,
             font=("Segoe UI", 13, "bold"),
             command=lambda: self._imprimir(caminho_imagem, patrimonio)
         ).pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
             botoes, text="Fechar", width=120, height=36,
-            fg_color="#333", hover_color="#444",
+            fg_color=cores.COR_CARD, hover_color=cores.COR_INPUT_BG,
             font=("Segoe UI", 13, "bold"),
             command=self.destroy
         ).pack(side="left")
@@ -114,7 +114,7 @@ class JanelaBarcode(ctk.CTkToplevel):
                 subprocess.run(["xdg-open", caminho_imagem])
         except Exception as e:
             criar_label(self, f"Erro ao abrir: {e}",
-                        font=("Segoe UI", 11), text_color="#EF4444").pack()
+                        font=("Segoe UI", 11), text_color=cores.COR_PERIGO).pack()
 
 
 class TelaExemplares(ctk.CTkFrame):
@@ -127,13 +127,7 @@ class TelaExemplares(ctk.CTkFrame):
         self._editando_id    = None
         self._construir_ui()
 
-        cores.registrar_listener(self._reconstruir_tema)
-        self.bind("<Destroy>", self._ao_destruir)
 
-    def _ao_destruir(self, event=None):
-        if event is not None and event.widget is not self:
-            return
-        cores.remover_listener(self._reconstruir_tema)
 
     def _reconstruir_tema(self):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
@@ -178,8 +172,8 @@ class TelaExemplares(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color="#0F172A", text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=("Segoe UI", 14, "bold")
+            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Formulário compactado
@@ -207,7 +201,7 @@ class TelaExemplares(ctk.CTkFrame):
         self.entry_busca_livro.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes))
 
         self._frame_sugestoes = ctk.CTkScrollableFrame(
-            livro_container, fg_color="#1E293B", height=120, corner_radius=8
+            livro_container, fg_color=cores.COR_INPUT_BG, height=120, corner_radius=8
         )
         self._livro_selecionado_id = None
 
@@ -243,23 +237,23 @@ class TelaExemplares(ctk.CTkFrame):
 
         self.btn_adicionar = ctk.CTkButton(
             botoes_frame, text="+ Adicionar", command=self._adicionar,
-            height=BTN_H, fg_color="#0052CC", text_color="#FFFFFF",
-            hover_color="#003399", font=BTN_FONT
+            height=BTN_H, fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
+            hover_color=cores.COR_AZUL_HOVER, font=BTN_FONT
         )
         self.btn_adicionar.grid(row=0, column=0, padx=(0, 3), sticky="ew")
 
         self.btn_editar = ctk.CTkButton(
             botoes_frame, text="✎ Editar", command=self._editar_selecionado,
-            height=BTN_H, fg_color="#0F172A", text_color="#FFFFFF",
+            height=BTN_H, fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF",
             border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color="#1E293B", font=BTN_FONT
+            hover_color=cores.COR_INPUT_BG, font=BTN_FONT
         )
         self.btn_editar.grid(row=0, column=1, padx=(0, 3), sticky="ew")
 
         self.btn_barcode = ctk.CTkButton(
             botoes_frame, text="⊞ Barcode", command=self._ver_barcode,
-            height=BTN_H, fg_color="#065F46", text_color="#FFFFFF",
-            hover_color="#047857", font=BTN_FONT
+            height=BTN_H, fg_color=cores.COR_SUCESSO, text_color="#FFFFFF",
+            hover_color=cores.COR_SUCESSO, font=BTN_FONT
         )
         self.btn_barcode.grid(row=0, column=2, padx=(0, 3), sticky="ew")
 
@@ -272,8 +266,8 @@ class TelaExemplares(ctk.CTkFrame):
 
         self.btn_excluir = ctk.CTkButton(
             botoes_frame, text="✕ Excluir", command=self._excluir_selecionado,
-            height=BTN_H, fg_color="#7F1D1D", text_color="#FCA5A5",
-            hover_color="#991B1B", font=BTN_FONT
+            height=BTN_H, fg_color=cores.COR_PERIGO, text_color="#FFFFFF",
+            hover_color=cores.COR_PERIGO, font=BTN_FONT
         )
         self.btn_excluir.grid(row=0, column=4, sticky="ew")
 
@@ -292,7 +286,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         ctk.CTkButton(
             busca_frame, text="↺ Limpar", width=90, height=34,
-            fg_color="#333", font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 13, "bold"),
             command=self._limpar_filtro
         ).pack(side="left")
 
@@ -350,7 +344,7 @@ class TelaExemplares(ctk.CTkFrame):
             btn = ctk.CTkButton(
                 self._frame_sugestoes, text=texto, anchor="w",
                 fg_color="transparent", text_color=cores.COR_TEXTO,
-                hover_color="#1D4ED8", font=("Segoe UI", 14),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda t=texto: self._escolher_livro(t)
             )
