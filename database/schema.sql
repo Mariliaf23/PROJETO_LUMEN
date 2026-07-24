@@ -5,6 +5,17 @@ CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8mb4;
 USE `biblioteca`;
 
 -- -----------------------------------------------------
+-- Table `biblioteca`.`turma`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `biblioteca`.`turma` (
+  `id_turma` INT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(20) NOT NULL,
+  `turno` ENUM('Manhã', 'Tarde', 'Noite', 'Integral') NOT NULL,
+  PRIMARY KEY (`id_turma`),
+  UNIQUE KEY `codigo_turno_UNIQUE` (`codigo`, `turno`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
 -- Table `biblioteca`.`usuario`
 -- -----------------------------------------------------
 -- Tabela unificada de usuarios: alunos, professores, funcionarios e bibliotecarios.
@@ -37,19 +48,6 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
     ON DELETE SET NULL
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
--- -----------------------------------------------------
--- Table `biblioteca`.`turma`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`turma` (
-  `id_turma` INT NOT NULL AUTO_INCREMENT,
-  `codigo` VARCHAR(20) NOT NULL,
-  `turno` ENUM('Manhã', 'Tarde', 'Noite', 'Integral') NOT NULL,
-  PRIMARY KEY (`id_turma`),
-  UNIQUE KEY `codigo_turno_UNIQUE` (`codigo`, `turno`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- -----------------------------------------------------
 -- Table `biblioteca`.`categoria`
