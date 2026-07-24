@@ -64,25 +64,13 @@ class TelaNotificacoes(ctk.CTkFrame):
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
-
-        if os.path.exists(logo_path):
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(55, 55))
-                ctk.CTkLabel(header_left, image=img_logo, text="").pack(side="left", padx=(0, 15))
-            except Exception:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-
         criar_label(header_left, "Central de Notificações",
                     font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
+            font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Abas

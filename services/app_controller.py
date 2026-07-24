@@ -119,37 +119,11 @@ class AppController:
         self._atualizar_sidebar()
 
     def voltar(self):
-        """Volta para a tela anterior (usando o histórico)."""
+        """Botão Voltar: sempre retorna para o Dashboard (não usa mais o histórico)."""
         if self._animando:
             return
 
-        if not self._historico:
-            return
-
-        anterior = self._historico.pop()
-        antiga = self._tela_atual
-        self._tela_atual = anterior
-        tela_volta = self._telas[anterior]
-
-        if self._modo_sidebar:
-            if antiga:
-                self._telas[antiga].grid_forget()
-            tela_volta.grid(row=0, column=1, sticky="nsew")
-            tela_volta.lift()
-            if hasattr(tela_volta, '_ao_visitar'):
-                tela_volta._ao_visitar()
-            self._atualizar_sidebar()
-            return
-
-        callback = tela_volta._ao_visitar if hasattr(tela_volta, '_ao_visitar') else None
-
-        if antiga:
-            self._animar_slide(self._telas[antiga], tela_volta, direcao="direita", callback=callback)
-        else:
-            tela_volta.place(relx=0, rely=0, relwidth=1, relheight=1)
-            tela_volta.lift()
-            if callback:
-                callback()
+        self.navegar_para("dashboard", voltavel=False)
 
     def _animar_slide(self, saindo, entrando, direcao="esquerda", duracao=250, callback=None):
         """Anima a transição entre telas com efeito de deslize."""

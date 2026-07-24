@@ -62,16 +62,6 @@ class TelaConfiguracoes(ctk.CTkFrame):
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
-        logo_lumen = os.path.join(self._assets_dir, "logo_lumen.png")
-        if os.path.exists(logo_lumen):
-            try:
-                img = ctk.CTkImage(Image.open(logo_lumen), size=(55, 55))
-                ctk.CTkLabel(header_left, image=img, text="").pack(side="left", padx=(0, 15))
-            except:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-
         criar_label(header_left, "Configurações do Sistema", font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         # Botões: Salvar + Voltar (lado a lado)
@@ -87,9 +77,8 @@ class TelaConfiguracoes(ctk.CTkFrame):
 
         ctk.CTkButton(
             header_right, text="Voltar", command=self._voltar,
-            width=100, height=36, fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF",
-            border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
+            width=100, height=36, fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER,
+            text_color="#FFFFFF", font=("Segoe UI", 14, "bold")
         ).pack(side="left", padx=(0, 10))
 
         self.lbl_notificacao = ctk.CTkLabel(header_right, text="", font=("Segoe UI", 12, "bold"), text_color=cores.COR_AZUL_HOVER)

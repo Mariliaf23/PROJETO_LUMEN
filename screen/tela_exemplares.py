@@ -153,29 +153,16 @@ class TelaExemplares(ctk.CTkFrame):
         header = ctk.CTkFrame(self, fg_color=cores.COR_CARD)
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(15, 8))
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path    = os.path.join(caminho_base, "assets", "logo_lumen.png")
-
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y", padx=10, pady=5)
-
-        if os.path.exists(logo_path):
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(55, 55))
-                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
-                lbl_logo.pack(side="left", padx=(0, 15))
-            except:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
 
         criar_label(header_left, "Gerenciamento de Exemplares",
                     font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
-            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 14, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
+            font=("Segoe UI", 14, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Formulário compactado

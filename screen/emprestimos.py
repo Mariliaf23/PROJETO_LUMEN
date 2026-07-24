@@ -308,19 +308,6 @@ class TelaEmprestimos(ctk.CTkFrame):
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
-
-        if os.path.exists(logo_path):
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(55, 55))
-                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
-                lbl_logo.pack(side="left", padx=(0, 15))
-            except:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 22, "bold")).pack(side="left", padx=(0, 10))
-
         titulo = criar_label(header_left, "Gerenciamento de Empréstimos", font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO)
         titulo.pack(side="left")
 
