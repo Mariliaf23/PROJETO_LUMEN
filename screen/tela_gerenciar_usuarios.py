@@ -8,7 +8,7 @@ import customtkinter as ctk
 from services.database_config import (
     listar_usuarios, buscar_usuario_por_id, atualizar_usuario,
     atualizar_senha_usuario, alternar_status_usuario, excluir_usuario,
-    buscar_usuarios_por_nome, cadastrar_usuario, listar_turmas, cadastrar_turma
+    buscar_usuarios_por_nome, cadastrar_usuario, listar_turmas
 )
 from services.styles import (
     cores, FONTE_TITULO, FONTE_SUBTITULO,
@@ -25,59 +25,6 @@ def _truncar(valor, max_chars):
     if len(texto) <= max_chars:
         return texto
     return texto[: max_chars - 1].rstrip() + "…"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Diálogo de cadastro rápido de turma
-# ─────────────────────────────────────────────────────────────────────────────
-class DialogoNovaTurma(ctk.CTkToplevel):
-    """Diálogo simples para cadastrar uma turma nova sem sair da tela de usuário."""
-
-    def __init__(self, master, on_criada):
-        super().__init__(master)
-        self.on_criada = on_criada
-        self.title("Nova Turma")
-        self.geometry("320x260")
-        self.resizable(False, False)
-        self.configure(fg_color=cores.COR_BG)
-        self.grab_set()
-
-        criar_label(self, "Nova Turma", font=FONTE_SUBTITULO, text_color=cores.COR_TEXTO).pack(pady=(20, 12))
-
-        self.entry_codigo = criar_entry(self, placeholder="Código (ex: 3A)", width=260, height=38)
-        self.entry_codigo.pack(pady=(0, 8), padx=20)
-
-        self.combo_turno = criar_combo(
-            self, values=["manhã", "tarde", "noite"], width=260, height=38,
-            button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
-        )
-        self.combo_turno.set("manhã")
-        self.combo_turno.pack(pady=(0, 12), padx=20)
-
-        self.lbl_erro = criar_label(self, "", text_color=cores.COR_PERIGO)
-        self.lbl_erro.pack()
-
-        ctk.CTkButton(
-            self, text="Salvar Turma", command=self._salvar,
-            width=260, height=40,
-            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=cores.COR_AZUL_HOVER
-        ).pack(pady=(4, 10), padx=20)
-
-    def _salvar(self):
-        codigo = self.entry_codigo.get().strip()
-        turno = self.combo_turno.get()
-
-        if not codigo:
-            self.lbl_erro.configure(text="Informe o código da turma.")
-            return
-
-        ok = cadastrar_turma(codigo, turno)
-        if ok:
-            self.on_criada()
-            self.destroy()
-        else:
-            self.lbl_erro.configure(text="Erro ao cadastrar turma (código duplicado?).")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -151,23 +98,13 @@ class JanelaUsuario(ctk.CTkToplevel):
 
         # Frame aluno (dentro do dinâmico)
         self.frame_aluno_prof = ctk.CTkFrame(self.frame_dinamico, fg_color="transparent")
-
-        linha_turma = ctk.CTkFrame(self.frame_aluno_prof, fg_color="transparent")
-        linha_turma.pack()
-
         turma_labels = [f"{c} - {t}" for _, c, t in self._turmas] if self._turmas else ["(nenhuma turma cadastrada)"]
         self.combo_turma = criar_combo(
-            linha_turma, values=turma_labels, width=250, height=40,
+            self.frame_aluno_prof, values=turma_labels, width=340, height=40,
             button_color=cores.COR_AZUL_PRINCIPAL, button_hover_color=cores.COR_AZUL_HOVER
         )
         self.combo_turma.set(turma_labels[0])
-        self.combo_turma.pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            linha_turma, text="+ Nova Turma", width=82, height=40,
-            fg_color=cores.COR_CARD, text_color=cores.COR_TEXTO,
-            command=self._abrir_nova_turma
-        ).pack(side="left")
+        self.combo_turma.pack()
 
         # Frame funcionário (dentro do dinâmico)
         self.frame_func = ctk.CTkFrame(self.frame_dinamico, fg_color="transparent")
@@ -207,16 +144,6 @@ class JanelaUsuario(ctk.CTkToplevel):
         elif tipo == "professor":
             pass  # Professor: sem senha, sem função
 
-    # ── turma: cadastro inline ───────────────────────────────────────────────
-    def _abrir_nova_turma(self):
-        DialogoNovaTurma(self, on_criada=self._recarregar_turmas)
-
-    def _recarregar_turmas(self):
-        self._turmas = listar_turmas()
-        turma_labels = [f"{c} - {t}" for _, c, t in self._turmas] if self._turmas else ["(nenhuma turma cadastrada)"]
-        self.combo_turma.configure(values=turma_labels)
-        self.combo_turma.set(turma_labels[-1])  # seleciona a turma recém-criada
-
     # ── preencher campos ao editar ───────────────────────────────────────────
     def _carregar(self, id_usuario):
         dados = buscar_usuario_por_id(id_usuario)
@@ -245,14 +172,6 @@ class JanelaUsuario(ctk.CTkToplevel):
 
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
-        try:
-            self._salvar_interno()
-        except Exception as e:
-            import traceback
-            traceback.print_exc()  # imprime detalhes completos no console/terminal
-            self._notificar(f"Erro inesperado: {e}")
-
-    def _salvar_interno(self):
         nome     = self.entry_nome.get().strip()
         email    = self.entry_email.get().strip()
         telefone = self.entry_telefone.get().strip()
@@ -284,34 +203,24 @@ class JanelaUsuario(ctk.CTkToplevel):
             if not ok:
                 return self._notificar(msg)
 
-        if tipo == "aluno" and id_turma is None:
-            return self._notificar("Selecione uma turma (ou cadastre uma nova).")
-
         if self.id_usuario:
-            resultado = atualizar_usuario(
+            ok = atualizar_usuario(
                 self.id_usuario, nome, email, telefone, '',
                 tipo, '', id_turma, funcao, status
             )
-            # atualizar_usuario retorna sempre bool
-            if resultado:
-                if senha:
-                    atualizar_senha_usuario(self.id_usuario, senha)
-                self._notificar("Usuario atualizado!")
-                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-            else:
-                self._notificar("Erro ao atualizar (e-mail/CPF duplicado?).")
+            if ok and senha:
+                atualizar_senha_usuario(self.id_usuario, senha)
+            msg_ok = "Usuario atualizado!"
         else:
-            resultado = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                          tipo, '', id_turma, funcao)
-            # cadastrar_usuario pode retornar True, False, ou (False, "mensagem")
-            if resultado is True:
-                self._notificar("Usuario cadastrado!")
-                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-            elif isinstance(resultado, tuple):
-                _, msg_erro = resultado
-                self._notificar(msg_erro)
-            else:
-                self._notificar("Erro ao salvar (e-mail/CPF duplicado?).")
+            ok = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                   tipo, '', id_turma, funcao)
+            msg_ok = "Usuario cadastrado!"
+
+        if ok:
+            self._notificar(msg_ok)
+            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+        else:
+            self._notificar("Erro ao salvar (e-mail/CPF duplicado?).")
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
