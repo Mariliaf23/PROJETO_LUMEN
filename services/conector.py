@@ -9,87 +9,56 @@ from mysql.connector import Error  # Classe de erro do mysql.connector
 # Carrega as variáveis de ambiente do arquivo .env (está na pasta raiz do projeto)
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
+port_str = os.getenv('DB_PORT')  # Porta do MySQL como string
+
+DB_NAME = os.getenv('DB_NAME', '') # Nome do banco de dados
+
+if not port_str:
+    raise ValueError("A variável de ambiente DB_PORT não está definida no arquivo .env")
+
 # Configurações de conexão com o MySQL (lidas do arquivo .env)
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),       # Endereço do servidor MySQL
-    'user': os.getenv('DB_USER', 'root'),            # Usuário do MySQL
-    'password': os.getenv('DB_PASSWORD', '')         # Senha do MySQL
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': int(port_str),  # Converte a porta para inteiro
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': DB_NAME
 }
 
-DB_NAME = os.getenv('DB_NAME', 'biblioteca')         # Nome do banco de dados
 
 DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')    # Usuário padrão admin
 DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD', 'admin123')  # Senha padrão do admin
 
-
 def init_db():
-    """
-    Inicializa o banco de dados:
-    1. Cria o banco se não existir
-    2. Cria todas as tabelas usando o schema.sql
-    3. Cria ou atualiza o usuário admin padrão
-    """
     try:
-        # Conecta ao MySQL SEM escolher banco (para poder criar o banco)
+        # 1. Conecta direto no banco que já existe
         conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()                      # Cria um cursor para executar comandos SQL
+        cursor = conn.cursor()
 
-        # Cria o banco de dados se não existir
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-        # Seleciona o banco para usar
-        cursor.execute(f"USE {DB_NAME}")
-
-        # Procura o arquivo schema.sql que define as tabelas
-        schema_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "schema.sql")
-        if os.path.exists(schema_path):             # Se o arquivo existe
-            with open(schema_path, 'r', encoding='utf-8') as f:  # Abre o arquivo
-                schema = f.read()                   # Lê todo o conteúdo SQL
-                # Separa cada comando SQL pelo ";" e executa um por um
-                for statement in schema.split(';'):
-                    if statement.strip():           # Se o comando não está vazio
-                        try:
-                            cursor.execute(statement)  # Executa o comando SQL
-                        except Error:
-                            pass                   # Ignora erros (ex: tabela já existe)
-
-        # Verifica se já existe o usuário admin
-        cursor.execute("SELECT COUNT(*) FROM usuario")
-        total = cursor.fetchone()[0]                # Pega a quantidade de usuários
-
-        # Procura o usuário admin pelo nome
+        # 2. Vai direto para a lógica de inserir/atualizar o usuário
         cursor.execute("SELECT nome FROM usuario WHERE nome = %s", (DEFAULT_USER,))
-        existente = cursor.fetchone()               # Retorna None se não encontrou
+        existente = cursor.fetchone()
 
-        # Criptografa a senha do admin com SHA-256
         senha_hash = hashlib.sha256(DEFAULT_PASSWORD.encode('utf-8')).hexdigest()
 
-        if existente:                               # Se o admin já existe
-            # Atualiza a senha e tipo do admin com os valores do .env
+        if existente:
             cursor.execute(
                 "UPDATE usuario SET senha = %s, tipo_usuario = 'diretor', funcao = 'admin' WHERE nome = %s",
                 (senha_hash, DEFAULT_USER)
             )
-            print(f"Usuario '{DEFAULT_USER}' atualizado com senha do .env")
-        else:                                       # Se o admin não existe
-            # Cria o usuário admin (independente de já haver outros usuários)
+            print(f"Usuario '{DEFAULT_USER}' atualizado.")
+        else:
             cursor.execute(
                 """INSERT IGNORE INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
                    VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
                 (DEFAULT_USER, 'admin@lumen.com', senha_hash, '')
             )
-            if cursor.rowcount > 0:
-                print(f"Usuario padrao criado: {DEFAULT_USER}/{DEFAULT_PASSWORD}")
+            print(f"Usuario padrao criado.")
 
-        _inserir_dados_exemplo(cursor)              # Insere dados de exemplo (se necessário)
-
-        conn.commit()                               # Salva todas as alterações no banco
-        conn.close()                                # Fecha a conexão
-        return True                                 # Sucesso
-    except Error as e:                              # Se der erro de conexão
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Error as e:
         print(f"Erro ao conectar ao MySQL: {e}")
-        return False                                # Falha
-
-
-def _inserir_dados_exemplo(cursor):
-    """Função placeholder para inserir dados de exemplo (vazia por enquanto)."""
-    pass                                            # Não faz nada por enquanto
+        return False
