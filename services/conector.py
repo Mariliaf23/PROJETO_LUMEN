@@ -9,17 +9,17 @@ from mysql.connector import Error  # Classe de erro do mysql.connector
 # Carrega as variáveis de ambiente do arquivo .env (está na pasta raiz do projeto)
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
-port_str = os.getenv('DB_PORT')  # Porta do MySQL como string
+DB_PORT = os.getenv('DB_PORT')  # Porta do MySQL como string
 
-DB_NAME = os.getenv('DB_NAME', '') # Nome do banco de dados
+DB_NAME = os.getenv('DB_NAME')  # Nome do banco de dados
 
-if not port_str:
+if not DB_PORT:
     raise ValueError("A variável de ambiente DB_PORT não está definida no arquivo .env")
 
 # Configurações de conexão com o MySQL (lidas do arquivo .env)
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
-    'port': int(port_str),  # Converte a porta para inteiro
+    'port': int(DB_PORT),  # Converte a porta para inteiro
     'user': os.getenv('DB_USER', 'root'),
     'password': os.getenv('DB_PASSWORD', ''),
     'database': DB_NAME
@@ -28,6 +28,7 @@ DB_CONFIG = {
 
 DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')    # Usuário padrão admin
 DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD', 'admin123')  # Senha padrão do admin
+
 
 def init_db():
     try:
