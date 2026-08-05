@@ -63,7 +63,14 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
         return True
     except Error as e:
         print(f"Erro ao cadastrar usuario: {e}")
-        return False
+        msg = str(e).lower()
+        if "duplicate" in msg or "unique" in msg:
+            if "email" in msg:
+                return False, "E-mail já cadastrado."
+            if "cpf" in msg:
+                return False, "CPF já cadastrado."
+            return False, "Dados duplicados."
+        return False, "Erro ao salvar no banco de dados."
 
 
 def listar_alunos():

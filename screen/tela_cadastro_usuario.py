@@ -49,29 +49,16 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 15))
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Pasta raiz
-        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")  # Caminho da logo
-
         header_left = ctk.CTkFrame(header, fg_color="transparent")
         header_left.pack(side="left", fill="y")
-
-        if os.path.exists(logo_path):               # Se a logo existe
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))  # Carrega logo
-                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")    # Mostra logo
-                lbl_logo.pack(side="left", padx=(0, 15))
-            except:                                  # Se deu erro
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
-        else:                                        # Se não tem logo
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         criar_label(header_left, "Cadastro de Usuário", font=("Segoe UI", 38, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         # Botão voltar
         btn_voltar = ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
+            font=("Segoe UI", 16, "bold")
         )
         btn_voltar.pack(side="right")
 

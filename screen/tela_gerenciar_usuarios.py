@@ -443,34 +443,23 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._carregar()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._carregar()
 
     def _construir_ui(self):
         topo = ctk.CTkFrame(self, fg_color="transparent")
         topo.pack(fill="x", padx=30, pady=(20, 10))
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
-
         header_left = ctk.CTkFrame(topo, fg_color="transparent")
         header_left.pack(side="left", fill="y")
-
-        if os.path.exists(logo_path):
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
-                lbl_logo = ctk.CTkLabel(header_left, image=img_logo, text="")
-                lbl_logo.pack(side="left", padx=(0, 15))
-            except:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         criar_label(header_left, "Gerenciar Usuários", font=FONTE_TITULO, text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             topo, text="Voltar", command=self.controller.voltar, width=130, height=45,
-            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
+            font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         linha_contador = ctk.CTkFrame(self, fg_color="transparent")

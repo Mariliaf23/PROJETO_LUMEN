@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import customtkinter as ctk
 from services.database_config import listar_livros, listar_categorias
 from services.styles import (
-    cores, FONTE_TITULO, criar_entry, criar_label, criar_titulo, criar_card
+    cores, FONTE_TITULO, criar_entry, criar_label, criar_titulo, criar_card, criar_combo
 )
 
 COLUNAS = [
@@ -19,6 +19,7 @@ COLUNAS = [
     ("STATUS",     1,  90,  10),
 ]
 COMPENSA_SCROLLBAR = 18
+OPCAO_TODAS_CATEGORIAS = "Todas as categorias"
 
 
 def _truncar(valor, max_chars):
@@ -87,6 +88,8 @@ class TelaCatalogo(ctk.CTkFrame):
         self._construir_ui()
 
     def _ao_visitar(self):
+        if getattr(self, "_tema_pendente", False):
+            self._reconstruir_tema()
         self._carregar_dados()
 
     def _construir_ui(self):
@@ -94,28 +97,16 @@ class TelaCatalogo(ctk.CTkFrame):
         topo = ctk.CTkFrame(self, fg_color="transparent")
         topo.pack(fill="x", padx=30, pady=(20, 10))
 
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
-
         header_left = ctk.CTkFrame(topo, fg_color="transparent")
         header_left.pack(side="left", fill="y")
-
-        if os.path.exists(logo_path):
-            try:
-                img_logo = ctk.CTkImage(Image.open(logo_path), size=(180, 180))
-                ctk.CTkLabel(header_left, image=img_logo, text="").pack(side="left", padx=(0, 15))
-            except:
-                criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
-        else:
-            criar_titulo(header_left, "LUMEN", font=("Cinzel", 32, "bold")).pack(side="left")
 
         criar_label(header_left, "Catálogo de Livros", font=FONTE_TITULO,
                     text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             topo, text="Voltar", command=self._voltar, width=130, height=45,
-            fg_color=cores.COR_SIDEBAR, text_color="#FFFFFF", border_color=cores.COR_INPUT_BORDER, border_width=1,
-            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 16, "bold")
+            fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
+            font=("Segoe UI", 16, "bold")
         ).pack(side="right")
 
         # ── Contador ──
@@ -132,9 +123,12 @@ class TelaCatalogo(ctk.CTkFrame):
         self.entry_titulo.pack(side="left", padx=(0, 10))
         self.entry_titulo.bind("<KeyRelease>", lambda e: self._filtrar())
 
-        self.entry_categoria = criar_entry(filtros, placeholder="Filtrar por categoria…", width=220, height=40)
-        self.entry_categoria.pack(side="left", padx=(0, 10))
-        self.entry_categoria.bind("<KeyRelease>", lambda e: self._filtrar())
+        self.combo_categoria = criar_combo(
+            filtros, values=[OPCAO_TODAS_CATEGORIAS], width=220, height=40,
+            command=lambda _valor: self._filtrar()
+        )
+        self.combo_categoria.set(OPCAO_TODAS_CATEGORIAS)
+        self.combo_categoria.pack(side="left", padx=(0, 10))
 
         ctk.CTkButton(
             filtros, text="↺ Limpar", width=100, height=40,
@@ -152,16 +146,30 @@ class TelaCatalogo(ctk.CTkFrame):
 
     def _carregar_dados(self):
         self._todos_livros = listar_livros()
+
+        categoria_atual = self.combo_categoria.get()
+        categorias = sorted({str(l[3]) for l in self._todos_livros if l[3]}, key=str.lower)
+        opcoes = [OPCAO_TODAS_CATEGORIAS] + categorias
+        self.combo_categoria.configure(values=opcoes)
+        self.combo_categoria.set(categoria_atual if categoria_atual in opcoes else OPCAO_TODAS_CATEGORIAS)
+
         self._filtrar()
 
     def _filtrar(self):
-        termo_titulo    = self.entry_titulo.get().strip().lower()
-        termo_categoria = self.entry_categoria.get().strip().lower()
+        termo_titulo  = self.entry_titulo.get().strip().lower()
+        categoria_sel = self.combo_categoria.get()
+        opcoes_validas = self.combo_categoria.cget("values")
+
+        # Se o valor selecionado não é mais uma categoria válida (ex.: lista
+        # recarregada), tratamos como "sem filtro" em vez de zerar a busca.
+        sem_filtro_categoria = (
+            categoria_sel == OPCAO_TODAS_CATEGORIAS or categoria_sel not in opcoes_validas
+        )
 
         resultado = [
             l for l in self._todos_livros
-            if termo_titulo    in str(l[1]).lower()
-            and termo_categoria in str(l[3]).lower()
+            if termo_titulo in str(l[1]).lower()
+            and (sem_filtro_categoria or str(l[3]).lower() == categoria_sel.lower())
         ]
 
         for w in self.scroll.winfo_children():
@@ -177,7 +185,7 @@ class TelaCatalogo(ctk.CTkFrame):
 
     def _limpar(self):
         self.entry_titulo.delete(0, "end")
-        self.entry_categoria.delete(0, "end")
+        self.combo_categoria.set(OPCAO_TODAS_CATEGORIAS)
         self._filtrar()
 
     def _voltar(self):

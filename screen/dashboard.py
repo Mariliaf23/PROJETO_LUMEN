@@ -240,28 +240,23 @@ class Dashboard(ctk.CTkFrame):
     def _reconstruir_ui(self):
         """Destrói e reconstrói toda a tela para aplicar o tema atual.
 
-        Se o dashboard não estiver visível no momento (usuário está em
-        outra tela), a reconstrução é adiada para a próxima visita —
-        evita reconstruir uma tela escondida a cada troca de tema.
+        Reconstrói incondicionalmente (mesmo padrão usado pelas demais
+        telas), pois o AppController já controla quando chamar isto e
+        depois força `_tema_pendente = False` — se aqui a reconstrução
+        fosse adiada por a tela não estar mapeada naquele instante, a
+        troca de tema seria perdida e nunca reaplicada.
         """
         if not self.winfo_exists():
             return
-        if not self.winfo_ismapped():
-            self._tema_pendente = True
-            return
-        self._aplicar_reconstrucao_tema()
-
-    def _aplicar_reconstrucao_tema(self):
         for widget in self.winfo_children():
             widget.destroy()
         self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
-        self._tema_pendente = False
 
     def _ao_visitar(self):
         """Chamado quando o usuário navega para esta tela — atualiza tudo."""
         if getattr(self, "_tema_pendente", False):
-            self._aplicar_reconstrucao_tema()
+            self._reconstruir_ui()
         self._carregar_dados()
         self._atualizar_conteudo()
 
@@ -283,7 +278,7 @@ class Dashboard(ctk.CTkFrame):
 
     def _criar_conteudo(self):
         """Monta o conteúdo principal: header, cards e gráficos."""
-        self._conteudo = ctk.CTkScrollableFrame(self, fg_color="transparent", corner_radius=0)
+        self._conteudo = ctk.CTkScrollableFrame(self, fg_color=cores.COR_BG, corner_radius=0)
         self._conteudo.grid(row=0, column=0, sticky="nsew", padx=(25, 10), pady=30)
         self._conteudo.grid_columnconfigure(0, weight=1)
 
