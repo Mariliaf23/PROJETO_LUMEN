@@ -172,55 +172,71 @@ class JanelaUsuario(ctk.CTkToplevel):
 
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
-        nome     = self.entry_nome.get().strip()
-        email    = self.entry_email.get().strip()
-        telefone = self.entry_telefone.get().strip()
-        senha    = self.entry_senha.get().strip()
-        tipo     = self.combo_tipo.get()
-        status   = self.combo_status.get()
+        import traceback
+        print(">>> BOTÃO SALVAR CLICADO", flush=True)   # ← diagnóstico temporário
+        try:
+            nome     = self.entry_nome.get().strip()
+            email    = self.entry_email.get().strip()
+            telefone = self.entry_telefone.get().strip()
+            senha    = self.entry_senha.get().strip()
+            tipo     = self.combo_tipo.get()
+            status   = self.combo_status.get()
 
-        id_turma = self._get_id_turma() if tipo == "aluno" else None
-        funcao   = ""  # Função não é utilizada nesta tela
+            id_turma = self._get_id_turma() if tipo == "aluno" else None
+            funcao   = ""  # Função não é utilizada nesta tela
 
-        ok, msg = validar_nome(nome)
-        if not ok:
-            return self._notificar(msg)
-        ok, msg = validar_email(email)
-        if not ok:
-            return self._notificar(msg)
-        ok, msg = validar_telefone(telefone)
-        if not ok:
-            return self._notificar(msg)
-        if tipo == "bibliotecario":
-            if not self.id_usuario and not senha:
-                return self._notificar("Senha é obrigatória para bibliotecário.")
-            if senha:
+            ok, msg = validar_nome(nome)
+            if not ok:
+                return self._notificar(msg)
+            ok, msg = validar_email(email)
+            if not ok:
+                return self._notificar(msg)
+            ok, msg = validar_telefone(telefone)
+            if not ok:
+                return self._notificar(msg)
+            if tipo == "bibliotecario":
+                if not self.id_usuario and not senha:
+                    return self._notificar("Senha é obrigatória para bibliotecário.")
+                if senha:
+                    ok, msg = validar_senha(senha)
+                    if not ok:
+                        return self._notificar(msg)
+            elif senha:  # senha opcional para outros tipos, mas se preenchida valida
                 ok, msg = validar_senha(senha)
                 if not ok:
                     return self._notificar(msg)
-        elif senha:  # senha opcional para outros tipos, mas se preenchida valida
-            ok, msg = validar_senha(senha)
-            if not ok:
-                return self._notificar(msg)
 
-        if self.id_usuario:
-            ok = atualizar_usuario(
-                self.id_usuario, nome, email, telefone, '',
-                tipo, '', id_turma, funcao, status
-            )
-            if ok and senha:
-                atualizar_senha_usuario(self.id_usuario, senha)
-            msg_ok = "Usuario atualizado!"
-        else:
-            ok = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                   tipo, '', id_turma, funcao)
-            msg_ok = "Usuario cadastrado!"
+            # ── PONTO CORRIGIDO ──────────────────────────────────────────────
+            # cadastrar_usuario agora sempre retorna (ok, mensagem), então
+            # desempacotamos os dois valores em vez de tratar como bool puro.
+            if self.id_usuario:
+                ok = atualizar_usuario(
+                    self.id_usuario, nome, email, telefone, '',
+                    tipo, '', id_turma, funcao, status
+                )
+                if ok and senha:
+                    atualizar_senha_usuario(self.id_usuario, senha)
+                msg_erro = "Erro ao atualizar usuário."
+                msg_ok = "Usuario atualizado!"
+            else:
+                ok, msg_erro = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                                 tipo, '', id_turma, funcao)
+                msg_ok = "Usuario cadastrado!"
 
-        if ok:
-            self._notificar(msg_ok)
-            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-        else:
-            self._notificar("Erro ao salvar (e-mail/CPF duplicado?).")
+            if ok:
+                self._notificar(msg_ok)
+                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+            else:
+                self._notificar(msg_erro)
+            # ── FIM DO PONTO CORRIGIDO ───────────────────────────────────────
+
+        except Exception as e:
+            # ── DIAGNÓSTICO TEMPORÁRIO ──
+            # Captura qualquer erro inesperado e mostra tanto no console
+            # quanto direto na tela do modal, em vez de falhar em silêncio.
+            print(">>> ERRO DENTRO DE _salvar:", flush=True)
+            traceback.print_exc()
+            self.lbl_notif.configure(text=f"ERRO: {e}", text_color="#EF4444")
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
