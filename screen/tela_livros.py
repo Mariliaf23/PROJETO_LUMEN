@@ -173,16 +173,23 @@ class TelaLivros(ctk.CTkFrame):
         busca_frame = ctk.CTkFrame(lista_card, fg_color="transparent")
         busca_frame.pack(fill="x", padx=20, pady=(12, 0))
 
-        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por título, ISBN ou categoria…", height=40, width=300)
+        self.entry_filtro = criar_entry(
+            busca_frame,
+            placeholder="Buscar na lista por título, ISBN ou categoria…",
+            height=36
+        )
         self.entry_filtro.configure(font=("Segoe UI", 13))
-        self.entry_filtro.pack(side="left", fill="x", expand=False, padx=(0, 8))
+        self.entry_filtro.pack(side="left", fill="x", expand=True, padx=(0, 10))  # agora bem mais largo
         self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
 
         ctk.CTkButton(
-            busca_frame, text="↺ Limpar", width=90, height=34,
-            fg_color=cores.COR_CARD, font=("Segoe UI", 13, "bold"), command=self._limpar_filtro
+            busca_frame, text="↺ Limpar", width=110, height=36,
+            fg_color=cores.COR_AZUL_PRINCIPAL,
+            hover_color=cores.COR_AZUL_HOVER,
+            text_color="#FFFFFF",
+            font=("Segoe UI", 13, "bold"),
+            command=self._limpar_filtro
         ).pack(side="left")
-
         # Cabeçalho
         header_tab = ctk.CTkFrame(lista_card, fg_color="transparent")
         header_tab.pack(fill="x", padx=(20, 20 + COMPENSA_SCROLLBAR), pady=(8, 2))
