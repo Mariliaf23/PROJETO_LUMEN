@@ -39,7 +39,7 @@ class JanelaUsuario(ctk.CTkToplevel):
         self.id_usuario = id_usuario
         self._turmas    = listar_turmas()  # [(id, codigo, turno), ...]
         self.title("Editar Usuário" if id_usuario else "Novo Usuário")
-        self.geometry("420x580")
+        self.geometry("420x700")
         self.resizable(False, False)
         self.configure(fg_color=cores.COR_BG)
         self.grab_set()
