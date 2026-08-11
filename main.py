@@ -2,6 +2,7 @@ from services.conector import init_db
 from services.app_controller import AppController
 from services.styles import cores
 import customtkinter as ctk
+import tkinter.messagebox as mb
 from PIL import Image
 import sys
 import os
@@ -110,7 +111,17 @@ if __name__ == "__main__":                            # Só executa se for o arq
     def _etapa_1_banco():
         _atualizar_status(splash, lbl_status, "Conectando ao banco de dados...")
         if not init_db():                            # Tenta criar/verificar o banco de dados
-            print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
+            print("ERRO: Falha ao inicializar o banco de dados.")
+            continuar = mb.askyesno(
+                "LUMEN - Falha ao conectar",
+                "Não foi possível conectar ao banco de dados.\n\n"
+                "Verifique sua conexão com a internet, se a VPN está ativa\n"
+                "e se o servidor Aiven está acessível.\n\n"
+                "Deseja abrir o sistema mesmo assim?"
+            )
+            if not continuar:
+                root.destroy()
+                return
         root.after(50, _etapa_2_telas)
 
     def _etapa_2_telas():

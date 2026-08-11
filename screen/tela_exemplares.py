@@ -21,6 +21,7 @@ from services.styles import (
     criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout
 )
 from services.validador import validar_patrimonio, validar_texto
+from services.db_async import carregar_em_fundo
 
 
 COLUNAS_EXEMPLARES = [
@@ -304,7 +305,13 @@ class TelaExemplares(ctk.CTkFrame):
 
     # ── dados ─────────────────────────────────────────────────────────────────
     def _carregar_livros(self):
-        livros = listar_livros()
+        """Carrega a lista de livros em THREAD DE FUNDO (não congela a tela)."""
+        carregar_em_fundo(self, listar_livros, self._aplicar_livros)
+
+    def _aplicar_livros(self, livros, erro):
+        if not self.winfo_exists():
+            return
+        livros = (livros or []) if erro is None else []
         self._livros_map = {}
         self._livros_lista = []
         for l in livros:
@@ -360,10 +367,17 @@ class TelaExemplares(ctk.CTkFrame):
         self._itens_lista.clear()
         self._selecionado = None
 
-        if exemplares is None:
-            self._todos_exemplares = listar_exemplares()
-            exemplares = self._todos_exemplares
-        self._renderizar(exemplares)
+        if exemplares is not None:
+            self._renderizar(exemplares)
+            return
+        carregar_em_fundo(self, listar_exemplares, self._aplicar_tabela)
+
+    def _aplicar_tabela(self, exemplares, erro):
+        if not self.winfo_exists():
+            return
+        if erro is None:
+            self._todos_exemplares = exemplares or []
+            self._renderizar(self._todos_exemplares)
 
     def _renderizar(self, exemplares):
         for w in self.lista_frame.winfo_children():

@@ -24,7 +24,8 @@ class AppController:
         self._container = ctk.CTkFrame(root, fg_color=cores.COR_BG)  # Frame que segura as telas
         self._container.pack(fill="both", expand=True)          # Preenche toda a janela
 
-        self._telas = {}           # Dicionário com todas as telas registradas (nome -> frame)
+        self._telas = {}           # Dicionário com todas as telas JÁ CRIADAS (nome -> frame)
+        self._telas_pendentes = {} # Classes de telas que ainda serão criadas sob demanda
         self._tela_atual = None    # Nome da tela que está sendo exibida agora
         self._historico = []       # Lista de telas visitadas (para o botão voltar)
         self._animando = False     # True enquanto uma animação de transição está rodando
@@ -38,7 +39,33 @@ class AppController:
 
         cores.registrar_listener(self._ao_tema_mudou)
 
+        # Faixa de aviso exibida quando o servidor (banco) estiver indisponível
+        self._banner_visivel = False
+        self._tk_banner = ctk.CTkLabel(
+            self.root,
+            text="Servidor indisponível — verifique sua conexão.",
+            fg_color=cores.COR_ERRO,
+            text_color="#FFFFFF",
+            height=30,
+            corner_radius=0,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self._tk_banner.place_forget()
+
+        from services import db_async
+        db_async.registrar_callback_banner(self._ao_alterar_banner)
+
         self._centralizar()        # Centraliza a janela na tela do computador
+
+    def _ao_alterar_banner(self, indisponivel):
+        """Mostra/oculta a faixa de 'servidor indisponível' conforme as consultas em fundo."""
+        if indisponivel and not self._banner_visivel:
+            self._banner_visivel = True
+            self._tk_banner.place(relx=0, rely=0, relwidth=1)
+            self._tk_banner.lift()
+        elif not indisponivel and self._banner_visivel:
+            self._banner_visivel = False
+            self._tk_banner.place_forget()
 
     def verificar_acesso(self, tela):
         """Verifica se o usuário logado pode acessar a tela solicitada."""
@@ -63,11 +90,21 @@ class AppController:
         self.root.geometry(f"+{x}+{y}")                 # Aplica a posição calculada
 
     def registrar_tela(self, nome, classe_tela):
-        """Registra uma tela no controlador para uso posterior na navegação."""
-        frame = classe_tela(master=self._container, controller=self)  # Cria a tela
-        self._telas[nome] = frame                     # Salva no dicionário pelo nome
-        frame.place(relx=0, rely=0, relwidth=1, relheight=1)  # Posiciona preenchendo o container
-        frame.place_forget()                          # Esconde a tela (será mostrada quando necessário)
+        """Registra uma tela no controlador (a instância é criada SOB DEMANDA, na primeira navegação)."""
+        self._telas_pendentes[nome] = classe_tela
+
+    def _garantir_tela(self, nome):
+        """Cria a tela na primeira vez que ela for acessada (lazy loading — evita travamento no início)."""
+        if nome in self._telas:
+            return self._telas[nome]
+        classe = self._telas_pendentes.pop(nome, None)
+        if classe is None:
+            return None
+        frame = classe(master=self._container, controller=self)
+        self._telas[nome] = frame
+        frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+        frame.place_forget()
+        return frame
 
     def navegar_para(self, nome, voltavel=True):
         """Navega para a tela indicada pelo nome."""
@@ -86,7 +123,10 @@ class AppController:
                 self._historico.append(self._tela_atual)
             antiga = self._tela_atual
             self._tela_atual = nome
-            nova_tela = self._telas[nome]
+            nova_tela = self._garantir_tela(nome)
+            if nova_tela is None:
+                self._tela_atual = antiga
+                return
             callback = nova_tela._ao_visitar if hasattr(nova_tela, '_ao_visitar') else None
             if antiga:
                 self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda", callback=callback)
@@ -104,7 +144,10 @@ class AppController:
 
         antiga = self._tela_atual
         self._tela_atual = nome
-        nova_tela = self._telas[nome]
+        nova_tela = self._garantir_tela(nome)
+        if nova_tela is None:
+            self._tela_atual = antiga
+            return
 
         if antiga:
             tela_antiga = self._telas[antiga]

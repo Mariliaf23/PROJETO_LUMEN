@@ -22,8 +22,21 @@ DB_CONFIG = {
     'port': int(DB_PORT),  # Converte a porta para inteiro
     'user': os.getenv('DB_USER', 'root'),
     'password': os.getenv('DB_PASSWORD', ''),
-    'database': DB_NAME
+    'database': DB_NAME,
+    'connection_timeout': 10,  # Evita que a aplicação fique travada se o servidor não responder
 }
+
+# Caminho do certificado CA (necessário para conexões com TLS — ex: Aiven/banco remoto)
+_ca_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ca.pem")
+
+# Se o certificado CA existir, ativa o TLS usando ele.
+# ssl_verify_cert/identity em False mantêm a conexão funcional mesmo com
+# certificados auto-assinados/regra de firewall de rede de escola.
+if os.path.exists(_ca_path):
+    DB_CONFIG['ssl_disabled'] = False
+    DB_CONFIG['ssl_ca'] = _ca_path
+    DB_CONFIG['ssl_verify_cert'] = False
+    DB_CONFIG['ssl_verify_identity'] = False
 
 
 DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')    # Usuário padrão admin

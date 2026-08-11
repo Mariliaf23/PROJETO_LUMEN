@@ -16,6 +16,7 @@ from services.styles import (
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
+from services.db_async import carregar_em_fundo
 
 COMPENSA_SCROLLBAR = 18
 
@@ -520,12 +521,25 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         linha.selecionar()
 
     def _carregar(self, usuarios=None):
-        if usuarios is None:
-            tipo = self.combo_filtro.get()
-            tipo = None if tipo == "Todos" else tipo
-            usuarios = listar_usuarios(tipo=tipo)
+        if usuarios is not None:
+            self._renderizar_linhas(usuarios, {})
+            return
+        carregar_em_fundo(self, self._coletar_usuarios, self._aplicar_usuarios)
 
-        turmas_map = {tid: (c, t) for tid, c, t in listar_turmas()}
+    def _coletar_usuarios(self):
+        """Busca usuários e turmas em thread de fundo."""
+        tipo = self.combo_filtro.get()
+        tipo = None if tipo == "Todos" else tipo
+        return listar_usuarios(tipo=tipo), {tid: (c, t) for tid, c, t in listar_turmas()}
+
+    def _aplicar_usuarios(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is None and dados:
+            usuarios, turmas_map = dados
+            self._renderizar_linhas(usuarios, turmas_map)
+
+    def _renderizar_linhas(self, usuarios, turmas_map):
         self._linha_selecionada = None
 
         for widget in self.scroll.winfo_children():
@@ -552,7 +566,12 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         if not termo:
             self._carregar()
             return
-        self._carregar(buscar_usuarios_por_nome(termo))
+        carregar_em_fundo(
+            self,
+            lambda: (buscar_usuarios_por_nome(termo),
+                     {tid: (c, t) for tid, c, t in listar_turmas()}),
+            self._aplicar_usuarios
+        )
 
     def _limpar_filtros(self):
         self.entry_busca.delete(0, "end")
