@@ -45,18 +45,23 @@ def verificar_login(usuario, senha):
 
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', id_turma=None, funcao=''):
-    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem)."""
+                      matricula='', id_turma=None, funcao='', status='ativo'):
+    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem).
+
+    CORREÇÃO: adicionado o parâmetro `status`, que antes era ignorado —
+    o INSERT não gravava o status escolhido na tela de cadastro, e o
+    usuário sempre nascia com o valor padrão da coluna no banco.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
         senha_hash = _hash_senha(senha) if senha else ''
         cursor.execute(
             """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
-               matricula, id_turma, funcao)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               matricula, id_turma, funcao, status)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (nome, email, senha_hash, telefone or None, cpf or None, tipo,
-             matricula or None, id_turma or None, funcao or None)
+             matricula or None, id_turma or None, funcao or None, status)
         )
         conn.commit()
         conn.close()
@@ -863,18 +868,31 @@ def livro_tem_reserva_ativa(id_livro):
 
 
 def renovar_emprestimo(id_emprestimo):
-    """Renova um empréstimo estendendo a data prevista em 7 dias."""
+    """Renova um empréstimo estendendo a data prevista em 7 dias.
+
+    CORREÇÃO: não depender de `rowcount` para decidir sucesso — se o
+    empréstimo já estiver com a mesma data (raro, mas possível) o
+    rowcount pode voltar 0 mesmo com o UPDATE executado corretamente.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
         cursor.execute(
+            "SELECT COUNT(*) FROM emprestimo WHERE id_emprestimo = %s AND status = 'ativo'",
+            (id_emprestimo,)
+        )
+        existe = cursor.fetchone()[0] > 0
+        if not existe:
+            conn.close()
+            return False
+
+        cursor.execute(
             "UPDATE emprestimo SET data_prevista = DATE_ADD(data_prevista, INTERVAL 7 DAY) WHERE id_emprestimo = %s AND status = 'ativo'",
             (id_emprestimo,)
         )
-        alterado = cursor.rowcount > 0
         conn.commit()
         conn.close()
-        return alterado
+        return True
     except Error:
         return False
 
@@ -1051,10 +1069,9 @@ def renovar_grupo_emprestimo(id_grupo):
             (id_grupo,)
         )
 
-        alterado = cursor.rowcount > 0
         conn.commit()
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao renovar grupo: {e}")
         return False
@@ -1462,7 +1479,15 @@ def buscar_usuario_por_id(id_usuario):
 
 def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno',
                       matricula='', id_turma=None, funcao='', status='ativo'):
-    """Atualiza todos os campos editáveis de um usuário (exceto senha)."""
+    """Atualiza todos os campos editáveis de um usuário (exceto senha).
+
+    CORREÇÃO: antes o retorno de sucesso dependia de `cursor.rowcount > 0`.
+    No mysql-connector-python, `rowcount` só conta linhas cujo VALOR mudou —
+    se você editar um usuário sem alterar nada (ou os valores já forem
+    iguais), o UPDATE roda com sucesso mas rowcount volta 0, fazendo a tela
+    mostrar "Erro ao atualizar usuário" mesmo estando tudo certo.
+    Agora só retornamos False se realmente ocorrer uma exceção.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -1476,16 +1501,18 @@ def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno'
              status, id_usuario)
         )
         conn.commit()
-        alterado = cursor.rowcount > 0
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao atualizar usuario: {e}")
         return False
 
 
 def atualizar_senha_usuario(id_usuario, nova_senha):
-    """Atualiza apenas a senha de um usuário (com hash SHA-256)."""
+    """Atualiza apenas a senha de um usuário (com hash SHA-256).
+
+    CORREÇÃO: mesmo motivo do atualizar_usuario — não depender de rowcount.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -1495,9 +1522,8 @@ def atualizar_senha_usuario(id_usuario, nova_senha):
             (senha_hash, id_usuario)
         )
         conn.commit()
-        alterado = cursor.rowcount > 0           # True se atualizou
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao atualizar senha: {e}")
         return False
