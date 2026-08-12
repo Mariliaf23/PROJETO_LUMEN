@@ -40,7 +40,7 @@ class JanelaUsuario(ctk.CTkToplevel):
         self.id_usuario = id_usuario
         self._turmas    = listar_turmas()  # [(id, codigo, turno), ...]
         self.title("Editar Usuário" if id_usuario else "Novo Usuário")
-        self.geometry("420x580")
+        self.geometry("420x700")
         self.resizable(False, False)
         self.configure(fg_color=cores.COR_BG)
         self.grab_set()
@@ -173,55 +173,73 @@ class JanelaUsuario(ctk.CTkToplevel):
 
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
-        nome     = self.entry_nome.get().strip()
-        email    = self.entry_email.get().strip()
-        telefone = self.entry_telefone.get().strip()
-        senha    = self.entry_senha.get().strip()
-        tipo     = self.combo_tipo.get()
-        status   = self.combo_status.get()
+        import traceback
+        print(">>> BOTÃO SALVAR CLICADO", flush=True)   # ← diagnóstico temporário
+        try:
+            nome     = self.entry_nome.get().strip()
+            email    = self.entry_email.get().strip()
+            telefone = self.entry_telefone.get().strip()
+            senha    = self.entry_senha.get().strip()
+            tipo     = self.combo_tipo.get()
+            status   = self.combo_status.get()
 
-        id_turma = self._get_id_turma() if tipo == "aluno" else None
-        funcao   = ""  # Função não é utilizada nesta tela
+            id_turma = self._get_id_turma() if tipo == "aluno" else None
+            funcao   = ""  # Função não é utilizada nesta tela
 
-        ok, msg = validar_nome(nome)
-        if not ok:
-            return self._notificar(msg)
-        ok, msg = validar_email(email)
-        if not ok:
-            return self._notificar(msg)
-        ok, msg = validar_telefone(telefone)
-        if not ok:
-            return self._notificar(msg)
-        if tipo == "bibliotecario":
-            if not self.id_usuario and not senha:
-                return self._notificar("Senha é obrigatória para bibliotecário.")
-            if senha:
+            ok, msg = validar_nome(nome)
+            if not ok:
+                return self._notificar(msg)
+            ok, msg = validar_email(email)
+            if not ok:
+                return self._notificar(msg)
+            ok, msg = validar_telefone(telefone)
+            if not ok:
+                return self._notificar(msg)
+            if tipo == "bibliotecario":
+                if not self.id_usuario and not senha:
+                    return self._notificar("Senha é obrigatória para bibliotecário.")
+                if senha:
+                    ok, msg = validar_senha(senha)
+                    if not ok:
+                        return self._notificar(msg)
+            elif senha:  # senha opcional para outros tipos, mas se preenchida valida
                 ok, msg = validar_senha(senha)
                 if not ok:
                     return self._notificar(msg)
-        elif senha:  # senha opcional para outros tipos, mas se preenchida valida
-            ok, msg = validar_senha(senha)
-            if not ok:
-                return self._notificar(msg)
 
-        if self.id_usuario:
-            ok = atualizar_usuario(
-                self.id_usuario, nome, email, telefone, '',
-                tipo, '', id_turma, funcao, status
-            )
-            if ok and senha:
-                atualizar_senha_usuario(self.id_usuario, senha)
-            msg_ok = "Usuario atualizado!"
-        else:
-            ok = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                   tipo, '', id_turma, funcao)
-            msg_ok = "Usuario cadastrado!"
+            # ── PONTO CORRIGIDO ──────────────────────────────────────────────
+            # cadastrar_usuario agora sempre retorna (ok, mensagem), então
+            # desempacotamos os dois valores em vez de tratar como bool puro.
+            # Também passamos "status" para cadastrar_usuario, que antes
+            # ignorava o valor escolhido no combo_status ao criar um usuário novo.
+            if self.id_usuario:
+                ok = atualizar_usuario(
+                    self.id_usuario, nome, email, telefone, '',
+                    tipo, '', id_turma, funcao, status
+                )
+                if ok and senha:
+                    atualizar_senha_usuario(self.id_usuario, senha)
+                msg_erro = "Erro ao atualizar usuário."
+                msg_ok = "Usuario atualizado!"
+            else:
+                ok, msg_erro = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                                 tipo, '', id_turma, funcao, status)
+                msg_ok = "Usuario cadastrado!"
 
-        if ok:
-            self._notificar(msg_ok)
-            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-        else:
-            self._notificar("Erro ao salvar (e-mail/CPF duplicado?).")
+            if ok:
+                self._notificar(msg_ok)
+                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+            else:
+                self._notificar(msg_erro)
+            # ── FIM DO PONTO CORRIGIDO ───────────────────────────────────────
+
+        except Exception as e:
+            # ── DIAGNÓSTICO TEMPORÁRIO ──
+            # Captura qualquer erro inesperado e mostra tanto no console
+            # quanto direto na tela do modal, em vez de falhar em silêncio.
+            print(">>> ERRO DENTRO DE _salvar:", flush=True)
+            traceback.print_exc()
+            self.lbl_notif.configure(text=f"ERRO: {e}", text_color="#EF4444")
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
@@ -269,6 +287,20 @@ class LinhaUsuario(ctk.CTkFrame):
 
         id_u, nome, email, telefone, cpf, tipo, matricula, id_turma, funcao, status = dados
 
+        # ── CORREÇÃO ──────────────────────────────────────────────────────
+        # Antes essas variáveis só existiam dentro do __init__. O método
+        # desselecionar() as usava via closure, mas como não são atributos
+        # de self, isso gerava NameError assim que o usuário clicava em
+        # outra linha da tabela (o que dispara desselecionar() na linha
+        # anterior). Agora guardamos tudo que é necessário como atributos.
+        self._id_u = id_u
+        self._nome = nome
+        self._status = status
+        self._on_editar = on_editar
+        self._on_alternar = on_alternar
+        self._on_excluir = on_excluir
+        # ─────────────────────────────────────────────────────────────────
+
         turma_label = "-"
         if turmas_map and id_turma and id_turma in turmas_map:
             c, t = turmas_map[id_turma]
@@ -300,28 +332,34 @@ class LinhaUsuario(ctk.CTkFrame):
         col_acoes = len(self.COLUNAS)
         self.grid_columnconfigure(col_acoes, weight=0, minsize=self.LARGURA_COL_ACOES)
 
-        frame_acoes = ctk.CTkFrame(self, fg_color="transparent")
-        frame_acoes.grid(row=0, column=col_acoes, sticky="e", padx=(4, self.PAD_BORDA_DIREITA), pady=4)
+        self._frame_acoes = ctk.CTkFrame(self, fg_color="transparent")
+        self._frame_acoes.grid(row=0, column=col_acoes, sticky="e", padx=(4, self.PAD_BORDA_DIREITA), pady=4)
 
+        self._construir_botoes_acoes(self._frame_acoes)
+
+    def _construir_botoes_acoes(self, frame_acoes):
+        """Cria os botões Editar / Ativar-Desativar / Excluir dentro de frame_acoes.
+        Usado tanto no __init__ quanto em desselecionar(), sempre lendo de self.
+        """
         ctk.CTkButton(
             frame_acoes, text="Editar", width=self.LARGURA_BTN_EDITAR, height=32,
             fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
             hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 13, "bold"),
-            command=lambda: on_editar(id_u)
+            command=lambda: self._on_editar(self._id_u)
         ).pack(side="left", padx=(0, self.GAP_BOTOES))
 
-        label_status = "Ativar" if status == "inativo" else "Desativar"
-        cor_status   = cores.COR_SUCESSO if status == "inativo" else cores.COR_AVISO
+        label_status = "Ativar" if self._status == "inativo" else "Desativar"
+        cor_status   = cores.COR_SUCESSO if self._status == "inativo" else cores.COR_AVISO
         ctk.CTkButton(
             frame_acoes, text=label_status, width=self.LARGURA_BTN_STATUS, height=32,
             fg_color=cor_status, text_color="#fff", font=("Segoe UI", 13, "bold"),
-            command=lambda: on_alternar(id_u)
+            command=lambda: self._on_alternar(self._id_u)
         ).pack(side="left", padx=(0, self.GAP_BOTOES))
 
         ctk.CTkButton(
             frame_acoes, text="✕", width=self.LARGURA_BTN_EXCLUIR, height=32,
             fg_color=cores.COR_PERIGO, text_color="#fff", font=("Segoe UI", 13, "bold"),
-            command=lambda: on_excluir(id_u, nome)
+            command=lambda: self._on_excluir(self._id_u, self._nome)
         ).pack(side="left")
 
     def selecionar(self):
@@ -334,35 +372,11 @@ class LinhaUsuario(ctk.CTkFrame):
         for lbl, cor in zip(self._labels, self._cores_originais):
             lbl.configure(fg_color=self._cor_original, text_color=cor)
 
-        col_acoes = len(self.COLUNAS)
-        self.grid_columnconfigure(col_acoes, weight=0, minsize=self.LARGURA_COL_ACOES)
-
-        frame_acoes = ctk.CTkFrame(self, fg_color="transparent")
-        frame_acoes.grid(row=0, column=col_acoes, sticky="e", padx=(4, self.PAD_BORDA_DIREITA), pady=4)
-
-        ctk.CTkButton(
-            frame_acoes, text="Editar", width=self.LARGURA_BTN_EDITAR, height=32,
-            fg_color=cores.COR_AZUL_PRINCIPAL, text_color="#FFFFFF",
-            hover_color=cores.COR_AZUL_HOVER,
-            font=("Segoe UI", 13, "bold"),
-            command=lambda: on_editar(id_u)
-        ).pack(side="left", padx=(0, self.GAP_BOTOES))
-
-        label_status = "Ativar" if status == "inativo" else "Desativar"
-        cor_status   = cores.COR_SUCESSO if status == "inativo" else cores.COR_AVISO
-        ctk.CTkButton(
-            frame_acoes, text=label_status, width=self.LARGURA_BTN_STATUS, height=32,
-            fg_color=cor_status, text_color="#fff",
-            font=("Segoe UI", 13, "bold"),
-            command=lambda: on_alternar(id_u)
-        ).pack(side="left", padx=(0, self.GAP_BOTOES))
-
-        ctk.CTkButton(
-            frame_acoes, text="✕", width=self.LARGURA_BTN_EXCLUIR, height=32,
-            fg_color=cores.COR_PERIGO, text_color="#fff",
-            font=("Segoe UI", 13, "bold"),
-            command=lambda: on_excluir(id_u, nome)
-        ).pack(side="left")
+        # Reconstrói a coluna de ações usando os atributos salvos em self
+        # (antes usava variáveis locais do __init__ que não existiam mais aqui)
+        for widget in self._frame_acoes.winfo_children():
+            widget.destroy()
+        self._construir_botoes_acoes(self._frame_acoes)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
