@@ -18,17 +18,17 @@ if not DB_PORT:
 
 # Configurações de conexão com o MySQL (lidas do arquivo .env)
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
+    'host': os.getenv('DB_HOST'),
     'port': int(DB_PORT),  # Converte a porta para inteiro
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
     'database': DB_NAME,
     'connection_timeout': 10,  # Evita que a aplicação fique travada se o servidor não responder
 }
 
 
-DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')    # Usuário padrão admin
-DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD', 'admin123')  # Senha padrão do admin
+DEFAULT_USER = os.getenv('DEFAULT_USER')    # Usuário padrão admin
+DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD')  # Senha padrão do admin
 
 
 def init_db():
@@ -39,7 +39,7 @@ def init_db():
 
         # 2. Valida um registro legado com nome vazio/corrompido que impedia o
         # INSERT IGNORE (email duplicado) e deixava o admin nunca criado.
-        EMAIL_PADRAO = 'admin@lumen.com'
+        EMAIL_PADRAO = os.getenv('DEFAULT_EMAIL')  # Email padrão do admin' 
         senha_hash = hashlib.sha256(DEFAULT_PASSWORD.encode('utf-8')).hexdigest()
 
         # Busca por nome OU email — cobre registros legados e o caso de
