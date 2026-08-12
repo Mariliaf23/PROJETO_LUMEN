@@ -46,7 +46,7 @@ def verificar_login(usuario, senha):
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
                       matricula='', id_turma=None, funcao=''):
-    """Cadastra um novo usuário no banco de dados. Retorna True se deu certo."""
+    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem)."""
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -60,7 +60,7 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
         )
         conn.commit()
         conn.close()
-        return True
+        return True, ""
     except Error as e:
         print(f"Erro ao cadastrar usuario: {e}")
         msg = str(e).lower()

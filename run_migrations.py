@@ -115,6 +115,72 @@ def run_migrations():
         else:
             print("⏭ Constraint já existe")
 
+        # 5. Alinha a tabela usuario com o schema atual (id_turma, data_suspensao, status)
+        print("📋 Verificando coluna id_turma na tabela usuario...")
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND COLUMN_NAME = 'id_turma'
+        """, (DB_NAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE `usuario` ADD COLUMN `id_turma` INT DEFAULT NULL AFTER `turno`")
+            print("✓ Coluna id_turma adicionada")
+        else:
+            print("⏭ Coluna id_turma já existe")
+
+        print("📋 Verificando coluna data_suspensao na tabela usuario...")
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND COLUMN_NAME = 'data_suspensao'
+        """, (DB_NAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE `usuario` ADD COLUMN `data_suspensao` DATE DEFAULT NULL AFTER `status`")
+            print("✓ Coluna data_suspensao adicionada")
+        else:
+            print("⏭ Coluna data_suspensao já existe")
+
+        print("📋 Verificando enum de status (suspenso)...")
+        cursor.execute("""
+            SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND COLUMN_NAME = 'status'
+        """, (DB_NAME,))
+        resultado_status = cursor.fetchone()
+        if resultado_status and "suspenso" not in resultado_status[0]:
+            cursor.execute(
+                "ALTER TABLE `usuario` MODIFY `status` ENUM('ativo','inativo','bloqueado','suspenso') NOT NULL DEFAULT 'ativo'"
+            )
+            print("✓ Enum de status atualizado (inclui 'suspenso')")
+        else:
+            print("⏭ Enum de status já possui 'suspenso'")
+
+        print("📋 Verificando index fk_usuario_turma_idx...")
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND INDEX_NAME = 'fk_usuario_turma_idx'
+        """, (DB_NAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE `usuario` ADD INDEX `fk_usuario_turma_idx` (`id_turma`)")
+            print("✓ Index fk_usuario_turma_idx criado")
+        else:
+            print("⏭ Index já existe")
+
+        print("📋 Verificando constraint fk_usuario_turma...")
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND CONSTRAINT_NAME = 'fk_usuario_turma'
+        """, (DB_NAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE `usuario`
+                ADD CONSTRAINT `fk_usuario_turma`
+                    FOREIGN KEY (`id_turma`)
+                    REFERENCES `turma` (`id_turma`)
+                    ON DELETE SET NULL
+                    ON UPDATE CASCADE
+            """)
+            print("✓ Constraint fk_usuario_turma criada")
+        else:
+            print("⏭ Constraint já existe")
+
         conn.commit()
         conn.close()
 

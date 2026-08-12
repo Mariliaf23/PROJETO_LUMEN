@@ -36,6 +36,9 @@ class AppController:
         self._btn_tema = None         # Botão de alternar tema na sidebar
         self._logo_img = None         # Imagem da logo (evita garbage collection)
 
+        self._ultimo_fullscreen = bool(self.root.attributes("-fullscreen"))
+        self.root.bind("<Configure>", self._ao_estado_fullscreen_mudou, add="+")
+
         cores.registrar_listener(self._ao_tema_mudou)
 
         self._centralizar()        # Centraliza a janela na tela do computador
@@ -231,7 +234,48 @@ class AppController:
         self._container.pack(fill="both", expand=True)
 
     def _construir_sidebar(self):
-        """Monta o menu lateral com logo e botões de navegação."""
+        """Monta o menu lateral com logo, navegação rolável e rodapé fixo.
+
+        Layout em três partes:
+          - Topo fixo: logo (sempre visível)
+          - Meio rolável: botões de navegação (ganham scrollbar se faltar espaço)
+          - Rodapé fixo: versão, alternar tema e botão sair (sempre visíveis)
+        """
+        # ===== RODAPÉ FIXO (empacotado primeiro para reservar o espaço na base) =====
+        rodape = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
+        rodape.pack(side="bottom", fill="x", padx=15)
+
+        ctk.CTkFrame(rodape, fg_color=cores.COR_INPUT_BORDER, height=1).pack(fill="x", pady=(0, 8))
+
+        ctk.CTkLabel(rodape, text="v1.0 • LUMEN SYSTEM",
+                     font=("Segoe UI", 11), text_color=cores.COR_TEXTO2).pack(pady=(0, 6))
+
+        self._btn_tema = ctk.CTkButton(
+            rodape,
+            text="🌙  Escuro" if cores.modo == "dark" else "☀️  Claro",
+            font=("Segoe UI", 13),
+            fg_color="transparent",
+            text_color=cores.COR_TEXTO2,
+            hover_color=cores.COR_ATIVO,
+            anchor="center",
+            height=38, corner_radius=8,
+            command=self._alternar_tema
+        )
+        self._btn_tema.pack(fill="x", pady=(0, 4))
+
+        ctk.CTkButton(
+            rodape,
+            text="🚪   Sair",
+            font=("Segoe UI", 13),
+            fg_color="transparent",
+            text_color=cores.COR_TEXTO2,
+            hover_color=cores.COR_ATIVO,
+            anchor="center",
+            height=38, corner_radius=8,
+            command=self._sair
+        ).pack(fill="x")
+
+        # ===== TOPO FIXO: logo =====
         topo = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
         topo.pack(fill="x", pady=(25, 5), padx=10)
 
@@ -250,6 +294,7 @@ class AppController:
 
         ctk.CTkFrame(self._sidebar_frame, fg_color=cores.COR_INPUT_BORDER, height=1).pack(fill="x", padx=25, pady=(15, 20))
 
+        # ===== MEIO ROLÁVEL: botões de navegação =====
         tipo_usuario = None
         if hasattr(self, 'usuario_logado') and self.usuario_logado:
             tipo_usuario = self.usuario_logado.get('tipo', '').lower()
@@ -271,11 +316,19 @@ class AppController:
                 ("⚙️   Configurações", "configuracoes"),
             ])
 
+        self._nav_scroll = ctk.CTkScrollableFrame(
+            self._sidebar_frame,
+            fg_color="transparent",
+            scrollbar_button_color=cores.COR_ATIVO,
+            scrollbar_button_hover_color=cores.COR_AZUL_HOVER,
+        )
+        self._nav_scroll.pack(side="top", fill="both", expand=True, padx=(15, 5), pady=(0, 10))
+
         self._botoes_nav = []
         for nome, chave in itens:
             ativo = (chave == tela_atual)
             btn = ctk.CTkButton(
-                self._sidebar_frame,
+                self._nav_scroll,
                 text=nome,
                 font=("Segoe UI", 15, "bold" if ativo else "normal"),
                 fg_color=cores.COR_ATIVO if ativo else "transparent",
@@ -286,39 +339,29 @@ class AppController:
                 corner_radius=8,
                 command=lambda k=chave: self.navegar_para(k)
             )
-            btn.pack(fill="x", padx=15, pady=3)
+            btn.pack(fill="x", padx=2, pady=3)
             self._botoes_nav.append((btn, chave))
 
-        ctk.CTkFrame(self._sidebar_frame, fg_color=cores.COR_INPUT_BORDER, height=1).pack(
-            side="bottom", fill="x", padx=25, pady=(0, 0))
+        self._atualizar_visibilidade_scrollbar_sidebar()
 
-        ctk.CTkButton(
-            self._sidebar_frame,
-            text="🚪   Sair",
-            font=("Segoe UI", 13),
-            fg_color="transparent",
-            text_color=cores.COR_TEXTO2,
-            hover_color=cores.COR_ATIVO,
-            anchor="center",
-            height=38, corner_radius=8,
-            command=self._sair
-        ).pack(side="bottom", fill="x", padx=15, pady=(2, 2))
+    def _ao_estado_fullscreen_mudou(self, event=None):
+        """Detecta mudanças de tela cheia e ajusta a barra de rolagem da sidebar."""
+        atual = bool(self.root.attributes("-fullscreen"))
+        if atual != self._ultimo_fullscreen:
+            self._ultimo_fullscreen = atual
+            self._atualizar_visibilidade_scrollbar_sidebar()
 
-        self._btn_tema = ctk.CTkButton(
-            self._sidebar_frame,
-            text="🌙  Escuro" if cores.modo == "dark" else "☀️  Claro",
-            font=("Segoe UI", 13),
-            fg_color="transparent",
-            text_color=cores.COR_TEXTO2,
-            hover_color=cores.COR_ATIVO,
-            anchor="center",
-            height=38, corner_radius=8,
-            command=self._alternar_tema
-        )
-        self._btn_tema.pack(side="bottom", fill="x", padx=15, pady=(4, 2))
-
-        ctk.CTkLabel(self._sidebar_frame, text="v1.0 • LUMEN SYSTEM",
-                     font=("Segoe UI", 11), text_color=cores.COR_TEXTO2).pack(side="bottom", pady=(4, 8))
+    def _atualizar_visibilidade_scrollbar_sidebar(self):
+        """Mostra a barra de rolagem da navegação apenas fora de tela cheia."""
+        if not self._modo_sidebar:
+            return
+        nav = getattr(self, '_nav_scroll', None)
+        if nav is None:
+            return
+        if self._ultimo_fullscreen:
+            nav._scrollbar.grid_remove()
+        else:
+            nav._scrollbar.grid()
 
     def _ao_tema_mudou(self):
         """Handler centralizado para mudanças de tema."""

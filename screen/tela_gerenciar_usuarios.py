@@ -212,15 +212,15 @@ class JanelaUsuario(ctk.CTkToplevel):
                 atualizar_senha_usuario(self.id_usuario, senha)
             msg_ok = "Usuario atualizado!"
         else:
-            ok = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                   tipo, '', id_turma, funcao)
+            ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                        tipo, '', id_turma, funcao)
             msg_ok = "Usuario cadastrado!"
 
         if ok:
             self._notificar(msg_ok)
             self.after(1000, lambda: (self.on_salvo(), self.destroy()))
         else:
-            self._notificar("Erro ao salvar (e-mail/CPF duplicado?).")
+            self._notificar(msg)
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()

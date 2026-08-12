@@ -233,12 +233,12 @@ class TelaCadastroUsuario(ctk.CTkFrame):
 
     def _salvar(self, nome, email, senha, telefone, cpf, tipo, matricula, id_turma, funcao):
         """Salva o usuário no banco de dados."""
-        sucesso = cadastrar_usuario(nome, email, senha, telefone, cpf, tipo, matricula, id_turma, funcao)
+        sucesso, msg = cadastrar_usuario(nome, email, senha, telefone, cpf, tipo, matricula, id_turma, funcao)
         if sucesso:
             self._notificar("Usuário registrado com sucesso!")
             self.after(1500, lambda: self._voltar())
         else:
-            self._notificar("Erro: E-mail ou CPF já constam no banco.")
+            self._notificar(msg)
         self.btn_cadastrar.configure(text="Confirmar e Salvar Registro", state="normal")
 
     def _voltar(self):
