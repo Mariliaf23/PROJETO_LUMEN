@@ -26,18 +26,6 @@ DB_CONFIG = {
     'connection_timeout': 10,  # Evita que a aplicação fique travada se o servidor não responder
 }
 
-# Caminho do certificado CA (necessário para conexões com TLS — ex: Aiven/banco remoto)
-_ca_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ca.pem")
-
-# Se o certificado CA existir, ativa o TLS usando ele.
-# ssl_verify_cert/identity em False mantêm a conexão funcional mesmo com
-# certificados auto-assinados/regra de firewall de rede de escola.
-if os.path.exists(_ca_path):
-    DB_CONFIG['ssl_disabled'] = False
-    DB_CONFIG['ssl_ca'] = _ca_path
-    DB_CONFIG['ssl_verify_cert'] = False
-    DB_CONFIG['ssl_verify_identity'] = False
-
 
 DEFAULT_USER = os.getenv('DEFAULT_USER', 'admin')    # Usuário padrão admin
 DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD', 'admin123')  # Senha padrão do admin
@@ -49,23 +37,31 @@ def init_db():
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        # 2. Vai direto para a lógica de inserir/atualizar o usuário
-        cursor.execute("SELECT nome FROM usuario WHERE nome = %s", (DEFAULT_USER,))
-        existente = cursor.fetchone()
-
+        # 2. Valida um registro legado com nome vazio/corrompido que impedia o
+        # INSERT IGNORE (email duplicado) e deixava o admin nunca criado.
+        EMAIL_PADRAO = 'admin@lumen.com'
         senha_hash = hashlib.sha256(DEFAULT_PASSWORD.encode('utf-8')).hexdigest()
+
+        # Busca por nome OU email — cobre registros legados e o caso de
+        # troca de usuário/senha no .env em qualquer uma das formas
+        cursor.execute(
+            "SELECT id_usuario FROM usuario WHERE nome = %s OR email = %s",
+            (DEFAULT_USER, EMAIL_PADRAO)
+        )
+        existente = cursor.fetchone()
 
         if existente:
             cursor.execute(
-                "UPDATE usuario SET senha = %s, tipo_usuario = 'diretor', funcao = 'admin' WHERE nome = %s",
-                (senha_hash, DEFAULT_USER)
+                """UPDATE usuario SET nome = %s, senha = %s, tipo_usuario = 'diretor',
+                   funcao = 'admin', status = 'ativo' WHERE id_usuario = %s""",
+                (DEFAULT_USER, senha_hash, existente[0])
             )
             print(f"Usuario '{DEFAULT_USER}' atualizado.")
         else:
             cursor.execute(
-                """INSERT IGNORE INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
+                """INSERT INTO usuario (nome, email, senha, telefone, tipo_usuario, funcao, status)
                    VALUES (%s, %s, %s, %s, 'diretor', 'admin', 'ativo')""",
-                (DEFAULT_USER, 'admin@lumen.com', senha_hash, '')
+                (DEFAULT_USER, EMAIL_PADRAO, senha_hash, '')
             )
             print(f"Usuario padrao criado.")
 

@@ -158,12 +158,12 @@ class TelaExemplares(ctk.CTkFrame):
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
         criar_label(header_left, "Gerenciamento de Exemplares",
-                    font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
+                    font=("Segoe UI", 26, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
             fg_color=cores.COR_AZUL_PRINCIPAL, hover_color=cores.COR_AZUL_HOVER, text_color="#FFFFFF",
-            font=("Segoe UI", 14, "bold")
+            font=("Segoe UI", 16, "bold")
         ).pack(side="right", padx=15, pady=5)
 
         # Formulário compactado
@@ -175,9 +175,9 @@ class TelaExemplares(ctk.CTkFrame):
         form_frame.grid_columnconfigure((0, 1), weight=1)
 
         ALTURA_INPUT = 36
-        FONTE_INPUT = ("Segoe UI", 14)
+        FONTE_INPUT = ("Segoe UI", 16)
 
-        criar_label(form_frame, "Livro Vinculado", font=("Segoe UI", 13, "bold")).grid(
+        criar_label(form_frame, "Livro Vinculado", font=("Segoe UI", 15, "bold")).grid(
             row=0, column=0, sticky="w", pady=(0, 2))
 
         livro_container = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -195,7 +195,7 @@ class TelaExemplares(ctk.CTkFrame):
         )
         self._livro_selecionado_id = None
 
-        criar_label(form_frame, "Código Patrimônio", font=("Segoe UI", 13, "bold")).grid(
+        criar_label(form_frame, "Código Patrimônio", font=("Segoe UI", 15, "bold")).grid(
             row=0, column=1, sticky="w", pady=(0, 2))
 
         patrimonio_container = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -203,7 +203,7 @@ class TelaExemplares(ctk.CTkFrame):
         patrimonio_container.grid_columnconfigure(1, weight=1)
 
         # Prefixo PAT-
-        lbl_prefixo = ctk.CTkLabel(patrimonio_container, text="PAT-", font=("Segoe UI", 14, "bold"),
+        lbl_prefixo = ctk.CTkLabel(patrimonio_container, text="PAT-", font=("Segoe UI", 16, "bold"),
                                     text_color=cores.COR_TEXTO, width=50)
         lbl_prefixo.grid(row=0, column=0, padx=(0, 2))
 
@@ -211,7 +211,7 @@ class TelaExemplares(ctk.CTkFrame):
         self.entry_patrimonio.configure(font=FONTE_INPUT)
         self.entry_patrimonio.grid(row=0, column=1, sticky="ew")
 
-        criar_label(form_frame, "Localização no Acervo", font=("Segoe UI", 13, "bold")).grid(
+        criar_label(form_frame, "Localização no Acervo", font=("Segoe UI", 15, "bold")).grid(
             row=2, column=0, sticky="w", pady=(4, 2))
         self.entry_localizacao = criar_entry(form_frame, placeholder="Ex: Estante B, Prateleira 3", height=ALTURA_INPUT)
         self.entry_localizacao.configure(font=FONTE_INPUT)
@@ -223,7 +223,7 @@ class TelaExemplares(ctk.CTkFrame):
         botoes_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         BTN_H = ALTURA_INPUT
-        BTN_FONT = ("Segoe UI", 12, "bold")
+        BTN_FONT = ("Segoe UI", 14, "bold")
 
         self.btn_adicionar = ctk.CTkButton(
             botoes_frame, text="+ Adicionar", command=self._adicionar,
@@ -269,14 +269,14 @@ class TelaExemplares(ctk.CTkFrame):
         busca_frame = ctk.CTkFrame(lista_card, fg_color="transparent")
         busca_frame.pack(fill="x", padx=20, pady=(12, 0))
 
-        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por patrimônio, livro ou localização…", height=34)
-        self.entry_filtro.configure(font=("Segoe UI", 13))
-        self.entry_filtro.pack(side="left", fill="x", expand=False, padx=(0, 8))
+        self.entry_filtro = criar_entry(busca_frame, placeholder="Buscar na lista por patrimônio, livro ou localização…", height=40, width=300)
+        self.entry_filtro.configure(font=("Segoe UI", 15))
+        self.entry_filtro.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self.entry_filtro.bind("<KeyRelease>", lambda e: self._filtrar_tabela())
 
         ctk.CTkButton(
             busca_frame, text="↺ Limpar", width=90, height=34,
-            fg_color=cores.COR_CARD, font=("Segoe UI", 13, "bold"),
+            fg_color=cores.COR_CARD, font=("Segoe UI", 15, "bold"),
             command=self._limpar_filtro
         ).pack(side="left")
 
@@ -286,7 +286,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_EXEMPLARES):
             header_lista.grid_columnconfigure(idx, weight=peso, minsize=minsize)
-            criar_label(header_lista, nome.upper(), font=("Segoe UI", 12, "bold"),
+            criar_label(header_lista, nome.upper(), font=("Segoe UI", 14, "bold"),
                         text_color=cores.COR_TEXTO, anchor="center"
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
@@ -340,7 +340,7 @@ class TelaExemplares(ctk.CTkFrame):
             btn = ctk.CTkButton(
                 self._frame_sugestoes, text=texto, anchor="w",
                 fg_color="transparent", text_color=cores.COR_TEXTO,
-                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16),
                 height=36, corner_radius=4,
                 command=lambda t=texto: self._escolher_livro(t)
             )
@@ -387,7 +387,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         if not exemplares:
             criar_label(self.lista_frame, "Nenhum exemplar encontrado.",
-                        font=("Segoe UI", 14), text_color=cores.COR_TEXTO).pack(pady=30)
+                        font=("Segoe UI", 16), text_color=cores.COR_TEXTO).pack(pady=30)
             return
         for exc in exemplares:
             self._criar_item(exc)
@@ -440,7 +440,7 @@ class TelaExemplares(ctk.CTkFrame):
                     cor = cores.COR_TEXTO
             else:
                 cor = cores.COR_TEXTO
-            lbl = ctk.CTkLabel(item, text=texto, font=("Segoe UI", 14), text_color=cor, anchor="center")
+            lbl = ctk.CTkLabel(item, text=texto, font=("Segoe UI", 16), text_color=cor, anchor="center")
             lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
             lbl.bind("<Button-1>", lambda e, it=item: self._selecionar(it))
 

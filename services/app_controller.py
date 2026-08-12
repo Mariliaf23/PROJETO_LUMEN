@@ -3,7 +3,7 @@
 import os
 from PIL import Image
 import customtkinter as ctk
-from services.styles import cores
+from services.styles import cores, COR_ERRO
 
 
 class AppController:
@@ -44,7 +44,7 @@ class AppController:
         self._tk_banner = ctk.CTkLabel(
             self.root,
             text="Servidor indisponível — verifique sua conexão.",
-            fg_color=cores.COR_ERRO,
+            fg_color=COR_ERRO,
             text_color="#FFFFFF",
             height=30,
             corner_radius=0,
