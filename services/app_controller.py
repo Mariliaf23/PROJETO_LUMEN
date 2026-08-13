@@ -70,6 +70,11 @@ class AppController:
         frame.place(relx=0, rely=0, relwidth=1, relheight=1)
         frame.place_forget()
 
+    def _garantir_tela(self, nome):
+        if nome in self._telas:
+            return self._telas[nome]
+        return None
+
     def navegar_para(self, nome, voltavel=True):
         if self._animando:
             return
