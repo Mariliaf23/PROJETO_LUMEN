@@ -846,6 +846,42 @@ def listar_multas(status=None):
         return []
 
 
+def listar_multas_usuario(id_usuario, status='pendente'):
+    """Lista as multas de um usuário específico (por padrão, só as pendentes)."""
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+        if status:
+            cursor.execute(
+                """SELECT m.id_multa, m.valor, m.dias_atraso, m.motivo, m.status_pagamento,
+                          m.data_geracao, l.titulo
+                   FROM multa m
+                   JOIN emprestimo e ON m.id_emprestimo = e.id_emprestimo
+                   JOIN exemplar ex ON e.id_exemplar = ex.id_exemplar
+                   JOIN livro l ON ex.id_livro = l.id_livro
+                   WHERE e.id_usuario = %s AND m.status_pagamento = %s
+                   ORDER BY m.data_geracao DESC""",
+                (id_usuario, status)
+            )
+        else:
+            cursor.execute(
+                """SELECT m.id_multa, m.valor, m.dias_atraso, m.motivo, m.status_pagamento,
+                          m.data_geracao, l.titulo
+                   FROM multa m
+                   JOIN emprestimo e ON m.id_emprestimo = e.id_emprestimo
+                   JOIN exemplar ex ON e.id_exemplar = ex.id_exemplar
+                   JOIN livro l ON ex.id_livro = l.id_livro
+                   WHERE e.id_usuario = %s
+                   ORDER BY m.data_geracao DESC""",
+                (id_usuario,)
+            )
+        dados = cursor.fetchall()
+        conn.close()
+        return dados
+    except Error:
+        return []
+
+
 def pagar_multa(id_multa):
     """Registra o pagamento de uma multa (muda status para 'pago')."""
     try:
