@@ -20,6 +20,7 @@ from services.styles import (
     criar_botao_primario, criar_botao_secundario, criar_botao_perigo
 )
 from services.validador import validar_isbn, validar_ano, validar_texto, validar_autor
+from services.db_async import carregar_em_fundo
 
 class TelaLivros(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
@@ -232,7 +233,13 @@ class TelaLivros(ctk.CTkFrame):
                 pass
 
     def _carregar_categorias(self):
-        cats = listar_categorias()
+        """Carrega categorias em THREAD DE FUNDO (não congela a tela)."""
+        carregar_em_fundo(self, listar_categorias, self._aplicar_categorias)
+
+    def _aplicar_categorias(self, cats, erro):
+        if not self.winfo_exists():
+            return
+        cats = (cats or []) if erro is None else []
         self._cat_map = {c[1]: c[0] for c in cats}
         self._cat_lista = list(self._cat_map.keys())
 
@@ -277,8 +284,14 @@ class TelaLivros(ctk.CTkFrame):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
         self._itens_lista.clear()
-        self._todos_livros = listar_livros()
-        self._renderizar(self._todos_livros)
+        carregar_em_fundo(self, listar_livros, self._aplicar_tabela)
+
+    def _aplicar_tabela(self, livros, erro):
+        if not self.winfo_exists():
+            return
+        if erro is None:
+            self._todos_livros = livros or []
+            self._renderizar(self._todos_livros)
 
     def _filtrar_tabela(self):
         termo = self.entry_filtro.get().strip().lower()

@@ -3,7 +3,7 @@
 import os
 from PIL import Image
 import customtkinter as ctk
-from services.styles import cores
+from services.styles import cores, COR_ERRO
 
 
 class AppController:
@@ -33,6 +33,16 @@ class AppController:
 
         cores.registrar_listener(self._ao_tema_mudou)
         self._centralizar()
+
+    def _ao_alterar_banner(self, indisponivel):
+        """Mostra/oculta a faixa de 'servidor indisponível' conforme as consultas em fundo."""
+        if indisponivel and not self._banner_visivel:
+            self._banner_visivel = True
+            self._tk_banner.place(relx=0, rely=0, relwidth=1)
+            self._tk_banner.lift()
+        elif not indisponivel and self._banner_visivel:
+            self._banner_visivel = False
+            self._tk_banner.place_forget()
 
     def verificar_acesso(self, tela):
         if tela == "login":
@@ -98,7 +108,10 @@ class AppController:
 
         antiga = self._tela_atual
         self._tela_atual = nome
-        nova_tela = self._telas[nome]
+        nova_tela = self._garantir_tela(nome)
+        if nova_tela is None:
+            self._tela_atual = antiga
+            return
 
         if antiga and antiga in self._telas:
             self._telas[antiga].grid_forget()

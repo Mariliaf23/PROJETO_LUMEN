@@ -16,6 +16,7 @@ from services.database_config import (
     listar_multas_usuario, pagar_multa
 )
 from services.notificacoes import enviar_notificacao
+from services.db_async import carregar_em_fundo
 from services.styles import (
     cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame, criar_combo,
@@ -347,10 +348,17 @@ class TelaEmprestimos(ctk.CTkFrame):
     def _ao_visitar(self):
         if getattr(self, "_tema_pendente", False):
             self._reconstruir_tema()
+        carregar_em_fundo(self, self._manutencao, self._apos_manutencao)
+
+    def _manutencao(self):
+        """Rotinas de atrasos/suspensões em thread de fundo (sem congelar a tela)."""
         verificar_atrasos()
         verificar_suspensao_expirada()
         self._verificar_suspensao()
-        self._mostrar_aba(self._aba_atual)
+
+    def _apos_manutencao(self, _dados, _erro):
+        if self.winfo_exists():
+            self._mostrar_aba(self._aba_atual)
 
     def _verificar_suspensao(self):
         """Verifica empréstimos atrasados e aplica suspenção automática."""

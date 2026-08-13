@@ -101,7 +101,9 @@ class _Cores:
     def __getattr__(self, nome):
         if nome.startswith("_"):
             raise AttributeError(nome)
-        return self._paleta.get(nome, "")
+        if nome not in self._paleta:
+            raise AttributeError(f"Cor '{nome}' não existe nas paletas do LUMEN")
+        return self._paleta[nome]
 
 
 cores = _Cores()  # instância única — importe como: from services.styles import cores

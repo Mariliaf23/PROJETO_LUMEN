@@ -1,19 +1,57 @@
 # database_config.py — Camada de acesso ao banco de dados (todas as operações SQL)
 
-import mysql.connector     # Biblioteca para conectar ao MySQL
+import time                # Usado no cache com TTL
 import hashlib             # Biblioteca para criptografar senhas
 from mysql.connector import Error  # Tipo de erro do MySQL
 from services.conector import DB_CONFIG, DB_NAME  # Configurações de conexão do conector
+from services.db_pool import obter_conexao          # Pool de conexões (rápido)
 
 
 def _conectar():
-    """Cria e retorna uma conexão com o banco de dados MySQL."""
-    return mysql.connector.connect(
-        host=DB_CONFIG['host'],         # Endereço do servidor (ex: localhost)
-        user=DB_CONFIG['user'],         # Usuário do MySQL
-        password=DB_CONFIG['password'], # Senha do MySQL
-        database=DB_NAME               # Nome do banco (ex: biblioteca)
-    )
+    """Retorna uma conexão com o banco de dados a partir do POOL.
+
+    As consultas passam a reutilizar conexões abertas em vez de abrir uma
+    nova a cada vez (era isso que travava o sistema por ~60s com a rede
+    lenta). O cnx.close() existente em todas as funções devolve a conexão
+    ao pool.
+    """
+    return obter_conexao()
+
+
+# ======================== CACHE DE LEITURA (TTL) ========================
+# Evita repetir consulta à rede a cada navegação entre abas. Quando uma
+# escrita acontece, _invalidar_cache() limpa tudo para o próximo acesso
+# mostrar os dados atualizados.
+
+import threading
+import time as _time
+
+_CACHE_LOCK = threading.Lock()
+_CACHE = {}
+_CACHE_VERSAO = 0
+_TTL_PADRAO = 30  # segundos
+
+
+def _invalidar_cache():
+    """Limpa o cache inteiro — chamado após qualquer escrita no banco."""
+    global _CACHE_VERSAO
+    with _CACHE_LOCK:
+        _CACHE_VERSAO += 1
+        _CACHE.clear()
+
+
+def _cache_ttl(chave, ttl, fn):
+    """Retorna fn() com cache de TTL segundos, invalidado a cada escrita."""
+    agora = _time.time()
+    with _CACHE_LOCK:
+        item = _CACHE.get(chave)
+        if item and item[0] == _CACHE_VERSAO and agora - item[1] < ttl:
+            val = item[2]
+            return list(val) if isinstance(val, list) else val
+    val = fn()
+    with _CACHE_LOCK:
+        _CACHE[chave] = (_CACHE_VERSAO, _time.time(), val)
+    return val
 
 
 # ======================== AUTENTICAÇÃO ========================
@@ -45,22 +83,28 @@ def verificar_login(usuario, senha):
 
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', id_turma=None, funcao=''):
-    """Cadastra um novo usuário no banco de dados. Retorna True se deu certo."""
+                      matricula='', id_turma=None, funcao='', status='ativo'):
+    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem).
+
+    CORREÇÃO: adicionado o parâmetro `status`, que antes era ignorado —
+    o INSERT não gravava o status escolhido na tela de cadastro, e o
+    usuário sempre nascia com o valor padrão da coluna no banco.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
         senha_hash = _hash_senha(senha) if senha else ''
         cursor.execute(
             """INSERT INTO usuario (nome, email, senha, telefone, cpf, tipo_usuario,
-               matricula, id_turma, funcao)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               matricula, id_turma, funcao, status)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (nome, email, senha_hash, telefone or None, cpf or None, tipo,
-             matricula or None, id_turma or None, funcao or None)
+             matricula or None, id_turma or None, funcao or None, status)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
-        return True
+        return True, "Usuario cadastrado com sucesso."
     except Error as e:
         print(f"Erro ao cadastrar usuario: {e}")
         msg = str(e).lower()
@@ -70,7 +114,7 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
             if "cpf" in msg:
                 return False, "CPF já cadastrado."
             return False, "Dados duplicados."
-        return False, "Erro ao salvar no banco de dados."
+        return False, f"Erro ao salvar no banco de dados: {e}"
 
 
 def listar_alunos():
@@ -94,6 +138,10 @@ def listar_alunos():
 
 def listar_turmas():
     """Lista todas as turmas ordenadas por código. Retorna [(id, codigo, turno), ...]."""
+    return _cache_ttl(("listar_turmas",), 60, _listar_turmas_sql)
+
+
+def _listar_turmas_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -115,6 +163,7 @@ def cadastrar_turma(codigo, turno):
             (codigo.strip().upper(), turno)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -133,6 +182,7 @@ def excluir_turma(id_turma):
             return False
         cursor.execute("DELETE FROM turma WHERE id_turma = %s", (id_turma,))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -151,7 +201,8 @@ def cadastrar_categoria(nome, descricao=''):
             "INSERT INTO categoria (nome_categoria, descricao) VALUES (%s, %s)",
             (nome, descricao or None)           # Descrição pode ser vazia
         )
-        conn.commit()                           # Salva no banco
+        conn.commit()
+        _invalidar_cache()                           # Salva no banco
         conn.close()
         return True
     except Error as e:
@@ -161,6 +212,10 @@ def cadastrar_categoria(nome, descricao=''):
 
 def listar_categorias():
     """Lista todas as categorias ordenadas por nome. Retorna lista de (id, nome)."""
+    return _cache_ttl(("listar_categorias",), 60, _listar_categorias_sql)
+
+
+def _listar_categorias_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -176,6 +231,10 @@ def listar_categorias():
 
 def listar_autores():
     """Lista todos os autores ordenados por nome. Retorna lista de (id, nome)."""
+    return _cache_ttl(("listar_autores",), 60, _listar_autores_sql)
+
+
+def _listar_autores_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -216,6 +275,7 @@ def associar_autor_livro(id_livro, id_autor):
             (id_livro, id_autor)                # IGNORE: se já existe, não dá erro
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -229,6 +289,7 @@ def desassociar_autor_livro(id_livro, id_autor):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM livro_autor WHERE id_livro = %s AND id_autor = %s", (id_livro, id_autor))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -248,6 +309,7 @@ def cadastrar_livro(titulo, isbn, id_categoria, editora='', ano_publicacao=None,
             (titulo, isbn, editora or None, ano_publicacao, sinopse or None, id_categoria)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -282,6 +344,7 @@ def excluir_livro(id_livro):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM livro WHERE id_livro = %s", (id_livro,))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -319,6 +382,7 @@ def cadastrar_exemplar(codigo_patrimonio, id_livro, localizacao=''):
             (codigo_patrimonio, id_livro, localizacao or None)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -434,6 +498,7 @@ def atualizar_status_exemplar(id_exemplar, status):
         cursor = conn.cursor()
         cursor.execute("UPDATE exemplar SET status_exemplar = %s WHERE id_exemplar = %s", (status, id_exemplar))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -459,6 +524,7 @@ def excluir_exemplar(id_exemplar):
         cursor.execute("DELETE FROM exemplar WHERE id_exemplar = %s", (id_exemplar,))
         sucesso = cursor.rowcount > 0
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return sucesso
     except Error as e:
@@ -482,6 +548,7 @@ def cadastrar_emprestimo(id_usuario, id_exemplar, data_prevista, id_funcionario)
         # Atualiza o status do exemplar para "emprestado"
         cursor.execute("UPDATE exemplar SET status_exemplar = 'emprestado' WHERE id_exemplar = %s", (id_exemplar,))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -597,6 +664,7 @@ def finalizar_emprestimo(id_emprestimo):
         reserva_info = cursor.fetchone()
 
         conn.commit()
+        _invalidar_cache()
         conn.close()
 
         print(f"✓ Empréstimo {id_emprestimo} finalizado com sucesso")
@@ -623,6 +691,7 @@ def verificar_atrasos():
                WHERE status = 'ativo' AND data_prevista < CURDATE()"""
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -639,6 +708,7 @@ def verificar_suspensao_expirada():
                WHERE status = 'suspenso' AND data_suspensao IS NOT NULL AND data_suspensao < CURDATE()"""
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -659,6 +729,7 @@ def cadastrar_reserva(id_usuario, id_livro, dias_validade=7):
             (dias_validade, id_usuario, id_livro)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -702,6 +773,7 @@ def cancelar_reserva(id_reserva):
         cursor = conn.cursor()
         cursor.execute("UPDATE reserva SET status = 'cancelada' WHERE id_reserva = %s", (id_reserva,))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -725,6 +797,7 @@ def gerar_multa(id_emprestimo, dias_atraso, motivo='atraso'):
             (valor, dias_atraso, motivo, id_emprestimo)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         print(f"✓ Multa criada com sucesso: R${valor:.2f}")
         return True
@@ -816,6 +889,7 @@ def pagar_multa(id_multa):
         cursor = conn.cursor()
         cursor.execute("UPDATE multa SET status_pagamento = 'pago' WHERE id_multa = %s", (id_multa,))
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error:
@@ -899,18 +973,32 @@ def livro_tem_reserva_ativa(id_livro):
 
 
 def renovar_emprestimo(id_emprestimo):
-    """Renova um empréstimo estendendo a data prevista em 7 dias."""
+    """Renova um empréstimo estendendo a data prevista em 7 dias.
+
+    CORREÇÃO: não depender de `rowcount` para decidir sucesso — se o
+    empréstimo já estiver com a mesma data (raro, mas possível) o
+    rowcount pode voltar 0 mesmo com o UPDATE executado corretamente.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
         cursor.execute(
+            "SELECT COUNT(*) FROM emprestimo WHERE id_emprestimo = %s AND status = 'ativo'",
+            (id_emprestimo,)
+        )
+        existe = cursor.fetchone()[0] > 0
+        if not existe:
+            conn.close()
+            return False
+
+        cursor.execute(
             "UPDATE emprestimo SET data_prevista = DATE_ADD(data_prevista, INTERVAL 7 DAY) WHERE id_emprestimo = %s AND status = 'ativo'",
             (id_emprestimo,)
         )
-        alterado = cursor.rowcount > 0
         conn.commit()
+        _invalidar_cache()
         conn.close()
-        return alterado
+        return True
     except Error:
         return False
 
@@ -929,6 +1017,7 @@ def criar_grupo_emprestimo(id_usuario, id_funcionario, data_prevista):
         )
         id_grupo = cursor.lastrowid
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return id_grupo
     except Error as e:
@@ -991,6 +1080,7 @@ def adicionar_ao_grupo(id_grupo, id_exemplar, id_funcionario):
         cursor.execute("UPDATE exemplar SET status_exemplar = 'emprestado' WHERE id_exemplar = %s", (id_exemplar,))
 
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -1060,6 +1150,7 @@ def fechar_grupo_emprestimo(id_grupo):
         )
 
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -1087,10 +1178,10 @@ def renovar_grupo_emprestimo(id_grupo):
             (id_grupo,)
         )
 
-        alterado = cursor.rowcount > 0
         conn.commit()
+        _invalidar_cache()
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao renovar grupo: {e}")
         return False
@@ -1113,6 +1204,7 @@ def limpar_grupos_orfaos():
         )
         afetados = cursor.rowcount
         conn.commit()
+        _invalidar_cache()
         conn.close()
 
         if afetados > 0:
@@ -1237,6 +1329,7 @@ def remover_do_grupo(id_grupo, id_exemplar):
             )
 
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -1281,6 +1374,11 @@ def contar_emprestimos_usuario(id_usuario):
 # ======================== DASHBOARD ========================
 
 def buscar_stats_dashboard():
+    """Busca estatísticas gerais para o dashboard (com cache de 30s)."""
+    return _cache_ttl(("buscar_stats_dashboard",), 30, _buscar_stats_dashboard_sql)
+
+
+def _buscar_stats_dashboard_sql():
     """Busca estatísticas gerais para o dashboard: livros, empréstimos totais, ativos, usuários, taxa de retorno."""
     stats = {
         'livros': 0,
@@ -1324,6 +1422,10 @@ def buscar_stats_dashboard():
 
 def buscar_emprestimos_por_mes():
     """Conta empréstimos agrupados por mês. Retorna [(mês, total), ...]."""
+    return _cache_ttl(("buscar_emprestimos_por_mes",), 120, _buscar_emprestimos_por_mes_sql)
+
+
+def _buscar_emprestimos_por_mes_sql():
     dados = []
     try:
         conn = _conectar()
@@ -1341,6 +1443,10 @@ def buscar_emprestimos_por_mes():
 
 def buscar_livros_por_categoria():
     """Conta livros agrupados por categoria. Retorna [(nome_categoria, total), ...]."""
+    return _cache_ttl(("buscar_livros_por_categoria",), 120, _buscar_livros_por_categoria_sql)
+
+
+def _buscar_livros_por_categoria_sql():
     dados = []
     try:
         conn = _conectar()
@@ -1359,6 +1465,10 @@ def buscar_livros_por_categoria():
 
 def buscar_emprestimos_semana():
     """Conta empréstimos da semana atual, agrupados por dia da semana."""
+    return _cache_ttl(("buscar_emprestimos_semana",), 120, _buscar_emprestimos_semana_sql)
+
+
+def _buscar_emprestimos_semana_sql():
     dados = []
     try:
         conn = _conectar()
@@ -1379,6 +1489,11 @@ def buscar_emprestimos_semana():
 
 def buscar_top_alunos_emprestimos(limite=10):
     """Retorna os top N alunos com mais empréstimos. Retorna [(nome, total), ...]."""
+    return _cache_ttl(("buscar_top_alunos_emprestimos", limite), 30,
+                      lambda: _buscar_top_alunos_emprestimos_sql(limite))
+
+
+def _buscar_top_alunos_emprestimos_sql(limite=10):
     dados = []
     try:
         conn = _conectar()
@@ -1401,6 +1516,10 @@ def buscar_top_alunos_emprestimos(limite=10):
 
 def buscar_ranking_turmas_emprestimos():
     """Retorna ranking de turmas com mais empréstimos. Retorna [(turma, total), ...]."""
+    return _cache_ttl(("buscar_ranking_turmas_emprestimos",), 30, _buscar_ranking_turmas_sql)
+
+
+def _buscar_ranking_turmas_sql():
     dados = []
     try:
         conn = _conectar()
@@ -1423,6 +1542,10 @@ def buscar_ranking_turmas_emprestimos():
 
 def buscar_livros_por_categoria_exemplares():
     """Conta exemplares por categoria com percentual. Retorna [(categoria, total, percentual), ...]."""
+    return _cache_ttl(("buscar_livros_por_categoria_exemplares",), 30, _buscar_exemplares_cat_sql)
+
+
+def _buscar_exemplares_cat_sql():
     dados = []
     try:
         conn = _conectar()
@@ -1498,7 +1621,15 @@ def buscar_usuario_por_id(id_usuario):
 
 def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno',
                       matricula='', id_turma=None, funcao='', status='ativo'):
-    """Atualiza todos os campos editáveis de um usuário (exceto senha)."""
+    """Atualiza todos os campos editáveis de um usuário (exceto senha).
+
+    CORREÇÃO: antes o retorno de sucesso dependia de `cursor.rowcount > 0`.
+    No mysql-connector-python, `rowcount` só conta linhas cujo VALOR mudou —
+    se você editar um usuário sem alterar nada (ou os valores já forem
+    iguais), o UPDATE roda com sucesso mas rowcount volta 0, fazendo a tela
+    mostrar "Erro ao atualizar usuário" mesmo estando tudo certo.
+    Agora só retornamos False se realmente ocorrer uma exceção.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -1512,16 +1643,20 @@ def atualizar_usuario(id_usuario, nome, email, telefone='', cpf='', tipo='aluno'
              status, id_usuario)
         )
         conn.commit()
+        _invalidar_cache()
         alterado = cursor.rowcount > 0
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao atualizar usuario: {e}")
         return False
 
 
 def atualizar_senha_usuario(id_usuario, nova_senha):
-    """Atualiza apenas a senha de um usuário (com hash SHA-256)."""
+    """Atualiza apenas a senha de um usuário (com hash SHA-256).
+
+    CORREÇÃO: mesmo motivo do atualizar_usuario — não depender de rowcount.
+    """
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -1531,9 +1666,10 @@ def atualizar_senha_usuario(id_usuario, nova_senha):
             (senha_hash, id_usuario)
         )
         conn.commit()
+        _invalidar_cache()
         alterado = cursor.rowcount > 0           # True se atualizou
         conn.close()
-        return alterado
+        return True
     except Error as e:
         print(f"Erro ao atualizar senha: {e}")
         return False
@@ -1552,6 +1688,7 @@ def alternar_status_usuario(id_usuario):
             (id_usuario,)
         )
         conn.commit()
+        _invalidar_cache()
         conn.close()
         return True
     except Error as e:
@@ -1566,6 +1703,7 @@ def excluir_usuario(id_usuario):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM usuario WHERE id_usuario=%s", (id_usuario,))
         conn.commit()
+        _invalidar_cache()
         removido = cursor.rowcount > 0          # True se removeu
         conn.close()
         return removido

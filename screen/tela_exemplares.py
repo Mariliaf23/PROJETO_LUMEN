@@ -21,6 +21,7 @@ from services.styles import (
     criar_card, criar_scroll_frame, criar_combo, aplicar_validacao_focusout
 )
 from services.validador import validar_patrimonio, validar_texto
+from services.db_async import carregar_em_fundo
 
 
 COLUNAS_EXEMPLARES = [
@@ -204,7 +205,7 @@ class TelaExemplares(ctk.CTkFrame):
         header_left.pack(side="left", fill="y", padx=10, pady=5)
 
         criar_label(header_left, "Gerenciamento de Exemplares",
-                    font=("Segoe UI", 24, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
+                    font=("Segoe UI", 26, "bold"), text_color=cores.COR_TEXTO).pack(side="left")
 
         ctk.CTkButton(
             header, text="Voltar", command=self._voltar, width=100, height=36,
@@ -332,7 +333,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         for idx, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_EXEMPLARES):
             header_lista.grid_columnconfigure(idx, weight=peso, minsize=minsize)
-            criar_label(header_lista, nome.upper(), font=("Segoe UI", 12, "bold"),
+            criar_label(header_lista, nome.upper(), font=("Segoe UI", 14, "bold"),
                         text_color=cores.COR_TEXTO, anchor="center"
                         ).grid(row=0, column=idx, sticky="ew", padx=(10, 4), pady=8)
 
@@ -383,7 +384,7 @@ class TelaExemplares(ctk.CTkFrame):
             btn = ctk.CTkButton(
                 self._frame_sugestoes, text=texto, anchor="w",
                 fg_color="transparent", text_color=cores.COR_TEXTO,
-                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
+                hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16),
                 height=36, corner_radius=4,
                 command=lambda t=texto: self._escolher_livro(t)
             )
@@ -444,7 +445,7 @@ class TelaExemplares(ctk.CTkFrame):
 
         if not exemplares:
             criar_label(self.lista_frame, "Nenhum exemplar encontrado.",
-                        font=("Segoe UI", 14), text_color=cores.COR_TEXTO).pack(pady=30)
+                        font=("Segoe UI", 16), text_color=cores.COR_TEXTO).pack(pady=30)
             return
 
         for exc in exemplares:
