@@ -16,6 +16,9 @@ class AppController:
         self.root.minsize(800, 580)
         self.root.configure(fg_color=cores.COR_BG)
 
+        self._container = ctk.CTkFrame(root, fg_color=cores.COR_BG)
+        self._container.pack(fill="both", expand=True)
+
         self._ultimo_fullscreen = bool(self.root.attributes("-fullscreen"))
         self.root.bind("<Configure>", self._ao_estado_fullscreen_mudou, add="+")
 

@@ -17,6 +17,7 @@ from services.styles import (
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
 from services.carteirinha import gerar_pdf_carteirinhas
+from services.db_async import carregar_em_fundo
 
 COMPENSA_SCROLLBAR = 18
 
@@ -174,7 +175,7 @@ class JanelaUsuario(ctk.CTkToplevel):
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
         import traceback
-        print(">>> BOTÃO SALVAR CLICADO", flush=True)   # ← diagnóstico temporário
+        msg = ""
         try:
             nome     = self.entry_nome.get().strip()
             email    = self.entry_email.get().strip()
@@ -207,24 +208,27 @@ class JanelaUsuario(ctk.CTkToplevel):
                 if not ok:
                     return self._notificar(msg)
 
-        if self.id_usuario:
-            ok = atualizar_usuario(
-                self.id_usuario, nome, email, telefone, '',
-                tipo, '', id_turma, funcao, status
-            )
-            if ok and senha:
-                atualizar_senha_usuario(self.id_usuario, senha)
-            msg_ok = "Usuario atualizado!"
-        else:
-            ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                        tipo, '', id_turma, funcao)
-            msg_ok = "Usuario cadastrado!"
+            if self.id_usuario:
+                ok = atualizar_usuario(
+                    self.id_usuario, nome, email, telefone, '',
+                    tipo, '', id_turma, funcao, status
+                )
+                if ok and senha:
+                    atualizar_senha_usuario(self.id_usuario, senha)
+                msg_ok = "Usuario atualizado!"
+            else:
+                ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                            tipo, '', id_turma, funcao)
+                msg_ok = "Usuario cadastrado!"
 
-        if ok:
-            self._notificar(msg_ok)
-            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-        else:
-            self._notificar(msg)
+            if ok:
+                self._notificar(msg_ok)
+                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+            else:
+                self._notificar(msg or "Erro ao salvar usuário.")
+        except Exception as e:
+            traceback.print_exc()
+            self._notificar("Erro inesperado ao salvar.")
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
