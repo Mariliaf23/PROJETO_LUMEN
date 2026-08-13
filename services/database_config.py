@@ -83,13 +83,8 @@ def verificar_login(usuario, senha):
 
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', id_turma=None, funcao='', status='ativo'):
-    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem).
-
-    CORREÇÃO: adicionado o parâmetro `status`, que antes era ignorado —
-    o INSERT não gravava o status escolhido na tela de cadastro, e o
-    usuário sempre nascia com o valor padrão da coluna no banco.
-    """
+                      matricula='', id_turma=None, funcao=''):
+    """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem)."""
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -104,7 +99,7 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
         conn.commit()
         _invalidar_cache()
         conn.close()
-        return True, "Usuario cadastrado com sucesso."
+        return True, ""
     except Error as e:
         print(f"Erro ao cadastrar usuario: {e}")
         msg = str(e).lower()
@@ -118,13 +113,14 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
 
 
 def listar_alunos():
-    """Lista todos os alunos e professores ativos. Retorna lista de (id, nome, email, tipo, status)."""
+    """Lista todos os alunos e professores ativos.
+    Retorna lista de (id, nome, email, tipo, status, matricula)."""
     try:
         conn = _conectar()
         cursor = conn.cursor()
         # Seleciona apenas alunos e professores com status ativo
         cursor.execute(
-            "SELECT id_usuario, nome, email, tipo_usuario, status FROM usuario WHERE tipo_usuario IN ('aluno', 'professor') AND status = 'ativo' ORDER BY nome"
+            "SELECT id_usuario, nome, email, tipo_usuario, status, matricula FROM usuario WHERE tipo_usuario IN ('aluno', 'professor') AND status = 'ativo' ORDER BY nome"
         )
         resultados = cursor.fetchall()          # Pega todos os resultados
         conn.close()

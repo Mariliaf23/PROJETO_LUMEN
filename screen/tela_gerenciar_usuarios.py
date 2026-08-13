@@ -16,7 +16,7 @@ from services.styles import (
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
-from services.db_async import carregar_em_fundo
+from services.carteirinha import gerar_pdf_carteirinhas
 
 COMPENSA_SCROLLBAR = 18
 
@@ -207,39 +207,24 @@ class JanelaUsuario(ctk.CTkToplevel):
                 if not ok:
                     return self._notificar(msg)
 
-            # ── PONTO CORRIGIDO ──────────────────────────────────────────────
-            # cadastrar_usuario agora sempre retorna (ok, mensagem), então
-            # desempacotamos os dois valores em vez de tratar como bool puro.
-            # Também passamos "status" para cadastrar_usuario, que antes
-            # ignorava o valor escolhido no combo_status ao criar um usuário novo.
-            if self.id_usuario:
-                ok = atualizar_usuario(
-                    self.id_usuario, nome, email, telefone, '',
-                    tipo, '', id_turma, funcao, status
-                )
-                if ok and senha:
-                    atualizar_senha_usuario(self.id_usuario, senha)
-                msg_erro = "Erro ao atualizar usuário."
-                msg_ok = "Usuario atualizado!"
-            else:
-                ok, msg_erro = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                                 tipo, '', id_turma, funcao, status)
-                msg_ok = "Usuario cadastrado!"
+        if self.id_usuario:
+            ok = atualizar_usuario(
+                self.id_usuario, nome, email, telefone, '',
+                tipo, '', id_turma, funcao, status
+            )
+            if ok and senha:
+                atualizar_senha_usuario(self.id_usuario, senha)
+            msg_ok = "Usuario atualizado!"
+        else:
+            ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                        tipo, '', id_turma, funcao)
+            msg_ok = "Usuario cadastrado!"
 
-            if ok:
-                self._notificar(msg_ok)
-                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-            else:
-                self._notificar(msg_erro)
-            # ── FIM DO PONTO CORRIGIDO ───────────────────────────────────────
-
-        except Exception as e:
-            # ── DIAGNÓSTICO TEMPORÁRIO ──
-            # Captura qualquer erro inesperado e mostra tanto no console
-            # quanto direto na tela do modal, em vez de falhar em silêncio.
-            print(">>> ERRO DENTRO DE _salvar:", flush=True)
-            traceback.print_exc()
-            self.lbl_notif.configure(text=f"ERRO: {e}", text_color="#EF4444")
+        if ok:
+            self._notificar(msg_ok)
+            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+        else:
+            self._notificar(msg)
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
@@ -520,6 +505,13 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
         ).pack(side="left")
 
+        ctk.CTkButton(
+            filtros, text="📇 Carteirinhas", command=self._gerar_carteirinhas,
+            width=160, height=42,
+            fg_color=cores.COR_DOURADO, text_color="#FFFFFF",
+            hover_color=cores.COR_DOURADO_CLARO, font=("Segoe UI", 16, "bold")
+        ).pack(side="left", padx=(10, 0))
+
         CabecalhoTabela(self).pack(fill="x", padx=(30, 30 + COMPENSA_SCROLLBAR))
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
@@ -594,6 +586,19 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
     def _abrir_cadastro(self):
         JanelaUsuario(self, on_salvo=self._carregar)
+
+    def _gerar_carteirinhas(self):
+        """Gera o PDF com as carteirinhas de todos os usuários e abre para impressão."""
+        usuarios = listar_usuarios()
+        if not usuarios:
+            self._notificar("Nenhum usuário cadastrado para gerar carteirinhas.")
+            return
+        caminhos = gerar_pdf_carteirinhas(usuarios)
+        if caminhos:
+            os.startfile(caminhos[0])
+            self._notificar(f"{len(usuarios)} carteirinha(s) gerada(s) com sucesso.")
+        else:
+            self._notificar("Erro ao gerar carteirinhas.")
 
     def _abrir_edicao(self, id_usuario):
         JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario)

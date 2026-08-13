@@ -490,10 +490,11 @@ class TelaEmprestimos(ctk.CTkFrame):
         aluno_container.grid(row=3, column=0, padx=(0, 10), pady=(0, 10), sticky="ew")
         aluno_container.grid_columnconfigure(0, weight=1)
 
-        self.entry_busca_aluno = criar_entry(aluno_container, placeholder="Buscar aluno...", height=ALTURA_INPUT)
+        self.entry_busca_aluno = criar_entry(aluno_container, placeholder="Buscar por nome ou matrícula (leitor)...", height=ALTURA_INPUT)
         self.entry_busca_aluno.configure(font=FONTE_INPUT)
         self.entry_busca_aluno.grid(row=0, column=0, sticky="ew")
         self.entry_busca_aluno.bind("<KeyRelease>", self._atualizar_sugestoes_aluno)
+        self.entry_busca_aluno.bind("<Return>", self._buscar_aluno_por_retorno)
         self.entry_busca_aluno.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_aluno))
 
         self._frame_sugestoes_aluno = ctk.CTkScrollableFrame(
@@ -600,18 +601,37 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._esconder_sugestoes_aluno()
             return
         resultados = [n for n in self._alunos_map.keys() if termo in n.lower()]
+        for mat, nome in self._matricula_para_nome.items():
+            if termo in str(mat).lower() and nome not in resultados:
+                resultados.append(nome)
         if not resultados:
             self._esconder_sugestoes_aluno()
             return
         self._frame_sugestoes_aluno.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         for nome in resultados[:20]:
+            mat = self._alunos_matricula_por_nome.get(nome, "")
+            texto = f"{nome}  ·  {mat}" if mat else nome
             ctk.CTkButton(
-                self._frame_sugestoes_aluno, text=nome, anchor="w",
+                self._frame_sugestoes_aluno, text=texto, anchor="w",
                 fg_color="transparent", text_color=self.cor_texto,
                 hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda n=nome: self._escolher_aluno(n)
             ).pack(fill="x", pady=1)
+
+    def _buscar_aluno_por_retorno(self, event=None):
+        """Confirma a busca do aluno (digitação ou leitor de código de barras)."""
+        termo = self.entry_busca_aluno.get().strip()
+        if not termo:
+            return
+        if termo in self._matricula_para_nome:
+            self._escolher_aluno(self._matricula_para_nome[termo])
+            return
+        for nome in self._alunos_map:
+            if nome.lower() == termo.lower():
+                self._escolher_aluno(nome)
+                return
+        self._atualizar_sugestoes_aluno()
 
     def _escolher_aluno(self, nome):
         self._aluno_selecionado_id = self._alunos_map.get(nome)
@@ -933,6 +953,13 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         alunos = listar_alunos()
         self._alunos_map = {a[1]: a[0] for a in alunos}
+        self._alunos_matricula_por_nome = {}
+        self._matricula_para_nome = {}
+        for a in alunos:
+            mat = str(a[5]).strip() if len(a) > 5 and a[5] else ""
+            if mat:
+                self._alunos_matricula_por_nome[a[1]] = mat
+                self._matricula_para_nome[mat] = a[1]
 
         exemplares = listar_exemplares_disponiveis()
         self._exemplares_map = {}
