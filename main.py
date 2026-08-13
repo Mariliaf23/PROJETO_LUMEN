@@ -2,9 +2,11 @@ from services.conector import init_db
 from services.app_controller import AppController
 from services.styles import cores
 import customtkinter as ctk
+import tkinter.messagebox as mb
 from PIL import Image
 import sys
 import os
+import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -119,55 +121,72 @@ if __name__ == "__main__":                            # Só executa se for o arq
 
     splash, lbl_status = _criar_splash(root)          # Mostra o splash de carregamento
 
+    def _init_db_thread():
+        """Executa init_db() em thread separada para não travar o splash."""
+        try:
+            sucesso = init_db()
+            if not sucesso:
+                # Erro será tratado na thread principal via root.after
+                root.after(0, lambda: _handle_db_failure())
+        except Exception as e:
+            root.after(0, lambda: _handle_db_failure(e))
+
+    def _handle_db_failure(erro=None):
+        """Mostra erro de conexão e pergunta se usuário quer continuar."""
+        msg = "Não foi possível conectar ao banco de dados."
+        if erro:
+            msg += f"\n\nDetalhe: {erro}"
+        continuar = mb.askyesno(
+            "LUMEN - Falha ao conectar",
+            f"{msg}\n\n"
+            "Verifique sua conexão com a internet, se a VPN está ativa\n"
+            "e se o servidor Aiven está acessível.\n\n"
+            "Deseja abrir o sistema mesmo assim?"
+        )
+        if not continuar:
+            root.destroy()
+        else:
+            # Mesmo que o usuário escolha continuar, tenta avançar
+            root.after(50, _etapa_2_telas)
+
     def _etapa_1_banco():
-        _atualizar_status(splash, lbl_status, "Conectando ao banco de dados...")
-        if not init_db():                            # Tenta criar/verificar o banco de dados
-            print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
-        root.after(50, _etapa_2_telas)
+        """Inicia verificação de banco em thread separada."""
+        # Limpa qualquer callback anterior e inicia nova thread
+        _em_transicao = {"ativo": False}  # reset
+        db_thread = threading.Thread(target=_init_db_thread, daemon=True)
+        db_thread.start()
+        # Segue adiante - o banco pode demorar mas o sistema continua carregando
+        # as telas preguiçosamente. O resultado do banco é tratado depois.
+        root.after(10, _etapa_2_telas)
 
     def _etapa_2_telas():
         global controller
         _atualizar_status(splash, lbl_status, "Carregando telas do sistema...")
-        _configurar_tela_cheia(root)                 # Ativa tela cheia real ao maximizar
+        _configurar_tela_cheia(root)                 # Ativa tela cheia ao maximizar
         controller = AppController(root)              # Cria o controlador de navegação
         controller.usuario_logado = None              # Nenhum usuário logado no início
-        root.after(50, _etapa_3_importar)
+        root.after(10, _etapa_3_importar)
 
     def _etapa_3_importar():
-        global TelaLogin, Dashboard, TelaLivros, TelaExemplares, TelaCadastroUsuario
-        global TelaEmprestimos, TelaConfiguracoes, TelaGerenciarUsuarios
-        global TelaCatalogo, TelaRelatorios, TelaNotificacoes
+        """Importação preguiçosa (lazy) das telas - evitam queries de rede
+        durante o início. Cada tela será importada sob demanda ao navegar."""
+        from screen import tela_login, dashboard, tela_livros, tela_exemplares
+        from screen import tela_cadastro_usuario, emprestimos, tela_configuracoes
+        from screen import tela_gerenciar_usuarios, tela_catalogo, tela_relatorios
+        from screen import tela_notificacoes
 
-        # Importação de todas as telas do sistema
-        from screen.tela_login import TelaLogin                         # Tela de login
-        from screen.dashboard import Dashboard                          # Tela principal (dashboard)
-        from screen.tela_livros import TelaLivros                       # Tela de cadastro de livros
-        from screen.tela_exemplares import TelaExemplares               # Tela de exemplares físicos
-        from screen.tela_cadastro_usuario import TelaCadastroUsuario    # Tela de cadastro de usuários
-        from screen.emprestimos import TelaEmprestimos                  # Tela de empréstimos
-        from screen.tela_configuracoes import TelaConfiguracoes         # Tela de configurações
-        from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios # Tela de gerenciar usuários
-        from screen.tela_catalogo import TelaCatalogo                     # Tela de catálogo de livros
-        from screen.tela_relatorios import TelaRelatorios                 # Tela de relatórios
-        from screen.tela_notificacoes import TelaNotificacoes             # Central de notificações
-
-        root.after(50, _etapa_4_registrar)
-
-    def _etapa_4_registrar():
-        _atualizar_status(splash, lbl_status, "Preparando ambiente...")
-
-        # Registra cada tela no controlador com um nome para navegação
-        controller.registrar_tela("login", TelaLogin)                   # Tela de login
-        controller.registrar_tela("dashboard", Dashboard)               # Dashboard principal
-        controller.registrar_tela("livros", TelaLivros)                 # Gerenciamento de livros
-        controller.registrar_tela("exemplares", TelaExemplares)         # Gerenciamento de exemplares
-        controller.registrar_tela("cadastro_usuario", TelaCadastroUsuario) # Cadastro de usuários
-        controller.registrar_tela("emprestimos", TelaEmprestimos)       # Gerenciamento de empréstimos
-        controller.registrar_tela("configuracoes", TelaConfiguracoes)   # Configurações do sistema
-        controller.registrar_tela("gerenciar_usuarios", TelaGerenciarUsuarios) # Gerenciar usuários
-        controller.registrar_tela("catalogo", TelaCatalogo)             # Catálogo de livros
-        controller.registrar_tela("relatorios", TelaRelatorios)         # Relatórios
-        controller.registrar_tela("notificacoes", TelaNotificacoes)     # Central de notificações
+        # Registra apenas as classes-base (as instâncias criam-se ao navegar)
+        controller.registrar_tela("login", tela_login.TelaLogin)
+        controller.registrar_tela("dashboard", dashboard.Dashboard)
+        controller.registrar_tela("livros", tela_livros.TelaLivros)
+        controller.registrar_tela("exemplares", tela_exemplares.TelaExemplares)
+        controller.registrar_tela("cadastro_usuario", tela_cadastro_usuario.TelaCadastroUsuario)
+        controller.registrar_tela("emprestimos", emprestimos.TelaEmprestimos)
+        controller.registrar_tela("configuracoes", tela_configuracoes.TelaConfiguracoes)
+        controller.registrar_tela("gerenciar_usuarios", tela_gerenciar_usuarios.TelaGerenciarUsuarios)
+        controller.registrar_tela("catalogo", tela_catalogo.TelaCatalogo)
+        controller.registrar_tela("relatorios", tela_relatorios.TelaRelatorios)
+        controller.registrar_tela("notificacoes", tela_notificacoes.TelaNotificacoes)
 
         root.after(50, _etapa_5_finalizar)
 
@@ -183,6 +202,6 @@ if __name__ == "__main__":                            # Só executa se for o arq
     # Encadeia as etapas de carregamento usando o próprio loop de eventos,
     # em vez de bloquear a thread principal antes do mainloop começar
     # (evita a tela de splash travar sem nunca abrir o sistema).
-    root.after(100, _etapa_1_banco)
+    _etapa_1_banco()
 
     root.mainloop()                                  # Inicia o loop da interface gráfica

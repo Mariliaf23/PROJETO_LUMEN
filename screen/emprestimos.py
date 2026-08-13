@@ -12,9 +12,11 @@ from services.database_config import (
     cadastrar_reserva, listar_reservas, cancelar_reserva,
     usuario_tem_multa_pendente, listar_livros, verificar_suspensao_expirada,
     gerar_multa, aluno_tem_max_emprestimos, livro_tem_emprestimo_ativo,
-    livro_tem_reserva_ativa, renovar_emprestimo, listar_emprestimos_ativos
+    livro_tem_reserva_ativa, renovar_emprestimo, listar_emprestimos_ativos,
+    listar_multas_usuario, pagar_multa
 )
 from services.notificacoes import enviar_notificacao
+from services.db_async import carregar_em_fundo
 from services.styles import (
     cores,
     criar_entry, criar_label, criar_titulo, criar_card, criar_scroll_frame, criar_combo,
@@ -162,6 +164,83 @@ class DetalheGrupo(ctk.CTkToplevel):
         return str(data) if data else "-"
 
 
+class JanelaMultasPendentes(ctk.CTkToplevel):
+    """Mostra as multas pendentes de um aluno e permite regularizá-las (pagar)."""
+    def __init__(self, master, id_usuario, nome_aluno, ao_regularizar=None):
+        super().__init__(master)
+        self.title(f"Multas Pendentes - {nome_aluno}")
+        self.geometry("460x420")
+        self.resizable(False, False)
+        self.configure(fg_color=cores.COR_BG)
+        self.grab_set()
+
+        self._id_usuario = id_usuario
+        self._ao_regularizar = ao_regularizar
+
+        criar_label(
+            self, f"Multas pendentes de {nome_aluno}",
+            font=("Segoe UI", 16, "bold"), text_color=cores.COR_TEXTO
+        ).pack(pady=(15, 5), padx=15)
+
+        criar_label(
+            self, "É necessário quitar todas as multas antes de um novo empréstimo.",
+            font=("Segoe UI", 12), text_color=cores.COR_TEXTO2, wraplength=420
+        ).pack(pady=(0, 10), padx=15)
+
+        self._lista_frame = criar_scroll_frame(self, fg_color=cores.COR_CARD)
+        self._lista_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+
+        ctk.CTkButton(
+            self, text="Fechar", width=120, height=36,
+            fg_color=cores.COR_CARD, text_color=cores.COR_TEXTO,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 13, "bold"),
+            command=self.destroy
+        ).pack(pady=(0, 15))
+
+        self._carregar()
+
+    def _carregar(self):
+        for w in self._lista_frame.winfo_children():
+            w.destroy()
+
+        multas = listar_multas_usuario(self._id_usuario, status='pendente')
+
+        if not multas:
+            criar_label(self._lista_frame, "Nenhuma multa pendente. ✔",
+                        font=("Segoe UI", 13), text_color=cores.COR_SUCESSO).pack(pady=20)
+            if self._ao_regularizar:
+                self._ao_regularizar()
+            return
+
+        # [id_multa, valor, dias_atraso, motivo, status_pagamento, data_geracao, titulo]
+        for m in multas:
+            id_multa, valor, dias_atraso, motivo, status, data_geracao, titulo = m
+
+            item = ctk.CTkFrame(self._lista_frame, fg_color=cores.COR_INPUT_BG, corner_radius=8)
+            item.pack(fill="x", pady=4, padx=2)
+
+            info = ctk.CTkFrame(item, fg_color="transparent")
+            info.pack(side="left", fill="both", expand=True, padx=12, pady=8)
+
+            criar_label(info, titulo or "-", font=("Segoe UI", 13, "bold"),
+                        text_color=cores.COR_TEXTO).pack(anchor="w")
+            criar_label(
+                info, f"R$ {float(valor):.2f} • {dias_atraso} dia(s) de atraso • {motivo}",
+                font=("Segoe UI", 11), text_color=cores.COR_TEXTO2
+            ).pack(anchor="w")
+
+            ctk.CTkButton(
+                item, text="Pagar", width=90, height=32,
+                fg_color=cores.COR_SUCESSO, hover_color=cores.COR_SUCESSO,
+                text_color="#FFFFFF", font=("Segoe UI", 12, "bold"),
+                command=lambda mid=id_multa: self._pagar(mid)
+            ).pack(side="right", padx=12, pady=8)
+
+    def _pagar(self, id_multa):
+        pagar_multa(id_multa)
+        self._carregar()
+
+
 class DetalheEmprestimo(ctk.CTkToplevel):
     def __init__(self, master, dados):
         super().__init__(master)
@@ -269,10 +348,17 @@ class TelaEmprestimos(ctk.CTkFrame):
     def _ao_visitar(self):
         if getattr(self, "_tema_pendente", False):
             self._reconstruir_tema()
+        carregar_em_fundo(self, self._manutencao, self._apos_manutencao)
+
+    def _manutencao(self):
+        """Rotinas de atrasos/suspensões em thread de fundo (sem congelar a tela)."""
         verificar_atrasos()
         verificar_suspensao_expirada()
         self._verificar_suspensao()
-        self._mostrar_aba(self._aba_atual)
+
+    def _apos_manutencao(self, _dados, _erro):
+        if self.winfo_exists():
+            self._mostrar_aba(self._aba_atual)
 
     def _verificar_suspensao(self):
         """Verifica empréstimos atrasados e aplica suspenção automática."""
@@ -488,7 +574,9 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         ctk.CTkButton(
             filtro_frame, text="Limpar", width=80, height=34,
-            fg_color=cores.COR_CARD, font=("Segoe UI", 12, "bold"),
+            fg_color=cores.COR_CARD, text_color=cores.COR_TEXTO,
+            border_width=1, border_color=cores.COR_INPUT_BORDER,
+            hover_color=cores.COR_INPUT_BG, font=("Segoe UI", 12, "bold"),
             command=self._limpar_filtro_emprestimos
         ).pack(side="left")
 
@@ -690,6 +778,8 @@ class TelaEmprestimos(ctk.CTkFrame):
 
         if usuario_tem_multa_pendente(id_usuario):
             self._notificar("Aluno com multa pendente! Regularize primeiro.")
+            nome_aluno = aluno_sel.split(" (")[0] if aluno_sel else "Aluno"
+            JanelaMultasPendentes(self, id_usuario, nome_aluno)
             return
 
         if aluno_tem_max_emprestimos(id_usuario):

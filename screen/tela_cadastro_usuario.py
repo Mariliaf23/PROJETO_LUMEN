@@ -14,6 +14,7 @@ from services.styles import (                                      # Estilos e c
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
+from services.db_async import carregar_em_fundo
 
 
 class TelaCadastroUsuario(ctk.CTkFrame):
@@ -23,9 +24,10 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         """Inicializa a tela de cadastro."""
         super().__init__(master, fg_color=cores.COR_BG)   # Frame com fundo escuro
         self.controller = controller                 # Controladora de navegação
-        self._turmas = listar_turmas()               # Carrega turmas do banco
-        self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
+        self._turmas = []
+        self._turma_map = {}
         self._construir_ui()                         # Monta a interface
+        self._carregar_turmas()                      # Carrega turmas em background
 
 
 
@@ -33,12 +35,27 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
         if not self.winfo_exists():
             return
-        self._turmas = listar_turmas()
-        self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
         for widget in self.winfo_children():
             widget.destroy()
         self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
+        self._carregar_turmas()
+
+    def _carregar_turmas(self):
+        """Carrega turmas em THREAD DE FUNDO (não congela a tela)."""
+        carregar_em_fundo(self, listar_turmas, self._aplicar_turmas)
+
+    def _aplicar_turmas(self, turmas, erro):
+        if not self.winfo_exists():
+            return
+        turmas = (turmas or []) if erro is None else []
+        self._turmas = turmas
+        self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
+        if hasattr(self, '_combo_turma') and self.combo_turma:
+            turma_labels = [f"{c} - {t}" for _, c, t in self._turmas] if self._turmas else ["(nenhuma turma)"]
+            self.combo_turma.configure(values=turma_labels)
+            if turma_labels:
+                self.combo_turma.set(turma_labels[0])
 
     def _construir_ui(self):
         """Monta o formulário de cadastro de usuário."""

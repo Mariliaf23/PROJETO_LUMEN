@@ -1,23 +1,34 @@
 -- -----------------------------------------------------
 -- Schema biblioteca
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `biblioteca` DEFAULT CHARACTER SET utf8mb4;
-USE `biblioteca`;
+CREATE SCHEMA IF NOT EXISTS `LUMENDB` DEFAULT CHARACTER SET utf8mb4;
+USE `LUMENDB`;
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`usuario`
+-- Table `LUMENDB'`.`turma`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`turma` (
+  `id_turma` INT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(20) NOT NULL,
+  `turno` ENUM('Manhã', 'Tarde', 'Noite', 'Integral') NOT NULL,
+  PRIMARY KEY (`id_turma`),
+  UNIQUE KEY `codigo_turno_UNIQUE` (`codigo`, `turno`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- Table `LUMENDB`.`usuario`
 -- -----------------------------------------------------
 -- Tabela unificada de usuarios: alunos, professores, funcionarios e bibliotecarios.
--- Substitui as tabelas antigas 'funcionario' e 'alunos'.
+-- Substitui as tabelas antigas 'fun'cionario' e 'alunos'.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`usuario` (
   `id_usuario` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(100) NOT NULL,
   `email` VARCHAR(100) NOT NULL,
   `senha` VARCHAR(255) NOT NULL,
   `telefone` CHAR(11) DEFAULT NULL,
   `cpf` VARCHAR(14) DEFAULT NULL,
-  `tipo_usuario` ENUM('diretor', 'bibliotecario', 'aluno', 'professor') NOT NULL,
+  `tipo_usuario` ENUM('diretor', 'LUMENDB', 'aluno', 'professor') NOT NULL,
   `matricula` VARCHAR(20) DEFAULT NULL,
   `turma` VARCHAR(10) DEFAULT NULL,
   `turno` VARCHAR(20) DEFAULT NULL,
@@ -33,30 +44,17 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`usuario` (
   INDEX `fk_usuario_turma_idx` (`id_turma`),
   CONSTRAINT `fk_usuario_turma`
     FOREIGN KEY (`id_turma`)
-    REFERENCES `biblioteca`.`turma` (`id_turma`)
+    REFERENCES `LUMENDB`.`turma` (`id_turma`)
     ON DELETE SET NULL
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- -----------------------------------------------------
--- Table `biblioteca`.`turma`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`turma` (
-  `id_turma` INT NOT NULL AUTO_INCREMENT,
-  `codigo` VARCHAR(20) NOT NULL,
-  `turno` ENUM('Manhã', 'Tarde', 'Noite', 'Integral') NOT NULL,
-  PRIMARY KEY (`id_turma`),
-  UNIQUE KEY `codigo_turno_UNIQUE` (`codigo`, `turno`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
--- -----------------------------------------------------
--- Table `biblioteca`.`categoria`
+-- Table `LUMENDB`.`categoria`
 -- -----------------------------------------------------
 -- Categorias de livros (genero/assunto).
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`categoria` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`categoria` (
   `id_categoria` INT NOT NULL AUTO_INCREMENT,
   `nome_categoria` VARCHAR(50) NOT NULL,
   `descricao` TEXT DEFAULT NULL,
@@ -66,11 +64,11 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`categoria` (
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`autor`
+-- Table `LUMENDB `.`autor`
 -- -----------------------------------------------------
 -- Autores de livros.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`autor` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`autor` (
   `id_autor` INT NOT NULL AUTO_INCREMENT,
   `nome_autor` VARCHAR(100) NOT NULL,
   `nacionalidade` VARCHAR(50) DEFAULT NULL,
@@ -79,12 +77,12 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`autor` (
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`livro`
+-- Table `LUMENDB`.`livro`
 -- -----------------------------------------------------
 -- Catalogo de livros da biblioteca.
 -- Cada livro pertence a uma categoria e pode ter multiplos autores.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`livro` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`livro` (
   `id_livro` INT NOT NULL AUTO_INCREMENT,
   `titulo` VARCHAR(150) NOT NULL,
   `isbn` VARCHAR(13) NOT NULL,
@@ -98,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`livro` (
   INDEX `fk_livro_categoria_idx` (`id_categoria`),
   CONSTRAINT `fk_livro_categoria`
     FOREIGN KEY (`id_categoria`)
-    REFERENCES `biblioteca`.`categoria` (`id_categoria`)
+    REFERENCES `LUMENDB`.`categoria` (`id_categoria`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -110,31 +108,31 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`livro` (
 -- Tabela de juncao N:N entre livros e autores.
 -- Um livro pode ter varios autores, um autor pode escrever varios livros.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`livro_autor` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`livro_autor` (
   `id_livro` INT NOT NULL,
   `id_autor` INT NOT NULL,
   PRIMARY KEY (`id_livro`, `id_autor`),
   INDEX `fk_livro_autor_autor_idx` (`id_autor`),
   CONSTRAINT `fk_livro_autor_livro`
     FOREIGN KEY (`id_livro`)
-    REFERENCES `biblioteca`.`livro` (`id_livro`)
+    REFERENCES `LUMENDB`.`livro` (`id_livro`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `fk_livro_autor_autor`
     FOREIGN KEY (`id_autor`)
-    REFERENCES `biblioteca`.`autor` (`id_autor`)
+    REFERENCES `LUMENDB`.`autor` (`id_autor`)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`exemplar`
+-- Table `LUMENDB`.`exemplar`
 -- -----------------------------------------------------
 -- Copias fisicas de cada livro.
 -- Um titulo pode ter varios exemplares (copias) em diferentes status.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`exemplar` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`exemplar` (
   `id_exemplar` INT NOT NULL AUTO_INCREMENT,
   `codigo_patrimonio` VARCHAR(30) NOT NULL,
   `status_exemplar` ENUM('disponivel', 'emprestado', 'reservado', 'manutencao') NOT NULL DEFAULT 'disponivel',
@@ -145,19 +143,19 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`exemplar` (
   INDEX `fk_exemplar_livro_idx` (`id_livro`),
   CONSTRAINT `fk_exemplar_livro`
     FOREIGN KEY (`id_livro`)
-    REFERENCES `biblioteca`.`livro` (`id_livro`)
+    REFERENCES `LUMENDB`.`livro` (`id_livro`)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`grupo_emprestimo`
+-- Table `LUMENDB`.`grupo_emprestimo`
 -- -----------------------------------------------------
 -- Agrupa multiplos emprestimos de um mesmo usuario.
 -- Permite emprestimo multi-livro (ate 3 exemplares).
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`grupo_emprestimo` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`grupo_emprestimo` (
   `id_grupo` INT NOT NULL AUTO_INCREMENT,
   `id_usuario` INT NOT NULL,
   `id_funcionario` INT NOT NULL,
@@ -170,24 +168,24 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`grupo_emprestimo` (
   INDEX `fk_grupo_funcionario_idx` (`id_funcionario`),
   CONSTRAINT `fk_grupo_usuario`
     FOREIGN KEY (`id_usuario`)
-    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    REFERENCES `LUMENDB`.`usuario` (`id_usuario`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_grupo_funcionario`
     FOREIGN KEY (`id_funcionario`)
-    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    REFERENCES `LUMENDB`.`usuario` (`id_usuario`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`emprestimo`
+-- Table `LUMENDB`.`emprestimo`
 -- -----------------------------------------------------
 -- Registro de emprestimos de exemplares.
 -- Cada emprestimo vincula um usuario a um exemplar especifico.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`emprestimo` (
   `id_emprestimo` INT NOT NULL AUTO_INCREMENT,
   `data_emprestimo` DATE NOT NULL,
   `data_prevista` DATE NOT NULL,
@@ -204,34 +202,34 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`emprestimo` (
   INDEX `fk_emprestimo_grupo_idx` (`id_grupo`),
   CONSTRAINT `fk_emprestimo_usuario`
     FOREIGN KEY (`id_usuario`)
-    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    REFERENCES `LUMENDB`.`usuario` (`id_usuario`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_emprestimo_exemplar`
     FOREIGN KEY (`id_exemplar`)
-    REFERENCES `biblioteca`.`exemplar` (`id_exemplar`)
+    REFERENCES `LUMENDB`.`exemplar` (`id_exemplar`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_emprestimo_funcionario`
     FOREIGN KEY (`id_funcionario`)
-    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    REFERENCES `LUMENDB`.`usuario` (`id_usuario`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_emprestimo_grupo`
     FOREIGN KEY (`id_grupo`)
-    REFERENCES `biblioteca`.`grupo_emprestimo` (`id_grupo`)
+    REFERENCES `LUMENDB`.`grupo_emprestimo` (`id_grupo`)
     ON DELETE SET NULL
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`reserva`
+-- Table `LUMENDB`.`reserva`
 -- -----------------------------------------------------
 -- Reservas de livros por usuarios.
 -- Um usuario pode reservar um livro que esta indisponivel.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`reserva` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`reserva` (
   `id_reserva` INT NOT NULL AUTO_INCREMENT,
   `data_reserva` DATE NOT NULL,
   `data_validade` DATE NOT NULL,
@@ -243,24 +241,24 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`reserva` (
   INDEX `fk_reserva_livro_idx` (`id_livro`),
   CONSTRAINT `fk_reserva_usuario`
     FOREIGN KEY (`id_usuario`)
-    REFERENCES `biblioteca`.`usuario` (`id_usuario`)
+    REFERENCES `LUMENDB`.`usuario` (`id_usuario`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_reserva_livro`
     FOREIGN KEY (`id_livro`)
-    REFERENCES `biblioteca`.`livro` (`id_livro`)
+    REFERENCES `LUMENDB`.`livro` (`id_livro`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- -----------------------------------------------------
--- Table `biblioteca`.`multa`
+-- Table `LUMENDB`.`multa`
 -- -----------------------------------------------------
 -- Multas geradas por atraso ou dano.
 -- Vinculada a um emprestimo especifico.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `biblioteca`.`multa` (
+CREATE TABLE IF NOT EXISTS `LUMENDB`.`multa` (
   `id_multa` INT NOT NULL AUTO_INCREMENT,
   `valor` DECIMAL(10,2) NOT NULL,
   `dias_atraso` INT NOT NULL DEFAULT 0,
@@ -272,7 +270,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`multa` (
   INDEX `fk_multa_emprestimo_idx` (`id_emprestimo`),
   CONSTRAINT `fk_multa_emprestimo`
     FOREIGN KEY (`id_emprestimo`)
-    REFERENCES `biblioteca`.`emprestimo` (`id_emprestimo`)
+    REFERENCES `LUMENDB`.`emprestimo` (`id_emprestimo`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -281,7 +279,7 @@ CREATE TABLE IF NOT EXISTS `biblioteca`.`multa` (
 -- -----------------------------------------------------
 -- Dados iniciais: categorias
 -- -----------------------------------------------------
-INSERT INTO `biblioteca`.`categoria` (`nome_categoria`) VALUE
+INSERT INTO `LUMENDB`.`categoria` (`nome_categoria`) VALUE
 ('Matemática'),
 ('Português'),
 ('Ciências'),
