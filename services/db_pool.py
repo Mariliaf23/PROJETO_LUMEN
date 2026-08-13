@@ -33,7 +33,7 @@ def _criar_pool():
             _POOL = pooling.MySQLConnectionPool(
                 pool_name="lumen",
                 pool_size=_POOL_SIZE,
-                pool_reset_session=True,   # limpa estado da sessão ao devolver
+                pool_reset_session=False,   # desabilita o reset de sessão a cada devolução (economia de ~1s por query)
                 **cfg,
             )
     return _POOL
