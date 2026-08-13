@@ -33,8 +33,9 @@ DEFAULT_PASSWORD = os.getenv('DEFAULT_PASSWORD')  # Senha padrão do admin
 
 def init_db():
     try:
-        # 1. Conecta direto no banco que já existe
-        conn = mysql.connector.connect(**DB_CONFIG)
+        # 1. Usa pool de conexões (mais rápido: reutiliza TCP/TLS handshake)
+        from services.db_pool import obter_conexao as _obter_conexao
+        conn = _obter_conexao()
         cursor = conn.cursor()
 
         # 2. Valida um registro legado com nome vazio/corrompido que impedia o
