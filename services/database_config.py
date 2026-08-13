@@ -74,13 +74,14 @@ def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
 
 
 def listar_alunos():
-    """Lista todos os alunos e professores ativos. Retorna lista de (id, nome, email, tipo, status)."""
+    """Lista todos os alunos e professores ativos.
+    Retorna lista de (id, nome, email, tipo, status, matricula)."""
     try:
         conn = _conectar()
         cursor = conn.cursor()
         # Seleciona apenas alunos e professores com status ativo
         cursor.execute(
-            "SELECT id_usuario, nome, email, tipo_usuario, status FROM usuario WHERE tipo_usuario IN ('aluno', 'professor') AND status = 'ativo' ORDER BY nome"
+            "SELECT id_usuario, nome, email, tipo_usuario, status, matricula FROM usuario WHERE tipo_usuario IN ('aluno', 'professor') AND status = 'ativo' ORDER BY nome"
         )
         resultados = cursor.fetchall()          # Pega todos os resultados
         conn.close()

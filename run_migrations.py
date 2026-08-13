@@ -164,6 +164,7 @@ def run_migrations():
             print("⏭ Index já existe")
 
         print("📋 Verificando constraint fk_usuario_turma...")
+        print("📋 Verificando tabela turma e constraint fk_usuario_turma...")
         cursor.execute("""
             SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND CONSTRAINT_NAME = 'fk_usuario_turma'
@@ -178,6 +179,25 @@ def run_migrations():
                     ON UPDATE CASCADE
             """)
             print("✓ Constraint fk_usuario_turma criada")
+        constraint_existe = cursor.fetchone()[0] > 0
+
+        cursor.execute("SHOW TABLES LIKE 'turma'")
+        tabela_turma_existe = cursor.fetchone() is not None
+
+        if not constraint_existe:
+            if tabela_turma_existe:
+                print("📋 Adicionando constraint fk_usuario_turma...")
+                cursor.execute("""
+                    ALTER TABLE `usuario`
+                    ADD CONSTRAINT `fk_usuario_turma`
+                        FOREIGN KEY (`id_turma`)
+                        REFERENCES `turma` (`id_turma`)
+                        ON DELETE SET NULL
+                        ON UPDATE CASCADE
+                """)
+                print("✓ Constraint fk_usuario_turma criada")
+            else:
+                print("⏭ Tabela 'turma' não encontrada. Pulando criação da constraint fk_usuario_turma.")
         else:
             print("⏭ Constraint já existe")
 

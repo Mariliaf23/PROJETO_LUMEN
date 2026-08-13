@@ -16,6 +16,7 @@ from services.styles import (
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
+from services.carteirinha import gerar_pdf_carteirinhas
 
 COMPENSA_SCROLLBAR = 18
 
@@ -505,6 +506,13 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 16, "bold")
         ).pack(side="left")
 
+        ctk.CTkButton(
+            filtros, text="📇 Carteirinhas", command=self._gerar_carteirinhas,
+            width=160, height=42,
+            fg_color=cores.COR_DOURADO, text_color="#FFFFFF",
+            hover_color=cores.COR_DOURADO_CLARO, font=("Segoe UI", 16, "bold")
+        ).pack(side="left", padx=(10, 0))
+
         CabecalhoTabela(self).pack(fill="x", padx=(30, 30 + COMPENSA_SCROLLBAR))
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
@@ -561,6 +569,19 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
 
     def _abrir_cadastro(self):
         JanelaUsuario(self, on_salvo=self._carregar)
+
+    def _gerar_carteirinhas(self):
+        """Gera o PDF com as carteirinhas de todos os usuários e abre para impressão."""
+        usuarios = listar_usuarios()
+        if not usuarios:
+            self._notificar("Nenhum usuário cadastrado para gerar carteirinhas.")
+            return
+        caminhos = gerar_pdf_carteirinhas(usuarios)
+        if caminhos:
+            os.startfile(caminhos[0])
+            self._notificar(f"{len(usuarios)} carteirinha(s) gerada(s) com sucesso.")
+        else:
+            self._notificar("Erro ao gerar carteirinhas.")
 
     def _abrir_edicao(self, id_usuario):
         JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario)

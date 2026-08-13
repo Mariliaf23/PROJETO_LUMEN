@@ -236,22 +236,22 @@ class AppController:
     def _construir_sidebar(self):
         """Monta o menu lateral com logo, navegação rolável e rodapé fixo.
 
-        Layout em três partes:
-          - Topo fixo: logo (sempre visível)
-          - Meio rolável: botões de navegação (ganham scrollbar se faltar espaço)
-          - Rodapé fixo: versão, alternar tema e botão sair (sempre visíveis)
+        Layout em três linhas usando grid:
+          - Linha 0: Meio rolável (nav_scroll) - expandir para preencher espaço
+          - Linha 1: Topo fixo - logo
+          - Linha 2: Rodapé fixo - versão, tema e botão sair
         """
-        # ===== RODAPÉ FIXO (empacotado primeiro para reservar o espaço na base) =====
-        rodape = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
-        rodape.pack(side="bottom", fill="x", padx=15)
+        # ===== LINHA 2: RODAPÉ FIXO =====
+        self._rodape = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
+        self._rodape.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 5))
 
-        ctk.CTkFrame(rodape, fg_color=cores.COR_INPUT_BORDER, height=1).pack(fill="x", pady=(0, 8))
+        ctk.CTkFrame(self._rodape, fg_color=cores.COR_INPUT_BORDER, height=1).pack(fill="x", pady=(0, 8))
 
-        ctk.CTkLabel(rodape, text="v1.0 • LUMEN SYSTEM",
+        ctk.CTkLabel(self._rodape, text="v1.0 • LUMEN SYSTEM",
                      font=("Segoe UI", 11), text_color=cores.COR_TEXTO2).pack(pady=(0, 6))
 
         self._btn_tema = ctk.CTkButton(
-            rodape,
+            self._rodape,
             text="🌙  Escuro" if cores.modo == "dark" else "☀️  Claro",
             font=("Segoe UI", 13),
             fg_color="transparent",
@@ -264,7 +264,7 @@ class AppController:
         self._btn_tema.pack(fill="x", pady=(0, 4))
 
         ctk.CTkButton(
-            rodape,
+            self._rodape,
             text="🚪   Sair",
             font=("Segoe UI", 13),
             fg_color="transparent",
@@ -275,9 +275,9 @@ class AppController:
             command=self._sair
         ).pack(fill="x")
 
-        # ===== TOPO FIXO: logo =====
-        topo = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
-        topo.pack(fill="x", pady=(25, 5), padx=10)
+        # ===== LINHA 1: TOPO FIXO: logo =====
+        self._topo = ctk.CTkFrame(self._sidebar_frame, fg_color="transparent")
+        self._topo.grid(row=0, column=0, sticky="ew", padx=10, pady=(5, 0))
 
         caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logo_path = os.path.join(caminho_base, "assets", "logo_lumen.png")
@@ -286,15 +286,13 @@ class AppController:
             try:
                 with Image.open(logo_path) as img:
                     self._logo_img = ctk.CTkImage(img.copy(), size=(180, 180))
-                ctk.CTkLabel(topo, image=self._logo_img, text="").pack()
+                ctk.CTkLabel(self._topo, image=self._logo_img, text="").pack()
             except Exception:
-                ctk.CTkLabel(topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=cores.COR_DOURADO).pack()
+                ctk.CTkLabel(self._topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=cores.COR_DOURADO).pack()
         else:
-            ctk.CTkLabel(topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=cores.COR_DOURADO).pack()
+            ctk.CTkLabel(self._topo, text="LUMEN", font=("Cinzel", 28, "bold"), text_color=cores.COR_DOURADO).pack()
 
-        ctk.CTkFrame(self._sidebar_frame, fg_color=cores.COR_INPUT_BORDER, height=1).pack(fill="x", padx=25, pady=(15, 20))
-
-        # ===== MEIO ROLÁVEL: botões de navegação =====
+        # ===== LINHA 0: MEIO ROLÁVEL: botões de navegação =====
         tipo_usuario = None
         if hasattr(self, 'usuario_logado') and self.usuario_logado:
             tipo_usuario = self.usuario_logado.get('tipo', '').lower()
@@ -316,13 +314,22 @@ class AppController:
                 ("⚙️   Configurações", "configuracoes"),
             ])
 
+        # Configurar grid weights para linhas
+        # Linha 0: topo (logo) - altura fixa
+        # Linha 1: nav_scroll - deve expandir
+        # Linha 2: rodape - altura fixa
+        self._sidebar_frame.grid_rowconfigure(0, weight=0)
+        self._sidebar_frame.grid_rowconfigure(1, weight=1)
+        self._sidebar_frame.grid_rowconfigure(2, weight=0)
+
         self._nav_scroll = ctk.CTkScrollableFrame(
             self._sidebar_frame,
             fg_color="transparent",
             scrollbar_button_color=cores.COR_ATIVO,
             scrollbar_button_hover_color=cores.COR_AZUL_HOVER,
         )
-        self._nav_scroll.pack(side="top", fill="both", expand=True, padx=(15, 5), pady=(0, 10))
+        self._nav_scroll.grid(row=1, column=0, sticky="nsew", padx=(15, 5), pady=(5, 0))
+        self._topo.grid(row=0, column=0, sticky="ew", padx=10, pady=(5, 0))
 
         self._botoes_nav = []
         for nome, chave in itens:
@@ -345,20 +352,57 @@ class AppController:
         self._atualizar_visibilidade_scrollbar_sidebar()
 
     def _ao_estado_fullscreen_mudou(self, event=None):
-        """Detecta mudanças de tela cheia e ajusta a barra de rolagem da sidebar."""
+        """Detecta mudanças de tela cheia/maximização e ajusta a sidebar."""
         atual = bool(self.root.attributes("-fullscreen"))
         if atual != self._ultimo_fullscreen:
             self._ultimo_fullscreen = atual
-            self._atualizar_visibilidade_scrollbar_sidebar()
+            if self._modo_sidebar and self._sidebar_frame:
+                self._rebuild_sidebar_after_fullscreen()
+        self._atualizar_visibilidade_scrollbars_janela()
+
+    def _rebuild_sidebar_after_fullscreen(self):
+        """Reconstrói a sidebar após mudança de tela cheia para corrigir layout."""
+        for widget in self._sidebar_frame.winfo_children():
+            widget.destroy()
+        self._construir_sidebar()
+
+    def _janela_maximizada(self):
+        """True quando a janela está em tela cheia ou maximizada."""
+        return self._ultimo_fullscreen or self.root.state() == "zoomed"
+
+    def _atualizar_visibilidade_scrollbars_janela(self):
+        """Oculta as barras de rolagem do menu lateral e da visão geral
+        quando a janela está em tela cheia ou maximizada."""
+        ocultar = self._janela_maximizada()
+
+        nav = getattr(self, '_nav_scroll', None)
+        if nav is not None:
+            sb = getattr(nav, '_scrollbar', None)
+            if sb is not None:
+                if ocultar:
+                    sb.grid_remove()
+                else:
+                    sb.grid()
+
+        tela_dash = self._telas.get('dashboard')
+        if tela_dash is not None:
+            conteudo = getattr(tela_dash, '_conteudo', None)
+            if conteudo is not None:
+                sb = getattr(conteudo, '_scrollbar', None)
+                if sb is not None:
+                    if ocultar:
+                        sb.grid_remove()
+                    else:
+                        sb.grid()
 
     def _atualizar_visibilidade_scrollbar_sidebar(self):
-        """Mostra a barra de rolagem da navegação apenas fora de tela cheia."""
+        """Mostra a barra de rolagem da navegação apenas fora de tela cheia/maximizada."""
         if not self._modo_sidebar:
             return
         nav = getattr(self, '_nav_scroll', None)
         if nav is None:
             return
-        if self._ultimo_fullscreen:
+        if self._janela_maximizada():
             nav._scrollbar.grid_remove()
         else:
             nav._scrollbar.grid()
