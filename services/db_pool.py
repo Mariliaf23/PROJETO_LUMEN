@@ -59,6 +59,28 @@ def obter_conexao():
     return conn
 
 
+def aquecer_pool():
+    """Abre as conexões do pool em threads paralelas (daemon), em background.
+
+    Sem isso, cada primeira consulta abre uma conexão nova (TCP + TLS +
+    handshake até o servidor remoto), demorando 10s+ por conexão. Com o
+    aquecimento, o pool já vem cheio e o primeiro uso sai em milissegundos.
+    Falhas são silenciosas: o pool continua sendo preenchido sob demanda.
+    """
+    import threading
+
+    def _abrir():
+        try:
+            conn = obter_conexao()
+            conn.close()
+        except Exception:
+            pass
+
+    threads = [threading.Thread(target=_abrir, daemon=True) for _ in range(max(_POOL_SIZE, 1))]
+    for t in threads:
+        t.start()
+
+
 def esvaziar_pool():
     """Fecha todas as conexões do pool (útil ao trocar config de banco)."""
     global _POOL

@@ -35,11 +35,11 @@ def _truncar(valor, max_chars):
 class JanelaUsuario(ctk.CTkToplevel):
     """Abre um formulário para criar ou editar um usuário."""
 
-    def __init__(self, master, on_salvo, id_usuario=None):
+    def __init__(self, master, on_salvo, id_usuario=None, turmas=None):
         super().__init__(master)
         self.on_salvo   = on_salvo
         self.id_usuario = id_usuario
-        self._turmas    = listar_turmas()  # [(id, codigo, turno), ...]
+        self._turmas    = turmas if turmas is not None else listar_turmas()  # [(id, codigo, turno), ...]
         self.title("Editar Usuário" if id_usuario else "Novo Usuário")
         self.geometry("420x700")
         self.resizable(False, False)
@@ -431,6 +431,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._linha_selecionada = None
+        self._turmas_cache = None
         self._construir_ui()
         self._carregar()
 
@@ -547,6 +548,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             return
         if erro is None and dados:
             usuarios, turmas_map = dados
+            self._turmas_cache = [(tid, c, t) for tid, (c, t) in turmas_map.items()]
             self._renderizar_linhas(usuarios, turmas_map)
 
     def _renderizar_linhas(self, usuarios, turmas_map):
@@ -589,7 +591,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._carregar()
 
     def _abrir_cadastro(self):
-        JanelaUsuario(self, on_salvo=self._carregar)
+        JanelaUsuario(self, on_salvo=self._carregar, turmas=self._turmas_cache)
 
     def _gerar_carteirinhas(self):
         """Gera o PDF com as carteirinhas de todos os usuários e abre para impressão."""
@@ -605,7 +607,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             self._notificar("Erro ao gerar carteirinhas.")
 
     def _abrir_edicao(self, id_usuario):
-        JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario)
+        JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario,
+                      turmas=self._turmas_cache)
 
     def _alternar_status(self, id_usuario):
         ok = alternar_status_usuario(id_usuario)
