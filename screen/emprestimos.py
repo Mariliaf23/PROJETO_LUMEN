@@ -490,10 +490,11 @@ class TelaEmprestimos(ctk.CTkFrame):
         aluno_container.grid(row=3, column=0, padx=(0, 10), pady=(0, 10), sticky="ew")
         aluno_container.grid_columnconfigure(0, weight=1)
 
-        self.entry_busca_aluno = criar_entry(aluno_container, placeholder="Buscar aluno...", height=ALTURA_INPUT)
+        self.entry_busca_aluno = criar_entry(aluno_container, placeholder="Buscar por nome ou matrícula (leitor)...", height=ALTURA_INPUT)
         self.entry_busca_aluno.configure(font=FONTE_INPUT)
         self.entry_busca_aluno.grid(row=0, column=0, sticky="ew")
         self.entry_busca_aluno.bind("<KeyRelease>", self._atualizar_sugestoes_aluno)
+        self.entry_busca_aluno.bind("<Return>", self._buscar_aluno_por_retorno)
         self.entry_busca_aluno.bind("<FocusOut>", lambda e: self.after(150, self._esconder_sugestoes_aluno))
 
         self._frame_sugestoes_aluno = ctk.CTkScrollableFrame(
@@ -600,18 +601,37 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._esconder_sugestoes_aluno()
             return
         resultados = [n for n in self._alunos_map.keys() if termo in n.lower()]
+        for mat, nome in self._matricula_para_nome.items():
+            if termo in str(mat).lower() and nome not in resultados:
+                resultados.append(nome)
         if not resultados:
             self._esconder_sugestoes_aluno()
             return
         self._frame_sugestoes_aluno.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         for nome in resultados[:20]:
+            mat = self._alunos_matricula_por_nome.get(nome, "")
+            texto = f"{nome}  ·  {mat}" if mat else nome
             ctk.CTkButton(
-                self._frame_sugestoes_aluno, text=nome, anchor="w",
+                self._frame_sugestoes_aluno, text=texto, anchor="w",
                 fg_color="transparent", text_color=self.cor_texto,
                 hover_color=cores.COR_AZUL_HOVER, font=("Segoe UI", 14),
                 height=36, corner_radius=4,
                 command=lambda n=nome: self._escolher_aluno(n)
             ).pack(fill="x", pady=1)
+
+    def _buscar_aluno_por_retorno(self, event=None):
+        """Confirma a busca do aluno (digitação ou leitor de código de barras)."""
+        termo = self.entry_busca_aluno.get().strip()
+        if not termo:
+            return
+        if termo in self._matricula_para_nome:
+            self._escolher_aluno(self._matricula_para_nome[termo])
+            return
+        for nome in self._alunos_map:
+            if nome.lower() == termo.lower():
+                self._escolher_aluno(nome)
+                return
+        self._atualizar_sugestoes_aluno()
 
     def _escolher_aluno(self, nome):
         self._aluno_selecionado_id = self._alunos_map.get(nome)
@@ -926,22 +946,65 @@ class TelaEmprestimos(ctk.CTkFrame):
             self._notificar("Erro ao renovar empréstimo.")
 
     def _recarregar_emprestimos(self, emprestimos_filtrados=None):
+        """Recarrega a lista de empréstimos e os dados de apoio (alunos/exemplares) em fundo."""
         for widget in self.lista_emprestimos.winfo_children():
             widget.destroy()
         self._itens_lista = []
         self._selecionado = None
 
-        alunos = listar_alunos()
-        self._alunos_map = {a[1]: a[0] for a in alunos}
+        # Se já temos os dados filtrados, aplicamos diretamente na thread da UI
+        # (mas ainda precisamos carregar os mapas de alunos/exemplares se estiverem vazios)
+        if emprestimos_filtrados is not None:
+            def _coletar_apoio():
+                return listar_alunos(), listar_exemplares_disponiveis()
 
-        exemplares = listar_exemplares_disponiveis()
+            def _aplicar_apoio(dados, erro):
+                if not self.winfo_exists() or erro: return
+                alunos, exemplares = dados
+                self._processar_dados_apoio_emprestimos(alunos, exemplares)
+                for emp in map(list, list(emprestimos_filtrados)):
+                    self._criar_item_emp(emp)
+
+            carregar_em_fundo(self, _coletar_apoio, _aplicar_apoio)
+            return
+
+        # Caso contrário, busca tudo no banco em thread de fundo
+        def _coletar_tudo():
+            return (
+                listar_alunos(),
+                listar_exemplares_disponiveis(),
+                listar_emprestimos_ativos()
+            )
+
+        def _aplicar_tudo(dados, erro):
+            if not self.winfo_exists(): return
+            if erro:
+                self._notificar(f"Erro ao carregar dados: {erro}")
+                return
+            
+            alunos, exemplares, emprestimos = dados
+            self._processar_dados_apoio_emprestimos(alunos, exemplares)
+            
+            for emp in map(list, list(emprestimos)):
+                self._criar_item_emp(emp)
+
+        carregar_em_fundo(self, _coletar_tudo, _aplicar_tudo)
+
+    def _processar_dados_apoio_emprestimos(self, alunos, exemplares):
+        """Processa listas de alunos e exemplares para os dicionários de mapeamento."""
+        self._alunos_map = {a[1]: a[0] for a in alunos}
+        self._alunos_matricula_por_nome = {}
+        self._matricula_para_nome = {}
+        for a in alunos:
+            mat = str(a[5]).strip() if len(a) > 5 and a[5] else ""
+            if mat:
+                self._alunos_matricula_por_nome[a[1]] = mat
+                self._matricula_para_nome[mat] = a[1]
+
         self._exemplares_map = {}
         for e in exemplares:
             key = f"{e[2]} ({e[1]})" if len(e) > 2 else str(e[0])
             self._exemplares_map[key] = e[0]
-        emprestimos = emprestimos_filtrados if emprestimos_filtrados is not None else listar_emprestimos_ativos()
-        for emp in map(list, list(emprestimos)):
-            self._criar_item_emp(emp)
 
     def _criar_item_emp(self, emp):
         item = ctk.CTkFrame(self.lista_emprestimos, fg_color=self.cor_card, corner_radius=6, height=40)
@@ -1029,34 +1092,37 @@ class TelaEmprestimos(ctk.CTkFrame):
             combo_alvo.set("Nenhum resultado")
 
     def _filtrar_tabela_emprestimos(self):
-        """Filtra a tabela de empréstimos pelo nome do aluno."""
+        """Filtra a tabela de empréstimos pelo nome do aluno em fundo."""
         termo = self.entry_filtro_aluno.get().strip().lower()
 
         if not termo:
             self._recarregar_emprestimos()
             return
 
-        emprestimos = listar_emprestimos_ativos()
-        filtrados = []
+        def _coletar_filtrados():
+            emprestimos = listar_emprestimos_ativos()
+            return [emp for emp in emprestimos if termo in str(emp[1]).lower()]
 
-        for emp in emprestimos:
-            nome_aluno = str(emp[1]).lower() if emp[1] else ""
-            if termo in nome_aluno:
-                filtrados.append(emp)
+        def _aplicar_filtrados(filtrados, erro):
+            if not self.winfo_exists(): return
+            for widget in self.lista_emprestimos.winfo_children():
+                widget.destroy()
+            self._itens_lista = []
+            self._selecionado = None
 
-        # Limpa e recarrega a tabela com os filtrados
-        for widget in self.lista_emprestimos.winfo_children():
-            widget.destroy()
-        self._itens_lista = []
-        self._selecionado = None
+            if erro:
+                self._notificar(f"Erro ao filtrar: {erro}")
+                return
 
-        for emp in map(list, filtrados):
-            self._criar_item_emp(emp)
+            for emp in map(list, filtrados):
+                self._criar_item_emp(emp)
 
-        if not filtrados:
-            ctk.CTkLabel(self.lista_emprestimos, text="Nenhum empréstimo encontrado",
-                         font=("Segoe UI", 14), text_color=self.cor_texto2
-                         ).pack(pady=20)
+            if not filtrados:
+                ctk.CTkLabel(self.lista_emprestimos, text="Nenhum empréstimo encontrado",
+                             font=("Segoe UI", 14), text_color=self.cor_texto2
+                             ).pack(pady=20)
+
+        carregar_em_fundo(self, _coletar_filtrados, _aplicar_filtrados)
 
     def _limpar_filtro_emprestimos(self):
         """Limpa o filtro e recarrega todos os empréstimos."""
@@ -1064,15 +1130,18 @@ class TelaEmprestimos(ctk.CTkFrame):
         self._recarregar_emprestimos()
 
     def _buscar_isbn_emprestimo(self):
-        """Busca exemplares pelo ISBN lido (leitor USB ou digitação)."""
+        """Busca exemplares pelo ISBN lido em thread de fundo."""
         import re
         isbn = re.sub(r'\D', '', self.entry_isbn_emp.get().strip())
         if not isbn:
             self._notificar("Informe um ISBN.")
             return
 
-        from services.database_config import _conectar
-        try:
+        self.lbl_notificacao.configure(text="Buscando exemplar pelo ISBN...", text_color=cores.COR_AZUL_HOVER)
+        self.lbl_notificacao.place(relx=0.5, rely=0.97, anchor="center")
+
+        def _coletar_isbn():
+            from services.database_config import _conectar
             conn = _conectar()
             cursor = conn.cursor()
             cursor.execute(
@@ -1082,89 +1151,101 @@ class TelaEmprestimos(ctk.CTkFrame):
                    WHERE l.isbn = %s AND e.status_exemplar = 'disponivel'""",
                 (isbn,)
             )
-            exemplares = cursor.fetchall()
+            res = cursor.fetchall()
             conn.close()
-        except Exception:
-            self._notificar("Erro ao buscar exemplares pelo ISBN.")
-            return
+            return res
 
-        if not exemplares:
-            self._notificar("Nenhum exemplar disponível para este ISBN.")
-            return
+        def _aplicar_isbn(exemplares, erro):
+            if not self.winfo_exists(): return
+            if erro:
+                self._notificar(f"Erro na busca: {erro}")
+                return
+            if not exemplares:
+                self._notificar("Nenhum exemplar disponível para este ISBN.")
+                return
 
-        # Filtra o combo de exemplares para mostrar apenas os deste livro
-        primeiro = exemplares[0]
-        nome = f"{primeiro[1]} ({primeiro[2]})"
-        self._exemplar_selecionado_id = primeiro[0]
-        self.entry_busca_exemplar.delete(0, "end")
-        self.entry_busca_exemplar.insert(0, nome)
-        self._esconder_sugestoes_exemplar()
+            primeiro = exemplares[0]
+            nome = f"{primeiro[1]} ({primeiro[2]})"
+            self._exemplar_selecionado_id = primeiro[0]
+            self.entry_busca_exemplar.delete(0, "end")
+            self.entry_busca_exemplar.insert(0, nome)
+            self._esconder_sugestoes_exemplar()
+            self._notificar(f"Encontrado: {primeiro[2]} ({len(exemplares)} disponível(is))")
 
-        titulo = primeiro[2]
-        self._notificar(f"Encontrado: {titulo} ({len(exemplares)} disponível(is))")
-        
+        carregar_em_fundo(self, _coletar_isbn, _aplicar_isbn)
+
     # ==================== MÉTODOS RESERVAS ====================
 
     def _recarregar_reservas(self):
+        """Recarrega a aba de reservas de forma assíncrona."""
         for widget in self.lista_reservas.winfo_children():
             widget.destroy()
         self._itens_reserva = []
         self._reserva_selecionada = None
 
-        alunos = listar_alunos()
-        self._reserva_alunos_map = {}
-        nomes_alunos = [a[1] for a in alunos]  # Apenas o nome
-        for a in alunos:
-            self._reserva_alunos_map[a[1]] = a[0]
-        self.combo_reserva_aluno.configure(values=nomes_alunos if nomes_alunos else ["Selecione..."])
-        if nomes_alunos:
-            self.combo_reserva_aluno.set(nomes_alunos[0])
+        def _coletar_reservas():
+            return (
+                listar_alunos(),
+                listar_livros(),
+                listar_reservas(status="ativa")
+            )
 
-        livros = listar_livros()
-        self._reserva_livros_map = {}
-        nomes_livros = [f"{l[1]} ({l[2]})" for l in livros]
-        for l in livros:
-            self._reserva_livros_map[f"{l[1]} ({l[2]})"] = l[0]
-        self.combo_reserva_livro.configure(values=nomes_livros if nomes_livros else ["Selecione..."])
-        if nomes_livros:
-            self.combo_reserva_livro.set(nomes_livros[0])
+        def _aplicar_reservas(dados, erro):
+            if not self.winfo_exists(): return
+            if erro:
+                self._notificar(f"Erro ao carregar reservas: {erro}")
+                return
 
-        COLUNAS_RES_DADOS = [
-            ("ID",           1,  60,  6),
-            ("Beneficiário", 3, 200, 30),
-            ("Livro",        4, 280, 35),
-            ("Solicitação",  2, 110, 12),
-            ("Prazo",        2, 110, 12),
-            ("Situação",     1, 100, 12),
-        ]
+            alunos, livros, reservas = dados
+            
+            # Atualiza combos e mapas
+            self._reserva_alunos_map = {a[1]: a[0] for a in alunos}
+            nomes_alunos = list(self._reserva_alunos_map.keys())
+            self.combo_reserva_aluno.configure(values=nomes_alunos if nomes_alunos else ["Selecione..."])
+            if nomes_alunos: self.combo_reserva_aluno.set(nomes_alunos[0])
 
-        reservas = listar_reservas(status="ativa")
-        for r in reservas:
-            item = ctk.CTkFrame(self.lista_reservas, fg_color=self.cor_card, corner_radius=6, height=40)
-            item.pack(fill="x", pady=2)
-            item.pack_propagate(False)
-            item.bind("<Button-1>", lambda e, v=r: self._selecionar_reserva(v))
+            self._reserva_livros_map = {f"{l[1]} ({l[2]})": l[0] for l in livros}
+            nomes_livros = list(self._reserva_livros_map.keys())
+            self.combo_reserva_livro.configure(values=nomes_livros if nomes_livros else ["Selecione..."])
+            if nomes_livros: self.combo_reserva_livro.set(nomes_livros[0])
 
-            for idx_col, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_RES_DADOS):
-                item.grid_columnconfigure(idx_col, weight=peso, minsize=minsize)
-                texto = r[idx_col] if idx_col < len(r) else "-"
-                texto_str = str(texto) if texto else "-"
-                if len(texto_str) > max_chars:
-                    texto_str = texto_str[:max_chars - 1].rstrip() + "…"
+            COLUNAS_RES_DADOS = [
+                ("ID",           1,  60,  6),
+                ("Beneficiário", 3, 200, 30),
+                ("Livro",        4, 280, 35),
+                ("Solicitação",  2, 110, 12),
+                ("Prazo",        2, 110, 12),
+                ("Situação",     1, 100, 12),
+            ]
 
-                cor = self.cor_texto
-                if nome == "Situação":
-                    s = str(texto).lower() if texto else ""
-                    if s == "ativa":
-                        cor = cores.COR_AVISO
-                    elif s == "cancelada":
-                        cor = cores.COR_PERIGO
+            for r in reservas:
+                item = ctk.CTkFrame(self.lista_reservas, fg_color=self.cor_card, corner_radius=6, height=40)
+                item.pack(fill="x", pady=2)
+                item.pack_propagate(False)
+                item.bind("<Button-1>", lambda e, v=r: self._selecionar_reserva(v))
 
-                lbl = ctk.CTkLabel(item, text=texto_str, font=("Segoe UI", 13), text_color=cor, anchor="center")
-                lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
-                lbl.bind("<Button-1>", lambda e, v=r: self._selecionar_reserva(v))
+                for idx_col, (nome, peso, minsize, max_chars) in enumerate(COLUNAS_RES_DADOS):
+                    item.grid_columnconfigure(idx_col, weight=peso, minsize=minsize)
+                    texto = r[idx_col] if idx_col < len(r) else "-"
+                    texto_str = str(texto) if texto else "-"
+                    if len(texto_str) > max_chars:
+                        texto_str = texto_str[:max_chars - 1].rstrip() + "…"
 
-            self._itens_reserva.append((item, r))
+                    cor = self.cor_texto
+                    if nome == "Situação":
+                        s = str(texto).lower() if texto else ""
+                        if s == "ativa":
+                            cor = cores.COR_AVISO
+                        elif s == "cancelada":
+                            cor = cores.COR_PERIGO
+
+                    lbl = ctk.CTkLabel(item, text=texto_str, font=("Segoe UI", 13), text_color=cor, anchor="center")
+                    lbl.grid(row=0, column=idx_col, sticky="ew", padx=(10, 4), pady=7)
+                    lbl.bind("<Button-1>", lambda e, v=r: self._selecionar_reserva(v))
+
+                self._itens_reserva.append((item, r))
+
+        carregar_em_fundo(self, _coletar_reservas, _aplicar_reservas)
 
     def _selecionar_reserva(self, r):
         self._reserva_selecionada = r

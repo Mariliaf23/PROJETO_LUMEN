@@ -26,7 +26,7 @@ DB_CONFIG = {
     'user': os.getenv('DB_USER'),
     'password': os.getenv('DB_PASSWORD'),
     'database': DB_NAME,
-    'connection_timeout': 10,  # Evita que a aplicação fique travada se o servidor não responder
+    'connection_timeout': 30,  # Tempo máximo para estabelecer conexão (em segundos).
 }
 
 

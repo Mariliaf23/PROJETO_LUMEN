@@ -312,6 +312,11 @@ class Dashboard(ctk.CTkFrame):
         self._criar_cards(self._conteudo)
         self._criar_graficos(self._conteudo)
 
+        if self.controller is not None:
+            atualizar = getattr(self.controller, '_atualizar_visibilidade_scrollbars_janela', None)
+            if atualizar:
+                atualizar()
+
     def _criar_header(self):
         """Cria o cabeçalho com título, subtítulo, data/hora e botão atualizar."""
         header = ctk.CTkFrame(self._conteudo, fg_color="transparent")

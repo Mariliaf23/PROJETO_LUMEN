@@ -89,10 +89,18 @@ def _configurar_tela_cheia(root):
             root.attributes("-fullscreen", True)
             root.after(50, lambda: _em_transicao.__setitem__("ativo", False))
 
+def _sair_tela_cheia(event=None):
+    if root.attributes("-fullscreen"):
+        # Salvar a geometria da janela antes de sair do modo fullscreen
+        geometria_original = root.geometry()
+        root.attributes("-fullscreen", False)
+        root.state("normal")
+        # Restaurar a geometria original para garantir que a janela
+        # não fique coberta pela barra do menu do Windows
+        root.geometry(geometria_original)
     def _sair_tela_cheia(event=None):
         if root.attributes("-fullscreen"):
             root.attributes("-fullscreen", False)
-            root.state("normal")
 
     def _alternar_tela_cheia(event=None):
         root.attributes("-fullscreen", not root.attributes("-fullscreen"))
@@ -101,6 +109,10 @@ def _configurar_tela_cheia(root):
     root.bind("<Configure>", _ao_configurar)
     root.bind("<Escape>", _sair_tela_cheia)
     root.bind("<F11>", _alternar_tela_cheia)
+
+# O código abaixo foi movido para dentro de _configurar_tela_cheia para manter a lógica encapsulada.
+# A função _sair_tela_cheia foi simplificada para apenas desativar o modo fullscreen,
+# pois o Tkinter geralmente restaura a geometria anterior automaticamente.
 
 
 if __name__ == "__main__":                            # Só executa se for o arquivo principal
@@ -113,7 +125,11 @@ if __name__ == "__main__":                            # Só executa se for o arq
         """Executa init_db() em thread separada para não travar o splash."""
         try:
             sucesso = init_db()
-            if not sucesso:
+            if sucesso:
+                # Pré-aquece o pool em background para o 1º uso sair rápido
+                from services.db_pool import aquecer_pool
+                aquecer_pool()
+            else:
                 # Erro será tratado na thread principal via root.after
                 root.after(0, lambda: _handle_db_failure())
         except Exception as e:
