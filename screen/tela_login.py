@@ -12,6 +12,7 @@ from services.styles import (                                       # Estilos e 
     cores,
     criar_entry, criar_label, criar_titulo
 )
+from services.db_async import carregar_em_fundo                     # Consulta em thread de fundo
 
 
 class TelaLogin(ctk.CTkFrame):
@@ -128,24 +129,28 @@ class TelaLogin(ctk.CTkFrame):
         self._verificar(usuario, senha)
 
     def _verificar(self, usuario, senha):
-        """Verifica se o usuário e senha estão corretos no banco de dados."""
-        try:
-            resultado = verificar_login(usuario, senha)  # Consulta o banco
+        """Verifica o usuário/senha em THREAD DE FUNDO (a tela não congela)."""
+        carregar_em_fundo(
+            self,
+            lambda: verificar_login(usuario, senha),
+            self._apos_verificar_login
+        )
 
-            if resultado:                           # Se encontrou o usuário
-                self._usuario_logado = {             # Salva os dados do usuário
-                    'id': resultado[0],              # ID no banco
-                    'nome': resultado[1],            # Nome do usuário
-                    'tipo': resultado[2]             # Tipo (diretor/bibliotecario/aluno)
-                }
-                self.controller.usuario_logado = self._usuario_logado  # Salva no controlador
-                self.controller.navegar_para("dashboard", voltavel=False)  # Vai para o dashboard
-            else:                                    # Se não encontrou
-                self._mostrar_erro("Usuário ou senha incorretos.")  # Erro de login
-        except Exception as e:                       # Se der erro de conexão
-            self._mostrar_erro(f"Erro de conexão: {e}")
-        finally:
-            self.btn_entrar.configure(text="Entrar no Sistema", state="normal")  # Reabilita botão
+    def _apos_verificar_login(self, resultado, erro):
+        """Processa o resultado do login na thread da interface."""
+        if erro is not None:                       # Se der erro de conexão
+            self._mostrar_erro(f"Erro de conexão: {erro}")
+        elif resultado:                            # Se encontrou o usuário
+            self._usuario_logado = {               # Salva os dados do usuário
+                'id': resultado[0],                # ID no banco
+                'nome': resultado[1],              # Nome do usuário
+                'tipo': resultado[2]               # Tipo (diretor/bibliotecario/aluno)
+            }
+            self.controller.usuario_logado = self._usuario_logado  # Salva no controlador
+            self.controller.navegar_para("dashboard", voltavel=False)  # Vai para o dashboard
+        else:                                      # Se não encontrou
+            self._mostrar_erro("Usuário ou senha incorretos.")  # Erro de login
+        self.btn_entrar.configure(text="Entrar no Sistema", state="normal")  # Reabilita botão
 
     def _mostrar_erro(self, mensagem):
         """Mostra uma mensagem de erro por 3 segundos."""

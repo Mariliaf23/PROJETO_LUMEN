@@ -20,7 +20,11 @@ from services.styles import (
     cores, FONTE_NAV, FONTE_LABEL,
     criar_label, criar_card
 )
+<<<<<<< HEAD
 from services.report_export import SCHOOL_NAME # Import SCHOOL_NAME
+=======
+from services.db_async import carregar_em_fundo
+>>>>>>> b35129e58331882189d6362e275b375f732cdd14
 
 COR_GRAF_AZUL = cores.COR_AZUL_PRINCIPAL
 
@@ -233,8 +237,15 @@ class Dashboard(ctk.CTkFrame):
         super().__init__(master, fg_color=cores.COR_BG)  # Frame com fundo escuro
         self.controller = controller                 # Controlador de navegação
 
-        self._carregar_dados()                       # Busca dados do banco
+        # Valores iniciais vazios: a tela aparece na hora e os dados chegam
+        # via thread de fundo (sem travar a interface).
+        self._stats = {}
+        self._top_alunos = []
+        self._ranking_turmas = []
+        self._cat_livros = []
+
         self._construir_ui()                         # Monta a interface
+        self._carregar_dados()                       # Busca dados em background
 
 
 
@@ -259,14 +270,32 @@ class Dashboard(ctk.CTkFrame):
         if getattr(self, "_tema_pendente", False):
             self._reconstruir_ui()
         self._carregar_dados()
-        self._atualizar_conteudo()
 
     def _carregar_dados(self):
-        """Busca todas as estatísticas do banco de dados."""
-        self._stats = buscar_stats_dashboard()
-        self._top_alunos = buscar_top_alunos_emprestimos(10)
-        self._ranking_turmas = buscar_ranking_turmas_emprestimos()
-        self._cat_livros = buscar_livros_por_categoria_exemplares()
+        """Busca todas as estatísticas do banco em THREAD DE FUNDO (sem freeze)."""
+        def _coletar():
+            return {
+                'stats': buscar_stats_dashboard(),
+                'top': buscar_top_alunos_emprestimos(10),
+                'ranking': buscar_ranking_turmas_emprestimos(),
+                'cat': buscar_livros_por_categoria_exemplares(),
+            }
+        carregar_em_fundo(self, _coletar, self._aplicar_dados)
+
+    def _aplicar_dados(self, dados, erro):
+        """Recebe os dados na thread da UI e renderiza cards/gráficos."""
+        if not self.winfo_exists():
+            return
+        if erro is not None or not dados:
+            self._stats, self._top_alunos = {}, []
+            self._ranking_turmas, self._cat_livros = [], []
+        else:
+            self._stats = dados.get('stats') or {}
+            self._top_alunos = dados.get('top') or []
+            self._ranking_turmas = dados.get('ranking') or []
+            self._cat_livros = dados.get('cat') or []
+        if getattr(self, '_cards', None):
+            self._atualizar_conteudo()
 
     def _construir_ui(self):
         """Monta a estrutura principal: apenas conteúdo (sidebar fica no controller)."""

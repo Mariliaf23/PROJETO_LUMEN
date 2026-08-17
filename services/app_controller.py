@@ -1,83 +1,91 @@
-# app_controller.py — Controlador principal que gerencia navegação entre telas
+# app_controller.py — Controlador principal
 
 import os
 from PIL import Image
 import customtkinter as ctk
-from services.styles import cores
+from services.styles import cores, COR_ERRO
 
 
 class AppController:
-    """Gerencia a navegação entre telas, animações e controle de acesso."""
-
-    # Telas que o bibliotecário pode acessar (diretor acessa todas)
     TELAS_BIBLIOTECARIO = {"dashboard", "livros", "exemplares", "emprestimos"}
 
     def __init__(self, root):
-        """Configura a janela principal do aplicativo."""
-        self.root = root                       # Referência à janela raiz do tkinter
-        self.root.title("LUMEN")               # Título da janela
-        self.root.geometry("960x680")          # Tamanho inicial da janela (largura x altura)
-        self.root.minsize(800, 580)            # Tamanho mínimo permitido
-        self.root.configure(fg_color=cores.COR_BG)   # Cor de fundo da janela
-
-        # Container principal onde todas as telas são exibidas
-        self._container = ctk.CTkFrame(root, fg_color=cores.COR_BG)  # Frame que segura as telas
-        self._container.pack(fill="both", expand=True)          # Preenche toda a janela
-
-        self._telas = {}           # Dicionário com todas as telas registradas (nome -> frame)
-        self._tela_atual = None    # Nome da tela que está sendo exibida agora
-        self._historico = []       # Lista de telas visitadas (para o botão voltar)
-        self._animando = False     # True enquanto uma animação de transição está rodando
-        self.usuario_logado = None # Dados do usuário logado (id, nome, tipo)
-
-        self._modo_sidebar = False    # True quando o layout com sidebar está ativo
-        self._sidebar_frame = None    # Frame da sidebar fixa
-        self._botoes_nav = []         # Lista de (botao, chave) para atualizar item ativo
-        self._btn_tema = None         # Botão de alternar tema na sidebar
-        self._logo_img = None         # Imagem da logo (evita garbage collection)
+        self.root = root
+        self.root.title("LUMEN")
+        self.root.geometry("960x680")
+        self.root.minsize(800, 580)
+        self.root.configure(fg_color=cores.COR_BG)
 
         self._ultimo_fullscreen = bool(self.root.attributes("-fullscreen"))
         self.root.bind("<Configure>", self._ao_estado_fullscreen_mudou, add="+")
 
         cores.registrar_listener(self._ao_tema_mudou)
 
-        self._centralizar()        # Centraliza a janela na tela do computador
+        self._telas = {}
+        self._tela_atual = None
+        self._historico = []
+        self._animando = False
+        self.usuario_logado = None
+
+        self._modo_sidebar = False
+        self._sidebar_frame = None
+        self._botoes_nav = []
+        self._btn_tema = None
+        self._logo_img = None
+
+        cores.registrar_listener(self._ao_tema_mudou)
+        self._centralizar()
+
+    def _ao_alterar_banner(self, indisponivel):
+        """Mostra/oculta a faixa de 'servidor indisponível' conforme as consultas em fundo."""
+        if indisponivel and not self._banner_visivel:
+            self._banner_visivel = True
+            self._tk_banner.place(relx=0, rely=0, relwidth=1)
+            self._tk_banner.lift()
+        elif not indisponivel and self._banner_visivel:
+            self._banner_visivel = False
+            self._tk_banner.place_forget()
 
     def verificar_acesso(self, tela):
-        """Verifica se o usuário logado pode acessar a tela solicitada."""
-        if tela == "login":              # Tela de login sempre é acessível
+        if tela == "login":
             return True
-        if not self.usuario_logado:      # Se ninguém está logado, não pode acessar
+        if not self.usuario_logado:
             return False
-        tipo = self.usuario_logado.get('tipo', '')  # Pega o tipo do usuário (diretor/bibliotecario)
-        if tipo == 'diretor':            # Diretor pode acessar qualquer tela
+        tipo = self.usuario_logado.get("tipo", "")
+        if tipo == "diretor":
             return True
-        if tipo == 'bibliotecario':     # Bibliotecário só pode acessar telas específicas
+        if tipo == "bibliotecario":
             return tela in self.TELAS_BIBLIOTECARIO
-        return False                     # Outros tipos não têm acesso
+        return False
 
     def _centralizar(self):
-        """Centraliza a janela na tela do monitor."""
-        self.root.update_idletasks()                    # Atualiza as medições da janela
-        L = self.root.winfo_width()                     # Largura atual da janela
-        A = self.root.winfo_height()                    # Altura atual da janela
-        x = (self.root.winfo_screenwidth() - L) // 2   # Posição X para centralizar
-        y = (self.root.winfo_screenheight() - A) // 2   # Posição Y para centralizar
-        self.root.geometry(f"+{x}+{y}")                 # Aplica a posição calculada
+        self.root.update_idletasks()
+        L = self.root.winfo_width()
+        A = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() - L) // 2
+        y = (self.root.winfo_screenheight() - A) // 2
+        self.root.geometry(f"+{x}+{y}")
 
     def registrar_tela(self, nome, classe_tela):
-        """Registra uma tela no controlador para uso posterior na navegação."""
-        frame = classe_tela(master=self._container, controller=self)  # Cria a tela
-        self._telas[nome] = frame                     # Salva no dicionário pelo nome
-        frame.place(relx=0, rely=0, relwidth=1, relheight=1)  # Posiciona preenchendo o container
-        frame.place_forget()                          # Esconde a tela (será mostrada quando necessário)
+        frame = classe_tela(master=self._container, controller=self)
+        self._telas[nome] = frame
+        frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+        frame.place_forget()
+
+    def _garantir_tela(self, nome):
+        if nome in self._telas:
+            return self._telas[nome]
+        return None
 
     def navegar_para(self, nome, voltavel=True):
-        """Navega para a tela indicada pelo nome."""
         if self._animando:
             return
 
         if self._tela_atual and self._tela_atual == nome:
+            tela = self._telas.get(nome)
+            if tela and hasattr(tela, "_ao_visitar"):
+                tela._ao_visitar()
+            self._atualizar_sidebar()
             return
 
         if not self.verificar_acesso(nome):
@@ -90,7 +98,7 @@ class AppController:
             antiga = self._tela_atual
             self._tela_atual = nome
             nova_tela = self._telas[nome]
-            callback = nova_tela._ao_visitar if hasattr(nova_tela, '_ao_visitar') else None
+            callback = getattr(nova_tela, "_ao_visitar", None)
             if antiga:
                 self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda", callback=callback)
             else:
@@ -107,43 +115,38 @@ class AppController:
 
         antiga = self._tela_atual
         self._tela_atual = nome
-        nova_tela = self._telas[nome]
+        nova_tela = self._garantir_tela(nome)
+        if nova_tela is None:
+            self._tela_atual = antiga
+            return
 
-        if antiga:
-            tela_antiga = self._telas[antiga]
-            tela_antiga.grid_forget()
+        if antiga and antiga in self._telas:
+            self._telas[antiga].grid_forget()
 
         nova_tela.grid(row=0, column=1, sticky="nsew")
         nova_tela.lift()
 
-        if hasattr(nova_tela, '_ao_visitar'):
+        if hasattr(nova_tela, "_ao_visitar"):
             nova_tela._ao_visitar()
 
         self._atualizar_sidebar()
 
     def voltar(self):
-        """Botão Voltar: sempre retorna para o Dashboard (não usa mais o histórico)."""
         if self._animando:
             return
-
         self.navegar_para("dashboard", voltavel=False)
 
     def _animar_slide(self, saindo, entrando, direcao="esquerda", duracao=250, callback=None):
-        """Anima a transição entre telas com efeito de deslize."""
         self._animando = True
         saindo.update_idletasks()
-        largura = saindo.winfo_width()
+        largura = saindo.winfo_width() or 800
 
         if direcao == "esquerda":
-            x_inicio_nova = largura
-            x_fim_nova = 0
-            x_inicio_velha = 0
-            x_fim_velha = -largura
+            x_inicio_nova, x_fim_nova = largura, 0
+            x_inicio_velha, x_fim_velha = 0, -largura
         else:
-            x_inicio_nova = -largura
-            x_fim_nova = 0
-            x_inicio_velha = 0
-            x_fim_velha = largura
+            x_inicio_nova, x_fim_nova = -largura, 0
+            x_inicio_velha, x_fim_velha = 0, largura
 
         entrando.place(relx=0, rely=0, relwidth=1, relheight=1)
         entrando.place_configure(x=x_inicio_nova)
@@ -160,9 +163,11 @@ class AppController:
         )
 
     def _animar_passo(self, saindo, entrando, x_sv, x_fv, x_sn, x_fn, passo, total, intervalo, callback=None):
-        """Executa um quadro da animação de transição."""
         if passo >= total:
-            saindo.place_forget()
+            try:
+                saindo.place_forget()
+            except Exception:
+                pass
             entrando.place(relx=0, rely=0, relwidth=1, relheight=1)
             self._animando = False
             if callback:
@@ -170,33 +175,32 @@ class AppController:
             return
 
         t = (passo + 1) / total
-        t_suave = self._ease_out_cubic(t)
+        t_suave = 1 - (1 - t) ** 3
 
         x_velha = x_sv + (x_fv - x_sv) * t_suave
         x_nova = x_sn + (x_fn - x_sn) * t_suave
 
-        saindo.place_configure(x=int(x_velha))
-        entrando.place_configure(x=int(x_nova))
+        try:
+            saindo.place_configure(x=int(x_velha))
+            entrando.place_configure(x=int(x_nova))
+        except Exception:
+            pass
 
         self.root.after(intervalo, lambda: self._animar_passo(
             saindo, entrando, x_sv, x_fv, x_sn, x_fn,
             passo + 1, total, intervalo, callback
         ))
 
-    def _ease_out_cubic(self, t):
-        """Função de suavização que desacelera no final (ease-out cúbico)."""
-        return 1 - (1 - t) ** 3
-
-    # ===================== Sidebar persistente =====================
-
     def _ativar_modo_sidebar(self):
-        """Configura o container com sidebar fixa à esquerda e conteúdo à direita."""
         if self._modo_sidebar:
             return
         self._modo_sidebar = True
 
         for widget in self._container.winfo_children():
-            widget.place_forget()
+            try:
+                widget.place_forget()
+            except Exception:
+                pass
 
         self._container.grid_columnconfigure(0, weight=0)
         self._container.grid_columnconfigure(1, weight=1)
@@ -216,7 +220,6 @@ class AppController:
         self._construir_sidebar()
 
     def _desativar_modo_sidebar(self):
-        """Remove o layout com sidebar e volta ao modo normal."""
         if not self._modo_sidebar:
             return
         self._modo_sidebar = False
@@ -224,12 +227,15 @@ class AppController:
         if self._sidebar_frame:
             self._sidebar_frame.destroy()
             self._sidebar_frame = None
-        if hasattr(self, '_sidebar_borda') and self._sidebar_borda:
+        if hasattr(self, "_sidebar_borda") and self._sidebar_borda:
             self._sidebar_borda.destroy()
             self._sidebar_borda = None
 
         for tela in self._telas.values():
-            tela.grid_forget()
+            try:
+                tela.grid_forget()
+            except Exception:
+                pass
 
         self._container.pack(fill="both", expand=True)
 
@@ -294,17 +300,17 @@ class AppController:
 
         # ===== LINHA 0: MEIO ROLÁVEL: botões de navegação =====
         tipo_usuario = None
-        if hasattr(self, 'usuario_logado') and self.usuario_logado:
-            tipo_usuario = self.usuario_logado.get('tipo', '').lower()
+        if self.usuario_logado:
+            tipo_usuario = self.usuario_logado.get("tipo", "").lower()
 
-        tela_atual = self._tela_atual or 'dashboard'
+        tela_atual = self._tela_atual or "dashboard"
 
         itens = [
             ("🏠   Dashboard", "dashboard"),
             ("📚   Livros",    "livros"),
             ("🔍   Catálogo",  "catalogo"),
         ]
-        if tipo_usuario in ('admin', 'diretor'):
+        if tipo_usuario in ("admin", "diretor"):
             itens.extend([
                 ("📦   Exemplares",    "exemplares"),
                 ("🔄   Empréstimos",   "emprestimos"),
@@ -403,35 +409,48 @@ class AppController:
             nav._scrollbar.grid()
 
     def _ao_tema_mudou(self):
-        """Handler centralizado para mudanças de tema."""
+        """Chamado automaticamente quando o tema muda."""
         self.root.configure(fg_color=cores.COR_BG)
 
         if self._modo_sidebar and self._sidebar_frame:
             self._container.configure(fg_color=cores.COR_BG)
             self._sidebar_frame.configure(fg_color=cores.COR_SIDEBAR)
-            if hasattr(self, '_sidebar_borda') and self._sidebar_borda:
+            if hasattr(self, "_sidebar_borda") and self._sidebar_borda:
                 self._sidebar_borda.configure(fg_color=cores.COR_INPUT_BORDER)
-            for widget in self._sidebar_frame.winfo_children():
-                widget.destroy()
+
+            for widget in list(self._sidebar_frame.winfo_children()):
+                try:
+                    widget.destroy()
+                except Exception:
+                    pass
             self._construir_sidebar()
 
-        for nome_tela, tela in self._telas.items():
+        # Marca todas as telas como pendentes
+        for tela in self._telas.values():
             tela._tema_pendente = True
 
+        # Reconstrói a tela atual imediatamente
         if self._tela_atual and self._tela_atual in self._telas:
             tela = self._telas[self._tela_atual]
-            for metodo in ('_reconstruir_ui', '_reconstruir_tema', '_reconstruir'):
-                if hasattr(tela, metodo):
-                    getattr(tela, metodo)()
-                    break
+
+            if hasattr(tela, "_reconstruir_tema"):
+                tela._reconstruir_tema()
+            elif hasattr(tela, "_reconstruir_ui"):
+                tela._reconstruir_ui()
+            elif hasattr(tela, "_reconstruir"):
+                tela._reconstruir()
+
             tela._tema_pendente = False
+
             if self._modo_sidebar:
-                tela.grid(row=0, column=1, sticky="nsew")
+                try:
+                    tela.grid(row=0, column=1, sticky="nsew")
+                except Exception:
+                    pass
             tela.lift()
 
     def _atualizar_sidebar(self):
-        """Atualiza cores/estilos dos botões da sidebar."""
-        tela_atual = self._tela_atual or 'dashboard'
+        tela_atual = self._tela_atual or "dashboard"
         for btn, chave in self._botoes_nav:
             ativo = (chave == tela_atual)
             btn.configure(
@@ -441,10 +460,8 @@ class AppController:
             )
 
     def _alternar_tema(self):
-        """Alterna entre tema claro e escuro."""
         cores.alternar()
 
     def _sair(self):
-        """Limpa sessão e volta para a tela de login."""
         self.usuario_logado = None
         self.navegar_para("login")

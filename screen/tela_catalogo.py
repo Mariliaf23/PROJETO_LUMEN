@@ -9,6 +9,7 @@ from services.database_config import listar_livros, listar_categorias
 from services.styles import (
     cores, FONTE_TITULO, criar_entry, criar_label, criar_titulo, criar_card, criar_combo
 )
+from services.db_async import carregar_em_fundo
 
 COLUNAS = [
     ("TÍTULO",     5, 280, 36),
@@ -145,7 +146,16 @@ class TelaCatalogo(ctk.CTkFrame):
         self._carregar_dados()
 
     def _carregar_dados(self):
-        self._todos_livros = listar_livros()
+        """Busca os livros em THREAD DE FUNDO (a tela não congela)."""
+        carregar_em_fundo(self, listar_livros, self._aplicar_livros)
+
+    def _aplicar_livros(self, livros, erro):
+        """Recebe os livros na thread da UI e atualiza filtros à tabela."""
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            livros = []
+        self._todos_livros = livros or []
 
         categoria_atual = self.combo_categoria.get()
         categorias = sorted({str(l[3]) for l in self._todos_livros if l[3]}, key=str.lower)

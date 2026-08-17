@@ -1,6 +1,6 @@
 # report_queries.py — Consultas SQL para todos os relatórios do LUMEN
 
-from services.database_config import _conectar
+from services.database_config import _conectar, _cache_ttl
 from mysql.connector import Error
 
 
@@ -424,7 +424,11 @@ def relatorio_novas_aquisicoes(data_inicio=None, data_fim=None):
 # ═══════════════════════════════════════════════════════════════════════════
 
 def listar_categorias_para_filtro():
-    """Lista categorias para combos de filtro."""
+    """Lista categorias para combos de filtro (com cache)."""
+    return _cache_ttl(("listar_categorias_para_filtro",), 120, _listar_categorias_para_filtro_sql)
+
+
+def _listar_categorias_para_filtro_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -437,7 +441,11 @@ def listar_categorias_para_filtro():
 
 
 def listar_autores_para_filtro():
-    """Lista autores para combos de filtro."""
+    """Lista autores para combos de filtro (com cache)."""
+    return _cache_ttl(("listar_autores_para_filtro",), 120, _listar_autores_para_filtro_sql)
+
+
+def _listar_autores_para_filtro_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
@@ -450,7 +458,11 @@ def listar_autores_para_filtro():
 
 
 def listar_editoras_para_filtro():
-    """Lista editoras para combos de filtro."""
+    """Lista editoras para combos de filtro (com cache)."""
+    return _cache_ttl(("listar_editoras_para_filtro",), 120, _listar_editoras_para_filtro_sql)
+
+
+def _listar_editoras_para_filtro_sql():
     try:
         conn = _conectar()
         cursor = conn.cursor()
