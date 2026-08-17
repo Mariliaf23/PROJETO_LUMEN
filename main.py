@@ -147,7 +147,6 @@ if __name__ == "__main__":                            # Só executa se for o arq
             root.after(50, _etapa_2_telas)
 
     def _etapa_1_banco():
-<<<<<<< HEAD
         print("Iniciando _etapa_1_banco") # Debug print
         _atualizar_status(splash, lbl_status, "Conectando ao banco de dados...")
         if not init_db():                            # Tenta criar/verificar o banco de dados
@@ -156,32 +155,15 @@ if __name__ == "__main__":                            # Só executa se for o arq
             return
         print("Banco de dados inicializado com sucesso.") # Debug print
         root.after(50, _etapa_2_telas)
-=======
-        """Inicia verificação de banco em thread separada."""
-        # Limpa qualquer callback anterior e inicia nova thread
-        _em_transicao = {"ativo": False}  # reset
-        db_thread = threading.Thread(target=_init_db_thread, daemon=True)
-        db_thread.start()
-        # Segue adiante - o banco pode demorar mas o sistema continua carregando
-        # as telas preguiçosamente. O resultado do banco é tratado depois.
-        root.after(10, _etapa_2_telas)
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
 
     def _etapa_2_telas():
         global controller
         _atualizar_status(splash, lbl_status, "Carregando telas do sistema...")
-<<<<<<< HEAD
         _configurar_tela_cheia(root)                 # Configura atalhos de tela cheia (F11/ESC)
         controller = AppController(root)              # Cria o controlador de navegação
         controller.usuario_logado = None              # Nenhum usuário logado no início
         print("AppController criado.") # Debug print
         root.after(50, _etapa_3_importar)
-=======
-        _configurar_tela_cheia(root)                 # Ativa tela cheia ao maximizar
-        controller = AppController(root)              # Cria o controlador de navegação
-        controller.usuario_logado = None              # Nenhum usuário logado no início
-        root.after(10, _etapa_3_importar)
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
 
     def _etapa_3_importar():
         """Importação preguiçosa (lazy) das telas - evitam queries de rede
@@ -191,7 +173,6 @@ if __name__ == "__main__":                            # Só executa se for o arq
         from screen import tela_gerenciar_usuarios, tela_catalogo, tela_relatorios
         from screen import tela_notificacoes
 
-<<<<<<< HEAD
         # Importação de todas as telas do sistema
         from screen.tela_login import TelaLogin                         # Tela de login
         from screen.dashboard import Dashboard                          # Tela principal (dashboard)
@@ -223,20 +204,6 @@ if __name__ == "__main__":                            # Só executa se for o arq
         controller.registrar_tela("catalogo", TelaCatalogo)             # Catálogo de livros
         controller.registrar_tela("relatorios", TelaRelatorios)         # Relatórios
         controller.registrar_tela("notificacoes", TelaNotificacoes)     # Central de notificações
-=======
-        # Registra apenas as classes-base (as instâncias criam-se ao navegar)
-        controller.registrar_tela("login", tela_login.TelaLogin)
-        controller.registrar_tela("dashboard", dashboard.Dashboard)
-        controller.registrar_tela("livros", tela_livros.TelaLivros)
-        controller.registrar_tela("exemplares", tela_exemplares.TelaExemplares)
-        controller.registrar_tela("cadastro_usuario", tela_cadastro_usuario.TelaCadastroUsuario)
-        controller.registrar_tela("emprestimos", emprestimos.TelaEmprestimos)
-        controller.registrar_tela("configuracoes", tela_configuracoes.TelaConfiguracoes)
-        controller.registrar_tela("gerenciar_usuarios", tela_gerenciar_usuarios.TelaGerenciarUsuarios)
-        controller.registrar_tela("catalogo", tela_catalogo.TelaCatalogo)
-        controller.registrar_tela("relatorios", tela_relatorios.TelaRelatorios)
-        controller.registrar_tela("notificacoes", tela_notificacoes.TelaNotificacoes)
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
 
         root.after(50, _etapa_5_finalizar)
 

@@ -23,15 +23,9 @@ class TelaCadastroUsuario(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
         """Inicializa a tela de cadastro."""
         super().__init__(master, fg_color=cores.COR_BG)   # Frame com fundo escuro
-<<<<<<< HEAD
         self.controller = controller                 # Controlador de navegação
         self._turmas = []                            # Carregado em _ao_visitar
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
-=======
-        self.controller = controller                 # Controladora de navegação
-        self._turmas = []
-        self._turma_map = {}
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
         self._construir_ui()                         # Monta a interface
         self._carregar_turmas()                      # Carrega turmas em background
 
@@ -41,12 +35,9 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
         if not self.winfo_exists():
             return
-<<<<<<< HEAD
         # Recarrega turmas e reconstrói UI para refletir o tema e dados atualizados
         self._turmas = listar_turmas()
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
-=======
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
         for widget in self.winfo_children():
             widget.destroy()
         self.configure(fg_color=cores.COR_BG)

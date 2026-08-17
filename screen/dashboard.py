@@ -20,11 +20,7 @@ from services.styles import (
     cores, FONTE_NAV, FONTE_LABEL,
     criar_label, criar_card
 )
-<<<<<<< HEAD
 from services.report_export import SCHOOL_NAME # Import SCHOOL_NAME
-=======
-from services.db_async import carregar_em_fundo
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
 
 COR_GRAF_AZUL = cores.COR_AZUL_PRINCIPAL
 
