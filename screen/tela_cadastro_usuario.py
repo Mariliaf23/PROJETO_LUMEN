@@ -22,8 +22,8 @@ class TelaCadastroUsuario(ctk.CTkFrame):
     def __init__(self, master=None, controller=None):
         """Inicializa a tela de cadastro."""
         super().__init__(master, fg_color=cores.COR_BG)   # Frame com fundo escuro
-        self.controller = controller                 # Controladora de navegação
-        self._turmas = listar_turmas()               # Carrega turmas do banco
+        self.controller = controller                 # Controlador de navegação
+        self._turmas = []                            # Carregado em _ao_visitar
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
         self._construir_ui()                         # Monta a interface
 
@@ -33,6 +33,7 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         """Reconstrói a tela ao trocar o tema claro/escuro."""
         if not self.winfo_exists():
             return
+        # Recarrega turmas e reconstrói UI para refletir o tema e dados atualizados
         self._turmas = listar_turmas()
         self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
         for widget in self.winfo_children():
@@ -40,6 +41,11 @@ class TelaCadastroUsuario(ctk.CTkFrame):
         self.configure(fg_color=cores.COR_BG)
         self._construir_ui()
 
+    def _ao_visitar(self):
+        # Carrega turmas e reconstrói UI para garantir dados atualizados ao visitar a tela
+        self._turmas = listar_turmas()
+        self._turma_map = {f"{c} - {t}": tid for tid, c, t in self._turmas} if self._turmas else {}
+        self._reconstruir_tema() # Reutiliza a lógica de reconstrução que já recarrega turmas
     def _construir_ui(self):
         """Monta o formulário de cadastro de usuário."""
         self.grid_columnconfigure(0, weight=1)       # Coluna 0 expansível

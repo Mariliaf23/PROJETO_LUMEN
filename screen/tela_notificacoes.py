@@ -29,6 +29,9 @@ class TelaNotificacoes(ctk.CTkFrame):
         self._aba_atual = "dashboard"
         self._config = carregar_config()
         self._templates = carregar_templates()
+        self._aba_atual = "dashboard" # Aba inicial
+        self._config = {}             # Carregado em _ao_visitar
+        self._templates = {}          # Carregado em _ao_visitar
         self._construir_ui()
 
 

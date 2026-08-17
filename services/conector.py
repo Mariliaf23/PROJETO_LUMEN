@@ -50,7 +50,7 @@ def init_db():
                         try:
                             cursor.execute(statement)  # Executa o comando SQL
                         except Error:
-                            pass                   # Ignora erros (ex: tabela já existe)
+                            print(f"AVISO: Erro ao executar statement SQL (ignorado): {statement[:50]}... Erro: {Error}") # Log ignored errors
 
         # Verifica se já existe o usuário admin
         cursor.execute("SELECT COUNT(*) FROM usuario")

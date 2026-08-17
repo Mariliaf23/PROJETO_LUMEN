@@ -20,6 +20,7 @@ from services.styles import (
     cores, FONTE_NAV, FONTE_LABEL,
     criar_label, criar_card
 )
+from services.report_export import SCHOOL_NAME # Import SCHOOL_NAME
 
 COR_GRAF_AZUL = cores.COR_AZUL_PRINCIPAL
 
@@ -272,6 +273,17 @@ class Dashboard(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+        # Carrega a logo da escola uma única vez ao construir a UI
+        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self._logo_escola_path = os.path.join(caminho_base, "assets", "logo_escola.png")
+        self._logo_escola_ctk = None
+        self._logo_escola_text = SCHOOL_NAME
+        if os.path.exists(self._logo_escola_path):
+            try:
+                self._logo_escola_ctk = ctk.CTkImage(Image.open(self._logo_escola_path), size=(50, 50))
+            except Exception as e:
+                print(f"Erro ao carregar logo da escola: {e}")
+
         self._criar_conteudo()
 
     # Sidebar removida — agora é gerenciada pelo AppController como elemento persistente
@@ -306,6 +318,14 @@ class Dashboard(ctk.CTkFrame):
             linha_topo, text="Visão Geral",
             font=("Segoe UI", 38, "bold"), text_color=cores.COR_TEXTO
         ).pack(side="left")
+
+        # Exibe a logo ou um texto de fallback
+        ctk.CTkLabel(linha_topo,
+                     image=self._logo_escola_ctk,
+                     text=self._logo_escola_text,
+                     font=("Segoe UI", 16, "bold") if self._logo_escola_text else None,
+                     text_color=cores.COR_TEXTO2 if self._logo_escola_text else None
+                     ).pack(side="right", padx=(0, 10))
 
         # Subtítulo + data/hora
         linha_sub = ctk.CTkFrame(header, fg_color="transparent")

@@ -4,6 +4,7 @@ from services.styles import cores
 import customtkinter as ctk
 from PIL import Image
 import sys
+import tkinter.messagebox as tkmb
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -51,6 +52,7 @@ def _criar_splash(root):
     barra.pack(pady=(0, 10))
     barra.start()
 
+    print("Splash screen created.") # Debug print
     splash.update_idletasks()
     return splash, lbl_status
 
@@ -58,6 +60,7 @@ def _criar_splash(root):
 def _atualizar_status(splash, lbl_status, texto):
     """Atualiza o texto do splash e força o redesenho antes de continuar."""
     lbl_status.configure(text=texto)
+    print(f"Status atualizado: {texto}") # Debug print
     splash.update_idletasks()
 
 
@@ -77,40 +80,34 @@ def _configurar_tela_cheia(root):
     """
     _em_transicao = {"ativo": False}
 
-    def _ao_configurar(event=None):
-        if event is not None and event.widget is not root:
-            return
-        if _em_transicao["ativo"]:
-            return
-        if root.state() == "zoomed" and not root.attributes("-fullscreen"):
+    def _sair_tela_cheia(event=None):
+        if root.attributes("-fullscreen"):
+            _em_transicao["ativo"] = True
+            root.attributes("-fullscreen", False)
+            # Restaurar para o estado normal ou maximizado, dependendo da preferência
+            # root.state("normal") # Ou "zoomed" se quiser que volte maximizado
+            root.after(50, lambda: _em_transicao.__setitem__("ativo", False))
+
+    def _alternar_tela_cheia(event=None):
+        if root.attributes("-fullscreen"):
+            _em_transicao["ativo"] = True
+            root.attributes("-fullscreen", False)
+            # Restaurar para o estado normal ou maximizado
+            # root.state("normal")
+            root.after(50, lambda: _em_transicao.__setitem__("ativo", False))
+        else:
             _em_transicao["ativo"] = True
             root.attributes("-fullscreen", True)
             root.after(50, lambda: _em_transicao.__setitem__("ativo", False))
 
-def _sair_tela_cheia(event=None):
-    if root.attributes("-fullscreen"):
-        # Salvar a geometria da janela antes de sair do modo fullscreen
-        geometria_original = root.geometry()
-        root.attributes("-fullscreen", False)
-        root.state("normal")
-        # Restaurar a geometria original para garantir que a janela
-        # não fique coberta pela barra do menu do Windows
-        root.geometry(geometria_original)
-    def _sair_tela_cheia(event=None):
-        if root.attributes("-fullscreen"):
-            root.attributes("-fullscreen", False)
-
-    def _alternar_tela_cheia(event=None):
-        root.attributes("-fullscreen", not root.attributes("-fullscreen"))
-
-    root.bind("<Map>", _ao_configurar)
-    root.bind("<Configure>", _ao_configurar)
     root.bind("<Escape>", _sair_tela_cheia)
     root.bind("<F11>", _alternar_tela_cheia)
 
 # O código abaixo foi movido para dentro de _configurar_tela_cheia para manter a lógica encapsulada.
 # A função _sair_tela_cheia foi simplificada para apenas desativar o modo fullscreen,
 # pois o Tkinter geralmente restaura a geometria anterior automaticamente.
+
+
 
 
 if __name__ == "__main__":                            # Só executa se for o arquivo principal
@@ -120,17 +117,22 @@ if __name__ == "__main__":                            # Só executa se for o arq
     splash, lbl_status = _criar_splash(root)          # Mostra o splash de carregamento
 
     def _etapa_1_banco():
+        print("Iniciando _etapa_1_banco") # Debug print
         _atualizar_status(splash, lbl_status, "Conectando ao banco de dados...")
         if not init_db():                            # Tenta criar/verificar o banco de dados
-            print("ERRO: Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando.")
+            tkmb.showerror("Erro Crítico", "Falha ao inicializar o banco de dados. Verifique se o MySQL está rodando e se as credenciais no arquivo .env estão corretas.")
+            root.destroy() # Fecha a aplicação se o banco não inicializar
+            return
+        print("Banco de dados inicializado com sucesso.") # Debug print
         root.after(50, _etapa_2_telas)
 
     def _etapa_2_telas():
         global controller
         _atualizar_status(splash, lbl_status, "Carregando telas do sistema...")
-        _configurar_tela_cheia(root)                 # Ativa tela cheia real ao maximizar
+        _configurar_tela_cheia(root)                 # Configura atalhos de tela cheia (F11/ESC)
         controller = AppController(root)              # Cria o controlador de navegação
         controller.usuario_logado = None              # Nenhum usuário logado no início
+        print("AppController criado.") # Debug print
         root.after(50, _etapa_3_importar)
 
     def _etapa_3_importar():
@@ -151,6 +153,7 @@ if __name__ == "__main__":                            # Só executa se for o arq
         from screen.tela_relatorios import TelaRelatorios                 # Tela de relatórios
         from screen.tela_notificacoes import TelaNotificacoes             # Central de notificações
 
+        print("Telas importadas.") # Debug print
         root.after(50, _etapa_4_registrar)
 
     def _etapa_4_registrar():

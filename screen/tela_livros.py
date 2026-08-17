@@ -26,8 +26,8 @@ class TelaLivros(ctk.CTkFrame):
         super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._itens_lista = []
-        self._selecionado = None
-        self._cat_map = {}
+        self._selecionado = None # Será definido em _ao_visitar
+        self._cat_map = {}       # Será carregado em _ao_visitar
         self._construir_ui()
         self._carregar_categorias()
         self._carregar_tabela()

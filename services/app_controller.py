@@ -356,29 +356,24 @@ class AppController:
         atual = bool(self.root.attributes("-fullscreen"))
         if atual != self._ultimo_fullscreen:
             self._ultimo_fullscreen = atual
-            if self._modo_sidebar and self._sidebar_frame:
-                self._rebuild_sidebar_after_fullscreen()
+            # A reconstrução completa da sidebar estava causando erros de "bad window path".
+            # A atualização da visibilidade da scrollbar já é suficiente.
+            # if self._modo_sidebar and self._sidebar_frame:
+            #     self._rebuild_sidebar_after_fullscreen()
         self._atualizar_visibilidade_scrollbars_janela()
-
-    def _rebuild_sidebar_after_fullscreen(self):
-        """Reconstrói a sidebar após mudança de tela cheia para corrigir layout."""
-        for widget in self._sidebar_frame.winfo_children():
-            widget.destroy()
-        self._construir_sidebar()
 
     def _janela_maximizada(self):
         """True quando a janela está em tela cheia ou maximizada."""
         return self._ultimo_fullscreen or self.root.state() == "zoomed"
 
     def _atualizar_visibilidade_scrollbars_janela(self):
-        """Oculta as barras de rolagem do menu lateral e da visão geral
-        quando a janela está em tela cheia ou maximizada."""
+        """Oculta as barras de rolagem quando a janela está em tela cheia/maximizada."""
         ocultar = self._janela_maximizada()
 
         nav = getattr(self, '_nav_scroll', None)
-        if nav is not None:
+        if nav is not None and nav.winfo_exists():
             sb = getattr(nav, '_scrollbar', None)
-            if sb is not None:
+            if sb is not None and sb.winfo_exists():
                 if ocultar:
                     sb.grid_remove()
                 else:
@@ -387,9 +382,9 @@ class AppController:
         tela_dash = self._telas.get('dashboard')
         if tela_dash is not None:
             conteudo = getattr(tela_dash, '_conteudo', None)
-            if conteudo is not None:
+            if conteudo is not None and conteudo.winfo_exists():
                 sb = getattr(conteudo, '_scrollbar', None)
-                if sb is not None:
+                if sb is not None and sb.winfo_exists():
                     if ocultar:
                         sb.grid_remove()
                     else:
