@@ -353,16 +353,19 @@ class TelaExemplares(ctk.CTkFrame):
                                 self._lbl_erro_campo, _entries)
     # ── Dados ─────────────────────────────────────────────────────────────────
     def _carregar_livros(self):
-        try:
-            livros = listar_livros()
-            self._livros_map = {}
-            self._livros_lista = []
-            for l in livros:
-                texto = f"{l[1]} ({l[2]})"
-                self._livros_map[texto] = l[0]
-                self._livros_lista.append(texto)
-        except Exception as e:
-            print(f"[TelaExemplares] Erro ao carregar livros: {e}")
+        carregar_em_fundo(self, listar_livros, self._aplicar_livros)
+
+    def _aplicar_livros(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            return
+        self._livros_map = {}
+        self._livros_lista = []
+        for l in dados or []:
+            texto = f"{l[1]} ({l[2]})"
+            self._livros_map[texto] = l[0]
+            self._livros_lista.append(texto)
 
     def _atualizar_sugestoes(self, event=None):
         termo = self.entry_busca_livro.get().strip().lower()
@@ -408,27 +411,19 @@ class TelaExemplares(ctk.CTkFrame):
             pass
 
     def _carregar_tabela(self, exemplares=None):
-        if not hasattr(self, "lista_frame") or not self.lista_frame.winfo_exists():
+        if exemplares is not None:
+            self._renderizar(exemplares)
             return
+        carregar_em_fundo(self, listar_exemplares, self._aplicar_tabela)
 
-        for w in self.lista_frame.winfo_children():
-            try:
-                w.destroy()
-            except Exception:
-                pass
-
-        self._itens_lista.clear()
-        self._selecionado = None
-
-        if exemplares is None:
-            try:
-                self._todos_exemplares = listar_exemplares() or []
-            except Exception as e:
-                print(f"[TelaExemplares] Erro ao listar exemplares: {e}")
-                self._todos_exemplares = []
-            exemplares = self._todos_exemplares
-
-        self._renderizar(exemplares)
+    def _aplicar_tabela(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            self._todos_exemplares = []
+        else:
+            self._todos_exemplares = dados or []
+        self._renderizar(self._todos_exemplares)
 
     def _renderizar(self, exemplares):
         if not hasattr(self, "lista_frame") or not self.lista_frame.winfo_exists():

@@ -33,7 +33,7 @@ def _criar_pool():
             _POOL = pooling.MySQLConnectionPool(
                 pool_name="lumen",
                 pool_size=_POOL_SIZE,
-                pool_reset_session=True,   # limpa estado da sessão ao devolver
+                pool_reset_session=False,   # desabilita o reset de sessão a cada devolução (economia de ~1s por query)
                 **cfg,
             )
     return _POOL
@@ -57,6 +57,28 @@ def obter_conexao():
     if _LOG_TEMPOS and dt > 15:
         print(f"[db_pool] conexão obtida em {dt:.0f}ms")
     return conn
+
+
+def aquecer_pool():
+    """Abre as conexões do pool em threads paralelas (daemon), em background.
+
+    Sem isso, cada primeira consulta abre uma conexão nova (TCP + TLS +
+    handshake até o servidor remoto), demorando 10s+ por conexão. Com o
+    aquecimento, o pool já vem cheio e o primeiro uso sai em milissegundos.
+    Falhas são silenciosas: o pool continua sendo preenchido sob demanda.
+    """
+    import threading
+
+    def _abrir():
+        try:
+            conn = obter_conexao()
+            conn.close()
+        except Exception:
+            pass
+
+    threads = [threading.Thread(target=_abrir, daemon=True) for _ in range(max(_POOL_SIZE, 1))]
+    for t in threads:
+        t.start()
 
 
 def esvaziar_pool():
