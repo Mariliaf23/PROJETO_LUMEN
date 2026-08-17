@@ -38,7 +38,6 @@ def init_db():
         conn = _obter_conexao()
         cursor = conn.cursor()
 
-<<<<<<< HEAD
         # Cria o banco de dados se não existir
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
         # Seleciona o banco para usar
@@ -66,11 +65,9 @@ def init_db():
         existente = cursor.fetchone()               # Retorna None se não encontrou
 
         # Criptografa a senha do admin com SHA-256
-=======
         # 2. Valida um registro legado com nome vazio/corrompido que impedia o
         # INSERT IGNORE (email duplicado) e deixava o admin nunca criado.
         EMAIL_PADRAO = os.getenv('DEFAULT_EMAIL')  # Email padrão do admin' 
->>>>>>> b35129e58331882189d6362e275b375f732cdd14
         senha_hash = hashlib.sha256(DEFAULT_PASSWORD.encode('utf-8')).hexdigest()
 
         # Busca por nome OU email — cobre registros legados e o caso de
