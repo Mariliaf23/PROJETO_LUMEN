@@ -122,7 +122,11 @@ if __name__ == "__main__":                            # Só executa se for o arq
         """Executa init_db() em thread separada para não travar o splash."""
         try:
             sucesso = init_db()
-            if not sucesso:
+            if sucesso:
+                # Pré-aquece o pool em background para o 1º uso sair rápido
+                from services.db_pool import aquecer_pool
+                aquecer_pool()
+            else:
                 # Erro será tratado na thread principal via root.after
                 root.after(0, lambda: _handle_db_failure())
         except Exception as e:

@@ -13,6 +13,7 @@ from services.styles import (
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo
 )
 from services.database_config import listar_turmas, cadastrar_turma, excluir_turma
+from services.db_async import carregar_em_fundo
 
 
 class TelaConfiguracoes(ctk.CTkFrame):
@@ -257,15 +258,22 @@ class TelaConfiguracoes(ctk.CTkFrame):
             self._notificar(f"Erro ao remover logo: {e}")
 
     def _renderizar_turmas(self):
-        for w in self.frame_lista_turmas.winfo_children():
+        carregar_em_fundo(self, listar_turmas, self._aplicar_turmas)
+
+    def _aplicar_turmas(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        frame = getattr(self, "frame_lista_turmas", None)
+        if frame is None or not frame.winfo_exists():
+            return
+        for w in frame.winfo_children():
             w.destroy()
-        turmas = listar_turmas()
-        if not turmas:
-            criar_label(self.frame_lista_turmas, "Nenhuma turma cadastrada.",
+        if erro is not None or not dados:
+            criar_label(frame, "Nenhuma turma cadastrada.",
                         text_color=self.cor_texto2, font=("Segoe UI", 13)).pack(anchor="w")
             return
-        for tid, codigo, turno in turmas:
-            row = ctk.CTkFrame(self.frame_lista_turmas, fg_color="transparent")
+        for tid, codigo, turno in dados:
+            row = ctk.CTkFrame(frame, fg_color="transparent")
             row.pack(fill="x", pady=2)
             criar_label(row, f"{codigo} - {turno}", text_color=cores.COR_TEXTO,
                         font=("Segoe UI", 13)).pack(side="left")

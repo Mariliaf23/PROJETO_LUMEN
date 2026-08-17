@@ -387,20 +387,15 @@ class Dashboard(ctk.CTkFrame):
                 valor = self._stats.get(cfg[0], 0)
                 self._cards[i].atualizar_valor(valor)
 
-        if self._graf_pizza:
-            dados_pizza = [(cat, total) for cat, total, _ in self._cat_livros]
-            self._graf_pizza.atualizar_dados(dados_pizza)
-
-        # Reconstrói os rankings (barras horizontais não suportam atualização in-place)
-        if getattr(self, '_frame_ranking_alunos', None):
-            for widget in self._frame_ranking_alunos.winfo_children():
-                widget.destroy()
-            self._criar_lista_ranking(self._frame_ranking_alunos, self._top_alunos)
-
-        if getattr(self, '_frame_ranking_turmas', None):
-            for widget in self._frame_ranking_turmas.winfo_children():
-                widget.destroy()
-            self._criar_lista_ranking(self._frame_ranking_turmas, self._ranking_turmas)
+        # Reconstrói a seção de gráficos por completo. Não dá pra só
+        # "atualizar" os widgets antigos porque, se não havia dados na
+        # primeira renderização (o caso comum, já que os dados chegam
+        # depois via thread de fundo), _criar_grafico_pizza() e
+        # _criar_grafico_barras_h() retornam None em vez de criar o
+        # widget — então self._graf_pizza / self._frame_ranking_* nunca
+        # existiram e não há nada para atualizar.
+        if getattr(self, '_graficos_frame', None):
+            self._renderizar_graficos()
 
     def _criar_cards(self, parent):
         cards_frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -416,13 +411,26 @@ class Dashboard(ctk.CTkFrame):
 
     def _criar_graficos(self, parent):
         """Cria os gráficos: ranking de alunos, ranking de turmas, pizza por categoria."""
-        graficos_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        graficos_frame.grid(row=2, column=0, sticky="nsew", padx=10)
-        graficos_frame.grid_columnconfigure((0, 1), weight=1)
+        self._graficos_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        self._graficos_frame.grid(row=2, column=0, sticky="nsew", padx=10)
+        self._graficos_frame.grid_columnconfigure((0, 1), weight=1)
+        self._renderizar_graficos()
 
-        _, self._frame_ranking_alunos = self._criar_grafico_barras_h(graficos_frame, "Top 10 Alunos — Empréstimos", self._top_alunos, 0, 0)
-        _, self._frame_ranking_turmas = self._criar_grafico_barras_h(graficos_frame, "Ranking de Turmas — Empréstimos", self._ranking_turmas, 0, 1)
-        self._graf_pizza = self._criar_grafico_pizza(graficos_frame, "Exemplares por Categoria", self._cat_livros, 1, 0, 2)
+    def _renderizar_graficos(self):
+        """(Re)constrói os três cards de gráfico com os dados atuais.
+
+        Sempre destrói e recria (em vez de tentar atualizar in-place),
+        porque _criar_grafico_pizza/_criar_grafico_barras_h retornam
+        None quando não há dados — então na primeira renderização
+        (antes dos dados chegarem via thread de fundo) os widgets
+        internos nunca existem para serem atualizados depois.
+        """
+        for widget in self._graficos_frame.winfo_children():
+            widget.destroy()
+
+        _, self._frame_ranking_alunos = self._criar_grafico_barras_h(self._graficos_frame, "Top 10 Alunos — Empréstimos", self._top_alunos, 0, 0)
+        _, self._frame_ranking_turmas = self._criar_grafico_barras_h(self._graficos_frame, "Ranking de Turmas — Empréstimos", self._ranking_turmas, 0, 1)
+        self._graf_pizza = self._criar_grafico_pizza(self._graficos_frame, "Exemplares por Categoria", self._cat_livros, 1, 0, 2)
 
     def _criar_grafico_barras(self, parent, titulo, dados, row, col):
         """Cria um card com gráfico de barras."""

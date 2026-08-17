@@ -25,6 +25,7 @@ from services.styles import (
     criar_entry, criar_label, criar_titulo, criar_card, criar_combo,
     criar_scroll_frame
 )
+from services.db_async import carregar_em_fundo
 
 
 
@@ -170,10 +171,10 @@ class TelaRelatorios(ctk.CTkFrame):
 
         # Categoria
         criar_label(filtro, "Categoria:", font=("Segoe UI", 11, "bold")).grid(row=0, column=0, padx=(0, 5))
-        categorias = ["Todos"] + listar_categorias_para_filtro()
-        self.combo_inv_categoria = criar_combo(filtro, values=categorias, width=150, height=30)
+        self.combo_inv_categoria = criar_combo(filtro, values=["Todos"], width=150, height=30)
         self.combo_inv_categoria.grid(row=0, column=1, padx=(0, 10))
         self.combo_inv_categoria.set("Todos")
+        carregar_em_fundo(self, listar_categorias_para_filtro, self._aplicar_categorias_inv)
 
         # Situação
         criar_label(filtro, "Situação:", font=("Segoe UI", 11, "bold")).grid(row=0, column=2, padx=(0, 5))
@@ -204,6 +205,17 @@ class TelaRelatorios(ctk.CTkFrame):
         # Carrega dados iniciais
         self._pesquisar_inventario()
 
+    def _aplicar_categorias_inv(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        combo = getattr(self, "combo_inv_categoria", None)
+        if combo is None or not combo.winfo_exists():
+            return
+        categorias = ["Todos"] + (dados or [])
+        combo.configure(values=categorias)
+        if combo.get() not in categorias:
+            combo.set("Todos")
+
     def _pesquisar_inventario(self):
         filtros = {}
         cat = self.combo_inv_categoria.get()
@@ -213,8 +225,21 @@ class TelaRelatorios(ctk.CTkFrame):
         if sit and sit != "Todos":
             filtros['situacao'] = sit
 
-        dados = relatorio_inventario_acervo(filtros if filtros else None)
-        self._preencher_tabela(self.lista_inv, COLUNAS_INVENTARIO, dados)
+        carregar_em_fundo(
+            self,
+            lambda: relatorio_inventario_acervo(filtros if filtros else None),
+            self._aplicar_inventario
+        )
+
+    def _aplicar_inventario(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            dados = []
+        lista = getattr(self, "lista_inv", None)
+        if lista is None or not lista.winfo_exists():
+            return
+        self._preencher_tabela(lista, COLUNAS_INVENTARIO, dados)
 
     def _limpar_inventario(self):
         self.combo_inv_categoria.set("Todos")
@@ -265,8 +290,17 @@ class TelaRelatorios(ctk.CTkFrame):
 
         self.lista_disp = criar_scroll_frame(frame, fg_color=cores.COR_CARD)
         self.lista_disp.grid(row=1, column=0, sticky="nsew")
-        self._todos_disp = relatorio_exemplares_disponiveis()
-        self._preencher_tabela(self.lista_disp, COLUNAS_DISPONIVEIS, self._todos_disp)
+        self._todos_disp = []
+        carregar_em_fundo(self, relatorio_exemplares_disponiveis, self._aplicar_disponiveis)
+
+    def _aplicar_disponiveis(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        self._todos_disp = [] if erro is not None else (dados or [])
+        lista = getattr(self, "lista_disp", None)
+        if lista is None or not lista.winfo_exists():
+            return
+        self._preencher_tabela(lista, COLUNAS_DISPONIVEIS, self._todos_disp)
 
     def _filtrar_disponiveis(self):
         termo = self.entry_disp_busca.get().strip().lower()
@@ -376,9 +410,26 @@ class TelaRelatorios(ctk.CTkFrame):
         fim_str = self.entry_emp_data_fim.get().strip()
         inicio = self._converter_data_ddmmaaaa_para_aaaa_mm_dd(inicio_str) if inicio_str else None
         fim = self._converter_data_ddmmaaaa_para_aaaa_mm_dd(fim_str) if fim_str else None
-        self._todos_emp, resumo = relatorio_emprestimos_periodo(inicio, fim)
-        self._preencher_tabela(self.lista_emp, COLUNAS_EMPRESTIMOS, self._todos_emp)
-        self.lbl_emp_resumo.configure(text=f"Total: {resumo['total']} | Devolvidos: {resumo['devolvidos']} | Abertos: {resumo['abertos']}")
+        carregar_em_fundo(
+            self,
+            lambda: relatorio_emprestimos_periodo(inicio, fim),
+            self._aplicar_emprestimos
+        )
+
+    def _aplicar_emprestimos(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            self._todos_emp = []
+            resumo = {'total': 0, 'devolvidos': 0, 'abertos': 0}
+        else:
+            self._todos_emp, resumo = dados or ([], {'total': 0, 'devolvidos': 0, 'abertos': 0})
+        lista = getattr(self, "lista_emp", None)
+        if lista is not None and lista.winfo_exists():
+            self._preencher_tabela(lista, COLUNAS_EMPRESTIMOS, self._todos_emp)
+        lbl = getattr(self, "lbl_emp_resumo", None)
+        if lbl is not None and lbl.winfo_exists():
+            lbl.configure(text=f"Total: {resumo['total']} | Devolvidos: {resumo['devolvidos']} | Abertos: {resumo['abertos']}")
 
     def _filtrar_emprestimos_usuario(self):
         termo = self.entry_emp_busca_usuario.get().strip().lower()
@@ -443,8 +494,17 @@ class TelaRelatorios(ctk.CTkFrame):
         self._pesquisar_atrasos()
 
     def _pesquisar_atrasos(self):
-        dados = relatorio_emprestimos_atraso()
-        self._preencher_tabela(self.lista_atrasos, COLUNAS_ATRASO, dados)
+        carregar_em_fundo(self, relatorio_emprestimos_atraso, self._aplicar_atrasos)
+
+    def _aplicar_atrasos(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        if erro is not None:
+            dados = []
+        lista = getattr(self, "lista_atrasos", None)
+        if lista is None or not lista.winfo_exists():
+            return
+        self._preencher_tabela(lista, COLUNAS_ATRASO, dados)
 
     def _exportar_atrasos_pdf(self):
         dados = relatorio_emprestimos_atraso()
@@ -577,9 +637,16 @@ class TelaRelatorios(ctk.CTkFrame):
         self._pesquisar_mais_emprestados()
 
     def _pesquisar_mais_emprestados(self):
-        dados = relatorio_livros_mais_emprestados()
-        self._todos_mais_emp = [(i + 1,) + d for i, d in enumerate(dados)]
-        self._preencher_tabela(self.lista_mais_emp, COLUNAS_MAIS_EMP, self._todos_mais_emp)
+        carregar_em_fundo(self, relatorio_livros_mais_emprestados, self._aplicar_mais_emp)
+
+    def _aplicar_mais_emp(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        self._todos_mais_emp = [] if erro is not None else [(i + 1,) + d for i, d in enumerate(dados or [])]
+        lista = getattr(self, "lista_mais_emp", None)
+        if lista is None or not lista.winfo_exists():
+            return
+        self._preencher_tabela(lista, COLUNAS_MAIS_EMP, self._todos_mais_emp)
 
     def _filtrar_mais_emp(self):
         termo = self.entry_me_busca.get().strip().lower()
@@ -643,9 +710,16 @@ class TelaRelatorios(ctk.CTkFrame):
         self._pesquisar_top_leitores()
 
     def _pesquisar_top_leitores(self):
-        dados = relatorio_top_leitores()
-        self._todos_top_leit = [(i + 1,) + d for i, d in enumerate(dados)]
-        self._preencher_tabela(self.lista_top_leit, COLUNAS_TOP_LEIT, self._todos_top_leit)
+        carregar_em_fundo(self, relatorio_top_leitores, self._aplicar_top_leit)
+
+    def _aplicar_top_leit(self, dados, erro):
+        if not self.winfo_exists():
+            return
+        self._todos_top_leit = [] if erro is not None else [(i + 1,) + d for i, d in enumerate(dados or [])]
+        lista = getattr(self, "lista_top_leit", None)
+        if lista is None or not lista.winfo_exists():
+            return
+        self._preencher_tabela(lista, COLUNAS_TOP_LEIT, self._todos_top_leit)
 
     def _filtrar_top_leitores(self):
         termo = self.entry_tl_busca.get().strip().lower()

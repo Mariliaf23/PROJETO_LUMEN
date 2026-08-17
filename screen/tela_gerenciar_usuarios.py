@@ -17,6 +17,7 @@ from services.styles import (
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
 from services.carteirinha import gerar_pdf_carteirinhas
+from services.db_async import carregar_em_fundo
 
 COMPENSA_SCROLLBAR = 18
 
@@ -34,11 +35,11 @@ def _truncar(valor, max_chars):
 class JanelaUsuario(ctk.CTkToplevel):
     """Abre um formulário para criar ou editar um usuário."""
 
-    def __init__(self, master, on_salvo, id_usuario=None):
+    def __init__(self, master, on_salvo, id_usuario=None, turmas=None):
         super().__init__(master)
         self.on_salvo   = on_salvo
         self.id_usuario = id_usuario
-        self._turmas    = listar_turmas()  # [(id, codigo, turno), ...]
+        self._turmas    = turmas if turmas is not None else listar_turmas()  # [(id, codigo, turno), ...]
         self.title("Editar Usuário" if id_usuario else "Novo Usuário")
         self.geometry("420x700")
         self.resizable(False, False)
@@ -174,7 +175,7 @@ class JanelaUsuario(ctk.CTkToplevel):
     # ── salvar ───────────────────────────────────────────────────────────────
     def _salvar(self):
         import traceback
-        print(">>> BOTÃO SALVAR CLICADO", flush=True)   # ← diagnóstico temporário
+        msg = ""
         try:
             nome     = self.entry_nome.get().strip()
             email    = self.entry_email.get().strip()
@@ -207,24 +208,27 @@ class JanelaUsuario(ctk.CTkToplevel):
                 if not ok:
                     return self._notificar(msg)
 
-        if self.id_usuario:
-            ok = atualizar_usuario(
-                self.id_usuario, nome, email, telefone, '',
-                tipo, '', id_turma, funcao, status
-            )
-            if ok and senha:
-                atualizar_senha_usuario(self.id_usuario, senha)
-            msg_ok = "Usuario atualizado!"
-        else:
-            ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                        tipo, '', id_turma, funcao)
-            msg_ok = "Usuario cadastrado!"
+            if self.id_usuario:
+                ok = atualizar_usuario(
+                    self.id_usuario, nome, email, telefone, '',
+                    tipo, '', id_turma, funcao, status
+                )
+                if ok and senha:
+                    atualizar_senha_usuario(self.id_usuario, senha)
+                msg_ok = "Usuario atualizado!"
+            else:
+                ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
+                                            tipo, '', id_turma, funcao)
+                msg_ok = "Usuario cadastrado!"
 
-        if ok:
-            self._notificar(msg_ok)
-            self.after(1000, lambda: (self.on_salvo(), self.destroy()))
-        else:
-            self._notificar(msg)
+            if ok:
+                self._notificar(msg_ok)
+                self.after(1000, lambda: (self.on_salvo(), self.destroy()))
+            else:
+                self._notificar(msg or "Erro ao salvar usuário.")
+        except Exception as e:
+            traceback.print_exc()
+            self._notificar("Erro inesperado ao salvar.")
 
     def _get_id_turma(self):
         sel = self.combo_turma.get()
@@ -427,6 +431,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         super().__init__(master, fg_color=cores.COR_BG)
         self.controller = controller
         self._linha_selecionada = None
+        self._turmas_cache = None
         self._construir_ui()
         self._carregar()
 
@@ -543,6 +548,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             return
         if erro is None and dados:
             usuarios, turmas_map = dados
+            self._turmas_cache = [(tid, c, t) for tid, (c, t) in turmas_map.items()]
             self._renderizar_linhas(usuarios, turmas_map)
 
     def _renderizar_linhas(self, usuarios, turmas_map):
@@ -585,7 +591,7 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         self._carregar()
 
     def _abrir_cadastro(self):
-        JanelaUsuario(self, on_salvo=self._carregar)
+        JanelaUsuario(self, on_salvo=self._carregar, turmas=self._turmas_cache)
 
     def _gerar_carteirinhas(self):
         """Gera o PDF com as carteirinhas de todos os usuários e abre para impressão."""
@@ -601,7 +607,8 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
             self._notificar("Erro ao gerar carteirinhas.")
 
     def _abrir_edicao(self, id_usuario):
-        JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario)
+        JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario,
+                      turmas=self._turmas_cache)
 
     def _alternar_status(self, id_usuario):
         ok = alternar_status_usuario(id_usuario)

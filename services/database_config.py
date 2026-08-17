@@ -1537,7 +1537,13 @@ def _buscar_ranking_turmas_sql():
 
 
 def buscar_livros_por_categoria_exemplares():
-    """Conta exemplares por categoria com percentual. Retorna [(categoria, total, percentual), ...]."""
+    """Conta exemplares (cópias físicas) por categoria com percentual. Retorna [(categoria, total, percentual), ...].
+
+    Conta por `exemplar`, não por `livro`, pois vários exemplares podem
+    compartilhar o mesmo título — só o codigo_patrimonio muda entre eles.
+    Fica vazio até que exemplares sejam cadastrados na tela "Exemplares"
+    (cadastrar_livro NÃO cria exemplar automaticamente).
+    """
     return _cache_ttl(("buscar_livros_por_categoria_exemplares",), 30, _buscar_exemplares_cat_sql)
 
 

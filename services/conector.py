@@ -7,7 +7,10 @@ from dotenv import load_dotenv  # Biblioteca para ler variáveis do arquivo .env
 from mysql.connector import Error  # Classe de erro do mysql.connector
 
 # Carrega as variáveis de ambiente do arquivo .env (está na pasta raiz do projeto)
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+# override=True garante que o .env sempre tenha prioridade sobre variáveis
+# de ambiente já existentes no sistema operacional (evita conectar num banco
+# antigo/errado caso DB_HOST, DB_NAME etc. já estejam definidos no Windows).
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'), override=True)
 
 DB_PORT = os.getenv('DB_PORT')  # Porta do MySQL como string
 
@@ -23,7 +26,7 @@ DB_CONFIG = {
     'user': os.getenv('DB_USER'),
     'password': os.getenv('DB_PASSWORD'),
     'database': DB_NAME,
-    'connection_timeout': 10,  # Evita que a aplicação fique travada se o servidor não responder
+    'connection_timeout': 30,  # Tempo máximo para estabelecer conexão (em segundos).
 }
 
 

@@ -16,12 +16,16 @@ class AppController:
         self.root.minsize(800, 580)
         self.root.configure(fg_color=cores.COR_BG)
 
+        self._container = ctk.CTkFrame(root, fg_color=cores.COR_BG)
+        self._container.pack(fill="both", expand=True)
+
         self._ultimo_fullscreen = bool(self.root.attributes("-fullscreen"))
         self.root.bind("<Configure>", self._ao_estado_fullscreen_mudou, add="+")
 
         cores.registrar_listener(self._ao_tema_mudou)
 
         self._telas = {}
+        self._classes_telas = {}
         self._tela_atual = None
         self._historico = []
         self._animando = False
@@ -67,15 +71,22 @@ class AppController:
         self.root.geometry(f"+{x}+{y}")
 
     def registrar_tela(self, nome, classe_tela):
-        frame = classe_tela(master=self._container, controller=self)
+        """Registra a classe de uma tela. A instância é criada sob demanda
+        na primeira navegação (evita consultas ao banco no início do app)."""
+        self._classes_telas[nome] = classe_tela
+
+    def _garantir_tela(self, nome):
+        """Retorna a instância da tela, criando-a (e cacheando) se necessário."""
+        if nome in self._telas:
+            return self._telas[nome]
+        classe = self._classes_telas.get(nome)
+        if classe is None:
+            return None
+        frame = classe(master=self._container, controller=self)
         self._telas[nome] = frame
         frame.place(relx=0, rely=0, relwidth=1, relheight=1)
         frame.place_forget()
-
-    def _garantir_tela(self, nome):
-        if nome in self._telas:
-            return self._telas[nome]
-        return None
+        return frame
 
     def navegar_para(self, nome, voltavel=True):
         if self._animando:
@@ -97,7 +108,10 @@ class AppController:
                 self._historico.append(self._tela_atual)
             antiga = self._tela_atual
             self._tela_atual = nome
-            nova_tela = self._telas[nome]
+            nova_tela = self._garantir_tela(nome)
+            if nova_tela is None:
+                self._tela_atual = antiga
+                return
             callback = getattr(nova_tela, "_ao_visitar", None)
             if antiga:
                 self._animar_slide(self._telas[antiga], nova_tela, direcao="esquerda", callback=callback)
@@ -359,6 +373,8 @@ class AppController:
 
     def _ao_estado_fullscreen_mudou(self, event=None):
         """Detecta mudanças de tela cheia/maximização e ajusta a sidebar."""
+        if event is not None and event.widget is not self.root:
+            return
         atual = bool(self.root.attributes("-fullscreen"))
         if atual != self._ultimo_fullscreen:
             self._ultimo_fullscreen = atual
@@ -371,6 +387,20 @@ class AppController:
     def _janela_maximizada(self):
         """True quando a janela está em tela cheia ou maximizada."""
         return self._ultimo_fullscreen or self.root.state() == "zoomed"
+
+    def _alternar_visibilidade_scrollbar(self, sb, ocultar):
+        """Mostra/oculta uma scrollbar se ela ainda existir (evita TclError)."""
+        if sb is None:
+            return
+        try:
+            if not sb.winfo_exists():
+                return
+            if ocultar:
+                sb.grid_remove()
+            else:
+                sb.grid()
+        except Exception:
+            pass
 
     def _atualizar_visibilidade_scrollbars_janela(self):
         """Oculta as barras de rolagem quando a janela está em tela cheia/maximizada."""
@@ -403,10 +433,7 @@ class AppController:
         nav = getattr(self, '_nav_scroll', None)
         if nav is None:
             return
-        if self._janela_maximizada():
-            nav._scrollbar.grid_remove()
-        else:
-            nav._scrollbar.grid()
+        self._alternar_visibilidade_scrollbar(getattr(nav, '_scrollbar', None), self._janela_maximizada())
 
     def _ao_tema_mudou(self):
         """Chamado automaticamente quando o tema muda."""
