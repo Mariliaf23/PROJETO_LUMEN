@@ -167,33 +167,26 @@ if __name__ == "__main__":                            # Só executa se for o arq
         controller = AppController(root)              # Cria o controlador de navegação
         controller.usuario_logado = None              # Nenhum usuário logado no início
         print("AppController criado.") # Debug print
-        root.after(50, _etapa_3_importar)
+        root.after(50, _etapa_3_importar_e_registrar)
 
-    def _etapa_3_importar():
-        """Importação preguiçosa (lazy) das telas - evitam queries de rede
-        durante o início. Cada tela será importada sob demanda ao navegar."""
-        from screen import tela_login, dashboard, tela_livros, tela_exemplares
-        from screen import tela_cadastro_usuario, emprestimos, tela_configuracoes
-        from screen import tela_gerenciar_usuarios, tela_catalogo, tela_relatorios
-        from screen import tela_notificacoes
+    def _etapa_3_importar_e_registrar():
+        """Importação preguiçosa (lazy) e registro das telas."""
+        _atualizar_status(splash, lbl_status, "Carregando componentes...")
 
         # Importação de todas as telas do sistema
-        from screen.tela_login import TelaLogin                         # Tela de login
-        from screen.dashboard import Dashboard                          # Tela principal (dashboard)
-        from screen.tela_livros import TelaLivros                       # Tela de cadastro de livros
-        from screen.tela_exemplares import TelaExemplares               # Tela de exemplares físicos
-        from screen.tela_cadastro_usuario import TelaCadastroUsuario    # Tela de cadastro de usuários
-        from screen.emprestimos import TelaEmprestimos                  # Tela de empréstimos
-        from screen.tela_configuracoes import TelaConfiguracoes         # Tela de configurações
-        from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios # Tela de gerenciar usuários
-        from screen.tela_catalogo import TelaCatalogo                     # Tela de catálogo de livros
-        from screen.tela_relatorios import TelaRelatorios                 # Tela de relatórios
-        from screen.tela_notificacoes import TelaNotificacoes             # Central de notificações
-
+        from screen.tela_login import TelaLogin
+        from screen.dashboard import Dashboard
+        from screen.tela_livros import TelaLivros
+        from screen.tela_exemplares import TelaExemplares
+        from screen.tela_cadastro_usuario import TelaCadastroUsuario
+        from screen.emprestimos import TelaEmprestimos
+        from screen.tela_configuracoes import TelaConfiguracoes
+        from screen.tela_gerenciar_usuarios import TelaGerenciarUsuarios
+        from screen.tela_catalogo import TelaCatalogo
+        from screen.tela_relatorios import TelaRelatorios
+        from screen.tela_notificacoes import TelaNotificacoes
         print("Telas importadas.") # Debug print
-        root.after(50, _etapa_4_registrar)
 
-    def _etapa_4_registrar():
         _atualizar_status(splash, lbl_status, "Preparando ambiente...")
 
         # Registra cada tela no controlador com um nome para navegação
@@ -208,6 +201,7 @@ if __name__ == "__main__":                            # Só executa se for o arq
         controller.registrar_tela("catalogo", TelaCatalogo)             # Catálogo de livros
         controller.registrar_tela("relatorios", TelaRelatorios)         # Relatórios
         controller.registrar_tela("notificacoes", TelaNotificacoes)     # Central de notificações
+        print("Telas registradas.") # Debug print
 
         root.after(50, _etapa_5_finalizar)
 
