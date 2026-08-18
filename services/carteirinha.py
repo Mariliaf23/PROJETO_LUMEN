@@ -557,9 +557,94 @@ def _gerar_carteirinha_from_gui():
 # GERAÇÃO DE CARTEIRINHAS PARA MÚLTIPLOS USUÁRIOS (SEM GUI)
 # ============================================================
 
+def gerar_imagem_carteirinha(user_data, codigo_usuario):
+    """
+    Gera a imagem (PIL) da carteirinha para um usuário.
+
+    Args:
+        user_data: Tupla no formato retornado por database_config.listar_usuarios:
+                   (id_usuario, nome, email, telefone, cpf, tipo_usuario, matricula, id_turma, funcao, status)
+        codigo_usuario: Código único (ex: BIB-7F3A91C2D4) impresso na carteirinha.
+
+    Returns:
+        PIL.Image com a carteirinha pronta.
+    """
+    nome = (user_data[1] or "").strip() or "SEM NOME"
+    tipo_usuario = (user_data[5] or "outro").capitalize()
+
+    caminho_foto = ""  # Não há caminho de foto nos dados de listar_usuarios
+    validade = "31/12/2026"  # Validade padrão
+
+    return criar_carteirinha(
+        nome=nome,
+        tipo_usuario=tipo_usuario,
+        validade=validade,
+        caminho_foto=caminho_foto,
+        codigo_usuario=codigo_usuario
+    )
+
+
+def salvar_pdf_unico(imagens_codigos, nome_arquivo="todas_carteirinhas"):
+    """
+    Gera um único PDF (A4) com as carteirinhas dispostas 2 por página.
+
+    Args:
+        imagens_codigos: Lista de tuplas (imagem_PIL, codigo_usuario).
+        nome_arquivo: Nome base do arquivo gerado em PASTA_SAIDA.
+
+    Returns:
+        Caminho do PDF gerado.
+    """
+    import math
+
+    LARGURA_PDF = 595.28
+    ALTURA_PDF = 841.89
+
+    LARGURA_CARTAO_PDF = 8.6 * 28.3465
+    ALTURA_CARTAO_PDF = 5.4 * 28.3465
+
+    ESPACO = 14.17
+
+    pdf = canvas.Canvas(
+        os.path.join(PASTA_SAIDA, f"{nome_arquivo}.pdf"),
+        pagesize=(LARGURA_PDF, ALTURA_PDF)
+    )
+
+    cartoes_por_pagina = 2
+    total_paginas = max(1, math.ceil(len(imagens_codigos) / cartoes_por_pagina))
+
+    altura_dupla = (2 * ALTURA_CARTAO_PDF) + ESPACO
+    y_inicio = (ALTURA_PDF - altura_dupla) / 2
+
+    for pagina in range(total_paginas):
+        for posicao in range(cartoes_por_pagina):
+            indice = pagina * cartoes_por_pagina + posicao
+            if indice >= len(imagens_codigos):
+                break
+
+            imagem, codigo = imagens_codigos[indice]
+
+            x = (LARGURA_PDF - LARGURA_CARTAO_PDF) / 2
+            y = y_inicio + ALTURA_CARTAO_PDF
+            if posicao == 1:
+                y = y_inicio
+
+            pdf.drawImage(
+                ImageReader(imagem),
+                x, y,
+                width=LARGURA_CARTAO_PDF,
+                height=ALTURA_CARTAO_PDF
+            )
+
+        pdf.showPage()
+
+    pdf.save()
+    return os.path.join(PASTA_SAIDA, f"{nome_arquivo}.pdf")
+
+
 def gerar_pdf_carteirinhas(usuarios_data):
     """
-    Gera carteirinhas em PDF para uma lista de usuários.
+    Gera carteirinhas em PDF para uma lista de usuários (um PDF por usuário).
     Esta função é destinada a ser usada por outros módulos (ex: tela de gerenciar usuários)
     e não inicia a interface gráfica.
 
@@ -574,23 +659,8 @@ def gerar_pdf_carteirinhas(usuarios_data):
     caminhos_gerados = []
     for user_data in usuarios_data:
         try:
-            # Extrai os dados necessários do formato esperado
-            nome = user_data[1]
-            tipo_usuario = user_data[5] # Ex: 'aluno', 'professor'
-            
-            # Valores padrão para foto e validade, pois não estão nos dados do usuário
-            caminho_foto = "" # Não há caminho de foto nos dados de listar_usuarios
-            validade = "31/12/2026" # Validade padrão
-
-            codigo_usuario = gerar_codigo_usuario() # Gera um código único para cada usuário
-
-            imagem = criar_carteirinha(
-                nome=nome,
-                tipo_usuario=tipo_usuario.capitalize(), # Capitaliza para exibição
-                validade=validade,
-                caminho_foto=caminho_foto,
-                codigo_usuario=codigo_usuario
-            )
+            codigo_usuario = gerar_codigo_usuario()  # Gera um código único para cada usuário
+            imagem = gerar_imagem_carteirinha(user_data, codigo_usuario)
             caminho_pdf = salvar_pdf(imagem, codigo_usuario)
             caminhos_gerados.append(caminho_pdf)
         except Exception as e:

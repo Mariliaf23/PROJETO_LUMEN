@@ -16,7 +16,7 @@ from services.styles import (
     aplicar_validacao_focusout
 )
 from services.validador import validar_nome, validar_email, validar_telefone, validar_senha
-from services.carteirinha import gerar_pdf_carteirinhas
+from screen.tela_carteirinhas import JanelaCarteirinhas
 from services.db_async import carregar_em_fundo
 
 COMPENSA_SCROLLBAR = 18
@@ -594,17 +594,12 @@ class TelaGerenciarUsuarios(ctk.CTkFrame):
         JanelaUsuario(self, on_salvo=self._carregar, turmas=self._turmas_cache)
 
     def _gerar_carteirinhas(self):
-        """Gera o PDF com as carteirinhas de todos os usuários e abre para impressão."""
+        """Abre a janela com as carteirinhas de todos os usuários."""
         usuarios = listar_usuarios()
         if not usuarios:
             self._notificar("Nenhum usuário cadastrado para gerar carteirinhas.")
             return
-        caminhos = gerar_pdf_carteirinhas(usuarios)
-        if caminhos:
-            os.startfile(caminhos[0])
-            self._notificar(f"{len(usuarios)} carteirinha(s) gerada(s) com sucesso.")
-        else:
-            self._notificar("Erro ao gerar carteirinhas.")
+        JanelaCarteirinhas(self, usuarios)
 
     def _abrir_edicao(self, id_usuario):
         JanelaUsuario(self, on_salvo=self._carregar, id_usuario=id_usuario,

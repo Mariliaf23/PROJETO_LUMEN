@@ -1603,6 +1603,50 @@ def listar_usuarios(tipo=None, status=None):
         return []
 
 
+def obter_codigos_carteirinhas():
+    """Retorna {id_usuario: codigo_carteirinha} para todos os usuários.
+
+    Usuários sem código recebem um código novo (gerado uma única vez) e o
+    valor é persistido no banco — assim a mesma carteirinha sempre reutiliza
+    o mesmo código/arquivo, sem gerar PDFs duplicados a cada clique.
+    """
+    from services.carteirinha import gerar_codigo_usuario
+
+    try:
+        conn = _conectar()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT id_usuario, codigo_carteirinha FROM usuario ORDER BY nome"
+        )
+        linhas = cursor.fetchall()
+
+        codigos = {}
+        sem_codigo = []
+        for id_usuario, codigo in linhas:
+            if codigo:
+                codigos[id_usuario] = codigo
+            else:
+                sem_codigo.append(id_usuario)
+
+        if sem_codigo:
+            for id_usuario in sem_codigo:
+                codigo = gerar_codigo_usuario()
+                cursor.execute(
+                    "UPDATE usuario SET codigo_carteirinha = %s WHERE id_usuario = %s",
+                    (codigo, id_usuario)
+                )
+                codigos[id_usuario] = codigo
+            conn.commit()
+            _invalidar_cache()
+
+        conn.close()
+        return codigos
+    except Error as e:
+        print(f"Erro ao obter códigos de carteirinha: {e}")
+        return {}
+
+
 def buscar_usuario_por_id(id_usuario):
     """Busca um usuário pelo ID. Retorna tupla com todos os campos ou None."""
     try:

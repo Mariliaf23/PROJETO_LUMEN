@@ -57,4 +57,9 @@ assets/barcodes/*.png
 1781931839859-crisp-canyon.md
 ca.pem
 
-.mimocode\
+.mimocode/
+carteirinhas/
+temp_carteirinhas/
+barcodes/
+relatorios/
+test_report.pdf

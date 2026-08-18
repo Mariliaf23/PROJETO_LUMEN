@@ -201,6 +201,22 @@ def run_migrations():
         else:
             print("⏭ Constraint já existe")
 
+        # 6. Adiciona coluna codigo_carteirinha (código estável da carteirinha)
+        print("📋 Verificando coluna codigo_carteirinha na tabela usuario...")
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuario' AND COLUMN_NAME = 'codigo_carteirinha'
+        """, (DB_NAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE `usuario`
+                ADD COLUMN `codigo_carteirinha` VARCHAR(20) DEFAULT NULL AFTER `matricula`,
+                ADD UNIQUE KEY `codigo_carteirinha_UNIQUE` (`codigo_carteirinha`)
+            """)
+            print("✓ Coluna codigo_carteirinha adicionada")
+        else:
+            print("⏭ Coluna codigo_carteirinha já existe")
+
         conn.commit()
         conn.close()
 
