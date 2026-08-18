@@ -83,7 +83,7 @@ def verificar_login(usuario, senha):
 
 
 def cadastrar_usuario(nome, email, senha, telefone='', cpf='', tipo='aluno',
-                      matricula='', id_turma=None, funcao=''):
+                      matricula='', id_turma=None, funcao='', status='ativo'):
     """Cadastra um novo usuário no banco de dados. Retorna (ok, mensagem)."""
     try:
         conn = _conectar()

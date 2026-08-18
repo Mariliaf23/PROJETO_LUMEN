@@ -218,7 +218,7 @@ class JanelaUsuario(ctk.CTkToplevel):
                 msg_ok = "Usuario atualizado!"
             else:
                 ok, msg = cadastrar_usuario(nome, email, senha or '', telefone, '',
-                                            tipo, '', id_turma, funcao)
+                                            tipo, '', id_turma, funcao, status)
                 msg_ok = "Usuario cadastrado!"
 
             if ok:

@@ -586,7 +586,7 @@ def gerar_imagem_carteirinha(user_data, codigo_usuario):
 
 def salvar_pdf_unico(imagens_codigos, nome_arquivo="todas_carteirinhas"):
     """
-    Gera um único PDF (A4) com as carteirinhas dispostas 2 por página.
+    Gera um único PDF (A4) com as carteirinhas dispostas em grade máxima.
 
     Args:
         imagens_codigos: Lista de tuplas (imagem_PIL, codigo_usuario).
@@ -605,29 +605,42 @@ def salvar_pdf_unico(imagens_codigos, nome_arquivo="todas_carteirinhas"):
 
     ESPACO = 14.17
 
+    # Calcula grade máxima: 2 colunas por linha, múltiplas linhas para caber em A4
+    # Largura disponível: A4 largura - 2 * largura do cartão - espaco entre colunas
+    # 2 cartoes lado a lado: 2 * LARGURA_CARTAO_PDF + ESPACO
+    # Quantidade de linhas que cabem na altura: ALTURA_PDF / (ALTURA_CARTAO_PDF + ESPACO)
+    cartoes_por_linha = 2
+    espaco_linha = (2 * LARGURA_CARTAO_PDF) + ESPACO
+    linhas_cabem = int((ALTURA_PDF - ESPACO) / (ALTURA_CARTAO_PDF + ESPACO))
+    cartoes_por_pagina = cartoes_por_linha * linhas_cabem
+
     pdf = canvas.Canvas(
         os.path.join(PASTA_SAIDA, f"{nome_arquivo}.pdf"),
         pagesize=(LARGURA_PDF, ALTURA_PDF)
     )
 
-    cartoes_por_pagina = 2
     total_paginas = max(1, math.ceil(len(imagens_codigos) / cartoes_por_pagina))
 
-    altura_dupla = (2 * ALTURA_CARTAO_PDF) + ESPACO
-    y_inicio = (ALTURA_PDF - altura_dupla) / 2
-
     for pagina in range(total_paginas):
-        for posicao in range(cartoes_por_pagina):
-            indice = pagina * cartoes_por_pagina + posicao
+        # Posicao inicial X para centralizar as 2 colunas
+        x_inicio = (LARGURA_PDF - espaco_linha) / 2
+
+        # Posicao inicial Y - calcular baseando-se em quantas linhas cabem
+        altura_total_grupo = (linhas_cabem * ALTURA_CARTAO_PDF) + ((linhas_cabem - 1) * ESPACO)
+        y_inicio = (ALTURA_PDF - altura_total_grupo) / 2
+
+        for indice in range(cartoes_por_pagina):
             if indice >= len(imagens_codigos):
                 break
 
             imagem, codigo = imagens_codigos[indice]
 
-            x = (LARGURA_PDF - LARGURA_CARTAO_PDF) / 2
-            y = y_inicio + ALTURA_CARTAO_PDF
-            if posicao == 1:
-                y = y_inicio
+            # Linha e coluna desse cartao
+            linha = indice // cartoes_por_linha
+            posicao_coluna = indice % cartoes_por_linha
+
+            x = x_inicio + (posicao_coluna * (LARGURA_CARTAO_PDF + ESPACO))
+            y = y_inicio + (linha * (ALTURA_CARTAO_PDF + ESPACO))
 
             pdf.drawImage(
                 ImageReader(imagem),
