@@ -1,204 +1,670 @@
-# carteirinha.py — Geração de carteirinhas de usuário com código de barras
-# Formato CR80 (cartão de crédito): 85,60 x 53,98 mm
-
 import os
-from datetime import datetime
-from fpdf import FPDF
-from PIL import Image
+import uuid
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from tkinter import ttk # Keep ttk for standalone GUI
+
+from PIL import Image, ImageDraw, ImageFont
 import barcode
 from barcode.writer import ImageWriter
-
-# Carrega configurações
-from dotenv import load_dotenv
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(env_path, override=True)
-
-SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'Biblioteca')
-
-# Paleta institucional (mesma do report_export)
-COR_AZUL_MARINHO = (11, 29, 52)      # #0B1D34
-COR_DOURADO = (201, 162, 76)         # #C9A24C
-COR_BRANCO = (255, 255, 255)
-COR_CINZA_TEXTO = (100, 100, 100)
-COR_CINZA_LINHA = (220, 215, 210)
-
-# Cartão de crédito (CR80 - ISO/IEC 7810)
-LARGURA_CARTAO = 85.6
-ALTURA_CARTAO = 53.98
-
-# Layout da página A4: 2 colunas x 4 linhas = 8 cartões por página
-COLUNAS = 2
-LINHAS = 4
-CARTOES_POR_PAGINA = COLUNAS * LINHAS
-
-MARGEM_X = 10
-MARGEM_Y = 10
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 
 
-def _sanitizar(texto):
-    """Remove caracteres fora do latin-1 para compatibilidade com o FPDF."""
-    if texto is None:
-        return ""
-    return str(texto).encode('latin-1', 'replace').decode('latin-1')
+# ============================================================
+# CONFIGURAÇÕES
+# ============================================================
+
+LARGURA_CARTAO = 860
+ALTURA_CARTAO = 540
+
+PASTA_SAIDA = "carteirinhas"
+PASTA_TEMP = "temp_carteirinhas"
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ASSETS_DIR = os.path.join(_BASE_DIR, "assets")
+_LOGO_ESCOLA_PATH = os.path.join(_ASSETS_DIR, "logo_escola.png")
+
+os.makedirs(PASTA_SAIDA, exist_ok=True)
+os.makedirs(PASTA_TEMP, exist_ok=True)
 
 
-def _criar_barcode_png(codigo, pasta_destino):
-    """Gera barcode Code 128 sem texto e retorna o caminho da imagem."""
-    options = {
-        'module_width': 0.3,
-        'module_height': 15,
-        'quiet_zone': 3,
-        'font_size': 0,
-        'text_distance': 0,
-        'write_text': False,
-    }
-    writer = ImageWriter()
-    code128 = barcode.get('code128', codigo, writer=writer)
+# ============================================================
+# GERADOR DE CÓDIGO ÚNICO
+# ============================================================
 
-    caminho_temp = os.path.join(pasta_destino, f"_temp_cartao_{codigo}")
-    code128.save(caminho_temp, options)
-
-    for ext in ['.png', '.jpg', '.gif', '']:
-        if os.path.exists(caminho_temp + ext):
-            return caminho_temp + ext
-    return None
-
-
-def _desenhar_cartao(pdf, x, y, usuario, pasta_temp):
+def gerar_codigo_usuario():
     """
-    Desenha uma carteirinha nas coordenadas (x, y) em mm.
+    Gera um código único para o usuário.
 
-    usuario: tupla (id_usuario, nome, email, telefone, cpf,
-                     tipo_usuario, matricula, id_turma, funcao, status)
+    Exemplo:
+        BIB-7F3A91C2D4
     """
-    id_usuario, nome, email, telefone, cpf, tipo, matricula, id_turma, funcao, status = usuario
-    codigo = str(matricula).strip() if matricula else str(id_usuario)
-    label_codigo = "MATRÍCULA" if matricula else "CÓDIGO"
 
-    # Fundo branco com borda
-    pdf.set_fill_color(*COR_BRANCO)
-    pdf.set_draw_color(*COR_AZUL_MARINHO)
-    pdf.set_line_width(0.4)
-    pdf.rect(x, y, LARGURA_CARTAO, ALTURA_CARTAO, 'DF')
+    identificador = uuid.uuid4().hex[:10].upper()
 
-    # Faixa superior azul-marinho com linha dourada
-    pdf.set_fill_color(*COR_AZUL_MARINHO)
-    pdf.rect(x, y, LARGURA_CARTAO, 10, 'F')
-    pdf.set_draw_color(*COR_DOURADO)
-    pdf.set_line_width(0.6)
-    pdf.line(x, y + 10, x + LARGURA_CARTAO, y + 10)
+    return f"BIB-{identificador}"
 
-    # Nome da escola
-    pdf.set_font('Helvetica', 'B', 8)
-    pdf.set_text_color(*COR_DOURADO)
-    pdf.set_xy(x, y + 1.5)
-    pdf.cell(LARGURA_CARTAO, 4, _sanitizar(SCHOOL_NAME.upper()), 0, 1, 'C')
 
-    pdf.set_font('Helvetica', '', 6.5)
-    pdf.set_text_color(230, 222, 200)
-    pdf.cell(LARGURA_CARTAO, 3.5, 'SISTEMA LUMEN - CARTEIRINHA', 0, 1, 'C')
+# ============================================================
+# GERAÇÃO DO CÓDIGO DE BARRAS
+# ============================================================
 
-    # Nome do usuário
-    pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(*COR_AZUL_MARINHO)
-    pdf.set_xy(x, y + 12.5)
-    nome_exib = _sanitizar(nome)
-    if len(nome_exib) > 32:
-        nome_exib = nome_exib[:31] + "..."
-    pdf.cell(LARGURA_CARTAO, 6, nome_exib, 0, 1, 'C')
+def gerar_codigo_barras(codigo_usuario):
+    """
+    Gera um código de barras Code128.
 
-    # Linha divisória sutil
-    pdf.set_draw_color(*COR_CINZA_LINHA)
-    pdf.set_line_width(0.2)
-    pdf.line(x + 6, y + 19.5, x + LARGURA_CARTAO - 6, y + 19.5)
+    O valor armazenado no código de barras é o código interno
+    do usuário, por exemplo:
 
-    # Matrícula / código
-    pdf.set_font('Helvetica', '', 8)
-    pdf.set_text_color(*COR_CINZA_TEXTO)
-    pdf.set_xy(x, y + 21)
-    pdf.cell(LARGURA_CARTAO, 4.5, f'{label_codigo}: {codigo}', 0, 1, 'C')
+        BIB-7F3A91C2D4
+    """
+
+    nome_arquivo = os.path.join(
+        PASTA_TEMP,
+        codigo_usuario
+    )
+
+    classe_barcode = barcode.get_barcode_class("code128")
+
+    codigo = classe_barcode(
+        codigo_usuario,
+        writer=ImageWriter()
+    )
+
+    caminho = codigo.save(
+        nome_arquivo,
+        options={
+            "write_text": True,
+            "module_width": 0.25,
+            "module_height": 15,
+            "font_size": 10,
+            "quiet_zone": 2,
+        }
+    )
+
+    return caminho
+
+
+# ============================================================
+# CARREGAR FOTO
+# ============================================================
+
+# Variáveis globais para os widgets de entrada, definidas apenas quando a GUI é criada
+entrada_foto = None
+
+def selecionar_foto():
+    caminho = filedialog.askopenfilename(
+        title="Selecionar foto",
+        filetypes=[
+            ("Imagens", "*.jpg *.jpeg *.png"),
+            ("Todos os arquivos", "*.*")
+        ]
+    )
+
+    if caminho:
+        if entrada_foto: # Verifica se o widget de entrada existe
+            entrada_foto.delete(0, tk.END)
+            entrada_foto.insert(0, caminho)
+
+
+# ============================================================
+# FONTE
+# ============================================================
+
+def obter_fonte(tamanho, negrito=False):
+    """
+    Tenta utilizar uma fonte comum do sistema.
+    """
+
+    fontes = []
+
+    if os.name == "nt":
+        if negrito:
+            fontes = [
+                "C:/Windows/Fonts/arialbd.ttf",
+                "C:/Windows/Fonts/calibrib.ttf",
+            ]
+        else:
+            fontes = [
+                "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/calibri.ttf",
+            ]
+
+    else:
+        if negrito:
+            fontes = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            ]
+        else:
+            fontes = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            ]
+
+    for fonte in fontes:
+        if os.path.exists(fonte):
+            return ImageFont.truetype(fonte, tamanho)
+
+    return ImageFont.load_default()
+
+
+# ============================================================
+# AJUSTAR FOTO
+# ============================================================
+
+def preparar_foto(caminho, largura, altura):
+    """
+    Redimensiona a foto mantendo proporção e recorta o excesso.
+    """
+
+    imagem = Image.open(caminho).convert("RGB")
+
+    proporcao_original = imagem.width / imagem.height
+    proporcao_destino = largura / altura
+
+    if proporcao_original > proporcao_destino:
+        # Imagem mais larga
+        nova_altura = altura
+        nova_largura = int(altura * proporcao_original)
+    else:
+        # Imagem mais alta
+        nova_largura = largura
+        nova_altura = int(largura / proporcao_original)
+
+    imagem = imagem.resize(
+        (nova_largura, nova_altura),
+        Image.Resampling.LANCZOS
+    )
+
+    esquerda = (nova_largura - largura) // 2
+    superior = (nova_altura - altura) // 2
+
+    imagem = imagem.crop(
+        (
+            esquerda,
+            superior,
+            esquerda + largura,
+            superior + altura
+        )
+    )
+
+    return imagem
+
+
+# ============================================================
+# GERAR IMAGEM DA CARTEIRINHA
+# ============================================================
+
+def criar_carteirinha(
+    nome,
+    tipo_usuario,
+    validade,
+    caminho_foto,
+    codigo_usuario
+):
+    """
+    Cria a imagem da carteirinha.
+    """
+
+    cartao = Image.new(
+        "RGB",
+        (LARGURA_CARTAO, ALTURA_CARTAO),
+        "white"
+    )
+
+    desenho = ImageDraw.Draw(cartao)
+
+    # --------------------------------------------------------
+    # Borda
+    # --------------------------------------------------------
+
+    desenho.rounded_rectangle(
+        (5, 5, LARGURA_CARTAO - 5, ALTURA_CARTAO - 5),
+        radius=25,
+        outline="#333333",
+        width=4
+    )
+
+    # --------------------------------------------------------
+    # Cabeçalho
+    # --------------------------------------------------------
+
+    desenho.rounded_rectangle(
+        (5, 5, LARGURA_CARTAO - 5, 105),
+        radius=25,
+        fill="#1F4E78"
+    )
+
+    fonte_titulo = obter_fonte(32, negrito=True)
+
+    desenho.text(
+        (40, 28),
+        "CARTEIRINHA DE USUÁRIO",
+        fill="white",
+        font=fonte_titulo
+    )
+
+    # --------------------------------------------------------
+    # Logo da Escola
+    # --------------------------------------------------------
+    if os.path.exists(_LOGO_ESCOLA_PATH):
+        try:
+            logo_escola_img = Image.open(_LOGO_ESCOLA_PATH).convert("RGBA") # Suporta transparência
+            # Redimensiona a logo para uma altura maior (2x o tamanho anterior)
+            logo_height = 280
+            logo_width = int(logo_escola_img.width * (logo_height / logo_escola_img.height))
+            logo_escola_img = logo_escola_img.resize((logo_width, logo_height), Image.LANCZOS)
+
+            # Calcula a posição para a logo no canto superior direito, abaixo do cabeçalho
+            # 20px de padding da borda direita
+            logo_x = LARGURA_CARTAO - logo_width - 20
+            # Centraliza a logo verticalmente ao lado da foto do usuário
+            logo_y = 145 + (230 - logo_height) // 2 # y_foto + (altura_foto - altura_logo) / 2
+            cartao.paste(logo_escola_img, (logo_x, logo_y), logo_escola_img) # Usa a própria imagem como máscara para transparência
+        except Exception as e:
+            print(f"Erro ao carregar ou colar logo da escola na carteirinha: {e}")
+
+    # --------------------------------------------------------
+    # Área da foto
+    # --------------------------------------------------------
+
+    x_foto = 45
+    y_foto = 145
+    largura_foto = 190
+    altura_foto = 230
+
+    desenho.rectangle(
+        (
+            x_foto,
+            y_foto,
+            x_foto + largura_foto,
+            y_foto + altura_foto
+        ),
+        outline="#555555",
+        width=3,
+        fill="#EEEEEE"
+    )
+
+    if caminho_foto and os.path.exists(caminho_foto):
+
+        foto = preparar_foto(
+            caminho_foto,
+            largura_foto,
+            altura_foto
+        )
+
+        cartao.paste(
+            foto,
+            (x_foto, y_foto)
+        )
+
+        desenho.rectangle(
+            (
+                x_foto,
+                y_foto,
+                x_foto + largura_foto,
+                y_foto + altura_foto
+            ),
+            outline="#555555",
+            width=3
+        )
+
+    else:
+
+        fonte_foto = obter_fonte(22, negrito=True)
+
+        texto = "FOTO"
+
+        caixa = desenho.textbbox(
+            (0, 0),
+            texto,
+            font=fonte_foto
+        )
+
+        largura_texto = caixa[2] - caixa[0]
+        altura_texto = caixa[3] - caixa[1]
+
+        desenho.text(
+            (
+                x_foto + (largura_foto - largura_texto) / 2,
+                y_foto + (altura_foto - altura_texto) / 2
+            ),
+            texto,
+            fill="#777777",
+            font=fonte_foto
+        )
+
+    # --------------------------------------------------------
+    # Informações
+    # --------------------------------------------------------
+
+    fonte_label = obter_fonte(18, negrito=True)
+    fonte_valor = obter_fonte(27, negrito=False)
+
+    x_info = 280
+
+    # Nome
+    desenho.text(
+        (x_info, 145),
+        "NOME",
+        fill="#555555",
+        font=fonte_label
+    )
+
+    desenho.text(
+        (x_info, 175),
+        nome,
+        fill="#111111",
+        font=fonte_valor
+    )
 
     # Tipo de usuário
-    tipo_exib = _sanitizar(tipo).upper() if tipo else ""
-    if tipo_exib == 'ALUNO':
-        tipo_exib = 'ALUNO (A)'
-    pdf.set_font('Helvetica', 'B', 8)
-    pdf.set_text_color(*COR_AZUL_MARINHO)
-    pdf.set_xy(x, y + 25.5)
-    pdf.cell(LARGURA_CARTAO, 4.5, tipo_exib, 0, 1, 'C')
+    desenho.text(
+        (x_info, 240),
+        "TIPO DE USUÁRIO",
+        fill="#555555",
+        font=fonte_label
+    )
 
+    desenho.text(
+        (x_info, 270),
+        tipo_usuario,
+        fill="#111111",
+        font=fonte_valor
+    )
+
+    # Validade
+    desenho.text(
+        (x_info, 335),
+        "VALIDADE",
+        fill="#555555",
+        font=fonte_label
+    )
+
+    desenho.text(
+        (x_info, 365),
+        validade,
+        fill="#111111",
+        font=fonte_valor
+    )
+
+    # --------------------------------------------------------
+    # Código interno
+    # --------------------------------------------------------
+
+    fonte_codigo = obter_fonte(16)
+
+    desenho.text(
+        (45, 440),
+        f"Código: {codigo_usuario}",
+        fill="#555555",
+        font=fonte_codigo
+    )
+
+    # --------------------------------------------------------
     # Código de barras
-    caminho_barcode = _criar_barcode_png(codigo, pasta_temp)
-    if caminho_barcode:
-        try:
-            with Image.open(caminho_barcode) as img:
-                largura_mm = 52
-                ratio = largura_mm / (img.width * 25.4 / 96)
-                altura_mm = min(img.height * 25.4 / 96 * ratio, 14)
+    # --------------------------------------------------------
 
-                x_barcode = x + (LARGURA_CARTAO - largura_mm) / 2
-                y_barcode = y + 30.5
-                pdf.image(caminho_barcode, x=x_barcode, y=y_barcode,
-                          w=largura_mm, h=altura_mm)
+    caminho_barra = gerar_codigo_barras(
+        codigo_usuario
+    )
 
-            # Número legível abaixo do barcode
-            pdf.set_font('Helvetica', '', 7.5)
-            pdf.set_text_color(0, 0, 0)
-            pdf.set_xy(x, y_barcode + altura_mm + 0.2)
-            pdf.cell(LARGURA_CARTAO, 4, codigo, 0, 1, 'C')
-        finally:
-            if os.path.exists(caminho_barcode):
-                os.remove(caminho_barcode)
+    codigo_img = Image.open(
+        caminho_barra
+    ).convert("RGB")
+
+    codigo_img.thumbnail(
+        (470, 80),
+        Image.Resampling.LANCZOS
+    )
+
+    x_barra = 345
+    y_barra = 425
+
+    cartao.paste(
+        codigo_img,
+        (x_barra, y_barra)
+    )
+
+    # --------------------------------------------------------
+    # Rodapé
+    # --------------------------------------------------------
+
+    fonte_rodape = obter_fonte(14)
+
+    desenho.text(
+        (45, 500),
+        "Documento de identificação do usuário da biblioteca",
+        fill="#666666",
+        font=fonte_rodape
+    )
+
+    return cartao
 
 
-def gerar_pdf_carteirinhas(usuarios):
+# ============================================================
+# EXPORTAR PARA PDF
+# ============================================================
+
+def salvar_pdf(imagem, codigo_usuario):
     """
-    Gera um PDF com carteirinhas de todos os usuários cadastrados.
+    Salva a carteirinha como PDF.
+    """
 
-    Layout: 2 colunas x 4 linhas = 8 carteirinhas por página A4,
-    cada uma no tamanho de um cartão de crédito (CR80).
+    caminho_png = os.path.join(
+        PASTA_SAIDA,
+        f"{codigo_usuario}.png"
+    )
+
+    caminho_pdf = os.path.join(
+        PASTA_SAIDA,
+        f"{codigo_usuario}.pdf"
+    )
+
+    imagem.save(
+        caminho_png,
+        "PNG"
+    )
+
+    largura_pdf = 8.6 * 28.3465
+    altura_pdf = 5.4 * 28.3465
+
+    pdf = canvas.Canvas(
+        caminho_pdf,
+        pagesize=(largura_pdf, altura_pdf)
+    )
+
+    pdf.drawImage(
+        ImageReader(imagem),
+        0,
+        0,
+        width=largura_pdf,
+        height=altura_pdf
+    )
+
+    pdf.save()
+
+    return caminho_pdf
+
+
+# ============================================================
+# PROCESSAR CARTEIRINHA
+# ============================================================
+
+def _gerar_carteirinha_from_gui():
+
+    nome = entrada_nome.get().strip()
+    tipo_usuario = entrada_tipo.get().strip()
+    validade = entrada_validade.get().strip()
+    caminho_foto = entrada_foto.get().strip()
+
+    if not nome:
+        messagebox.showwarning(
+            "Atenção",
+            "Informe o nome do usuário."
+        )
+        return
+
+    if not tipo_usuario:
+        messagebox.showwarning(
+            "Atenção",
+            "Informe o tipo de usuário."
+        )
+        return
+
+    if not validade:
+        messagebox.showwarning(
+            "Atenção",
+            "Informe a validade da carteirinha."
+        )
+        return
+
+    # Gera identificador único.
+    codigo_usuario = gerar_codigo_usuario()
+
+    try:
+
+        imagem = criar_carteirinha(
+            nome=nome,
+            tipo_usuario=tipo_usuario,
+            validade=validade,
+            caminho_foto=caminho_foto,
+            codigo_usuario=codigo_usuario
+        )
+
+        caminho_pdf = salvar_pdf(
+            imagem,
+            codigo_usuario
+        )
+
+        messagebox.showinfo(
+            "Carteirinha gerada",
+            f"Carteirinha criada com sucesso!\n\n"
+            f"Código: {codigo_usuario}\n\n"
+            f"Arquivo:\n{caminho_pdf}"
+        )
+
+    except Exception as erro:
+
+        messagebox.showerror(
+            "Erro",
+            f"Não foi possível gerar a carteirinha.\n\n{erro}"
+        )
+
+
+# ============================================================
+# GERAÇÃO DE CARTEIRINHAS PARA MÚLTIPLOS USUÁRIOS (SEM GUI)
+# ============================================================
+
+def gerar_pdf_carteirinhas(usuarios_data):
+    """
+    Gera carteirinhas em PDF para uma lista de usuários.
+    Esta função é destinada a ser usada por outros módulos (ex: tela de gerenciar usuários)
+    e não inicia a interface gráfica.
 
     Args:
-        usuarios: Lista de tuplas no formato de listar_usuarios().
+        usuarios_data: Lista de tuplas/dicts com dados do usuário.
+                       Assume o formato retornado por database_config.listar_usuarios:
+                       (id_usuario, nome, email, telefone, cpf, tipo_usuario, matricula, id_turma, funcao, status)
 
     Returns:
-        Lista com o caminho do PDF gerado (vazia em caso de erro).
+        Lista de caminhos para os PDFs gerados.
     """
-    try:
-        caminho_base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        pasta_destino = os.path.join(caminho_base, "assets", "carteirinhas")
-        os.makedirs(pasta_destino, exist_ok=True)
+    caminhos_gerados = []
+    for user_data in usuarios_data:
+        try:
+            # Extrai os dados necessários do formato esperado
+            nome = user_data[1]
+            tipo_usuario = user_data[5] # Ex: 'aluno', 'professor'
+            
+            # Valores padrão para foto e validade, pois não estão nos dados do usuário
+            caminho_foto = "" # Não há caminho de foto nos dados de listar_usuarios
+            validade = "31/12/2026" # Validade padrão
 
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=False)
-        pdf.set_margins(0, 0, 0)
+            codigo_usuario = gerar_codigo_usuario() # Gera um código único para cada usuário
 
-        # Espaçamento entre cartões para preencher a página A4 (210 x 297 mm)
-        espaco_x = (210 - 2 * MARGEM_X - COLUNAS * LARGURA_CARTAO) / (COLUNAS - 1)
-        espaco_y = (297 - 2 * MARGEM_Y - LINHAS * ALTURA_CARTAO) / (LINHAS - 1)
+            imagem = criar_carteirinha(
+                nome=nome,
+                tipo_usuario=tipo_usuario.capitalize(), # Capitaliza para exibição
+                validade=validade,
+                caminho_foto=caminho_foto,
+                codigo_usuario=codigo_usuario
+            )
+            caminho_pdf = salvar_pdf(imagem, codigo_usuario)
+            caminhos_gerados.append(caminho_pdf)
+        except Exception as e:
+            print(f"Erro ao gerar carteirinha para {user_data[1]}: {e}")
+            # Em um sistema real, você pode querer registrar este erro ou notificar o usuário.
+    return caminhos_gerados
 
-        for i, usuario in enumerate(usuarios):
-            if i % CARTOES_POR_PAGINA == 0:
-                pdf.add_page()
 
-            idx = i % CARTOES_POR_PAGINA
-            col = idx % COLUNAS
-            lin = idx // COLUNAS
+# ============================================================
+# INTERFACE
+# ============================================================
 
-            x = MARGEM_X + col * (LARGURA_CARTAO + espaco_x)
-            y = MARGEM_Y + lin * (ALTURA_CARTAO + espaco_y)
+def _run_standalone_gui():
+    """
+    Cria e executa a interface gráfica para geração de carteirinhas.
+    Esta função só é chamada quando o script carteirinha.py é executado diretamente.
+    """
+    global entrada_nome, entrada_tipo, entrada_validade, entrada_foto
 
-            _desenhar_cartao(pdf, x, y, usuario, pasta_destino)
+    janela = tk.Tk()
+    janela.title("Carteirinha de Usuário - Biblioteca")
+    janela.geometry("650x500")
+    janela.resizable(False, False)
 
-        caminho_pdf = os.path.join(
-            pasta_destino,
-            f"carteirinhas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        )
-        pdf.output(caminho_pdf)
+    frame = ttk.Frame(janela, padding=25)
+    frame.pack(fill="both", expand=True)
 
-        print(f"[OK] PDF de carteirinhas gerado: {caminho_pdf}")
-        return [caminho_pdf]
+    # ------------------------------------------------------------
+    # Nome
+    # ------------------------------------------------------------
+    ttk.Label(frame, text="Nome do usuário:").pack(anchor="w")
+    entrada_nome = ttk.Entry(frame, width=70)
+    entrada_nome.pack(fill="x", pady=(5, 15))
 
-    except Exception as e:
-        print(f"[ERRO] Falha ao gerar PDF de carteirinhas: {e}")
-        return []
+    # ------------------------------------------------------------
+    # Tipo de usuário
+    # ------------------------------------------------------------
+    ttk.Label(frame, text="Tipo de usuário:").pack(anchor="w")
+    entrada_tipo = ttk.Combobox(frame, values=["Aluno", "Professor", "Servidor", "Comunidade", "Pesquisador", "Outro"], state="normal")
+    entrada_tipo.pack(fill="x", pady=(5, 15))
+
+    # ------------------------------------------------------------
+    # Validade
+    # ------------------------------------------------------------
+    ttk.Label(frame, text="Validade:").pack(anchor="w")
+    entrada_validade = ttk.Entry(frame, width=70)
+    entrada_validade.insert(0, "31/12/2026")
+    entrada_validade.pack(fill="x", pady=(5, 15))
+
+    # ------------------------------------------------------------
+    # Foto
+    # ------------------------------------------------------------
+    ttk.Label(frame, text="Foto:").pack(anchor="w")
+    frame_foto = ttk.Frame(frame)
+    frame_foto.pack(fill="x", pady=(5, 20))
+    entrada_foto = ttk.Entry(frame_foto)
+    entrada_foto.pack(side="left", fill="x", expand=True)
+    ttk.Button(frame_foto, text="Selecionar foto", command=selecionar_foto).pack(side="left", padx=(10, 0))
+
+    # ------------------------------------------------------------
+    # Botão
+    # ------------------------------------------------------------
+    ttk.Button(frame, text="GERAR CARTEIRINHA", command=_gerar_carteirinha_from_gui).pack(pady=25, ipadx=30, ipady=10)
+
+    # ------------------------------------------------------------
+    # Informações
+    # ------------------------------------------------------------
+    ttk.Label(frame, text=("A carteirinha não possui matrícula.\nUm código único será gerado automaticamente " "e transformado em código de barras."), justify="center").pack(pady=10)
+
+    janela.mainloop()
+
+# ============================================================
+# INICIAR
+# ============================================================
+
+if __name__ == '__main__':
+    _run_standalone_gui()
