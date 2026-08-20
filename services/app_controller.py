@@ -4,6 +4,7 @@ import os
 from PIL import Image
 import customtkinter as ctk
 from services.styles import cores, COR_ERRO
+from services.db_async import registrar_callback_banner
 
 
 class AppController:
@@ -30,6 +31,19 @@ class AppController:
         self._botoes_nav = []
         self._btn_tema = None
         self._logo_img = None
+
+        # Banner de "servidor indisponível" (mostrado quando consultas em
+        # fundo falham por erro de rede/MySQL e ocultado quando voltam).
+        self._banner_visivel = False
+        self._tk_banner = ctk.CTkLabel(
+            root,
+            text="⚠  Servidor indisponível — verificando conexão...",
+            fg_color=COR_ERRO, text_color="#FFFFFF",
+            font=("Segoe UI", 13, "bold"), height=32, corner_radius=0
+        )
+
+        # Registra o callback no db_async para receber avisos de indisponibilidade
+        registrar_callback_banner(self._ao_alterar_banner)
 
         cores.registrar_listener(self._ao_tema_mudou)
         self._centralizar()
