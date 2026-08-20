@@ -97,28 +97,41 @@ def carregar_em_fundo(root, fn_coleta, callback):
     """
     def _rodar():
         try:
-            dados, erro = fn_coleta(), None
+            try:
+                dados, erro = fn_coleta(), None
+            except Exception as e:  # noqa: BLE001
+                dados, erro = None, e
+
+            def _aplicar():
+                try:
+                    callback(dados, erro)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[db_async] erro no callback: {e}", file=sys.stderr)
+
+            print(f"[db_async] _rodar: agendando callback principal, root={root}, winfo_exists={root.winfo_exists() if root else None}", file=sys.stderr)
+            sys.stderr.flush()
+            if not _agendar_na_ui(root, _aplicar):
+                # Fallback: se não conseguir agendar na UI, executa direto (pode falhar se tocar widgets)
+                try:
+                    _aplicar()
+                except Exception as e:  # noqa: BLE001
+                    print(f"[db_async] erro no callback (fallback): {e}", file=sys.stderr)
+
+            print(f"[db_async] _rodar: chamando _notificar_banner, erro={erro}, CALLBACK_BANNER={_CALLBACK_BANNER}", file=sys.stderr)
+            sys.stderr.flush()
+            _notificar_banner(root, erro)
         except Exception as e:  # noqa: BLE001
-            dados, erro = None, e
+            print(f"[db_async] ERRO EM _rodar: {e}", file=sys.stderr)
+            sys.stderr.flush()
+            import traceback
+            traceback.print_exc(file=sys.stderr)
 
-        def _aplicar():
-            try:
-                callback(dados, erro)
-            except Exception as e:  # noqa: BLE001
-                print(f"[db_async] erro no callback: {e}", file=sys.stderr)
-
-        print(f"[db_async] _rodar: agendando callback principal, root={root}, winfo_exists={root.winfo_exists() if root else None}", file=sys.stderr)
-        if not _agendar_na_ui(root, _aplicar):
-            # Fallback: se não conseguir agendar na UI, executa direto (pode falhar se tocar widgets)
-            try:
-                _aplicar()
-            except Exception as e:  # noqa: BLE001
-                print(f"[db_async] erro no callback (fallback): {e}", file=sys.stderr)
-
-        print(f"[db_async] _rodar: chamando _notificar_banner, erro={erro}, CALLBACK_BANNER={_CALLBACK_BANNER}", file=sys.stderr)
-        _notificar_banner(root, erro)
-
-    threading.Thread(target=_rodar, daemon=True).start()
+    t = threading.Thread(target=_rodar, daemon=True)
+    print(f"[db_async] Thread criada: {t}", file=sys.stderr)
+    sys.stderr.flush()
+    t.start()
+    print(f"[db_async] Thread iniciada: {t.is_alive()}", file=sys.stderr)
+    sys.stderr.flush()
 
 
 def _notificar_banner(root, erro):
