@@ -124,9 +124,12 @@ def carregar_em_fundo(root, fn_coleta, callback):
 def _notificar_banner(root, erro):
     """Avisa a UI se o servidor de banco está indisponível (ou voltou)."""
     global _CALLBACK_BANNER
+    print(f"[db_async] _notificar_banner: erro={erro}, CALLBACK_BANNER={_CALLBACK_BANNER}", file=sys.stderr)
     if _CALLBACK_BANNER is None:
+        print("[db_async] _notificar_banner: CALLBACK_BANNER is None, retornando", file=sys.stderr)
         return
     indisponivel = erro is not None and _eh_erro_conexao(erro)
+    print(f"[db_async] _notificar_banner: indisponivel={indisponivel}", file=sys.stderr)
 
     def _aplicar():
         try:
@@ -134,4 +137,5 @@ def _notificar_banner(root, erro):
         except Exception:  # noqa: BLE001
             pass
 
+    print(f"[db_async] _notificar_banner: agendando banner, root={root}", file=sys.stderr)
     _agendar_na_ui(root, _aplicar)
