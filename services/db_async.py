@@ -10,9 +10,13 @@
 #   - callback   (thread da UI):   pode reconstruir telas, tabelas, etc.
 
 import threading
+import queue
+import sys
 
 
 _CALLBACK_BANNER = None
+_UI_QUEUE = queue.Queue()
+_QUEUE_POLL_ID = None
 
 
 def registrar_callback_banner(callback):
@@ -42,8 +46,48 @@ def _eh_erro_conexao(erro):
                    "ProgrammingError", "ConnectionError", "TimeoutError")
 
 
+def _processar_fila_ui(root):
+    """Processa callbacks na fila da UI (deve ser chamado periodicamente no mainloop)."""
+    global _QUEUE_POLL_ID
+    try:
+        while True:
+            callback, args, kwargs = _UI_QUEUE.get_nowait()
+            try:
+                callback(*args, **kwargs)
+            except Exception as e:  # noqa: BLE001
+                print(f"[db_async] erro no callback da fila: {e}", file=sys.stderr)
+    except queue.Empty:
+        pass
+    except Exception as e:  # noqa: BLE001
+        print(f"[db_async] erro ao processar fila UI: {e}", file=sys.stderr)
+    
+    if root is not None and root.winfo_exists():
+        _QUEUE_POLL_ID = root.after(50, _processar_fila_ui, root)
+
+
+def iniciar_processamento_fila(root):
+    """Inicia o processamento periódico da fila de callbacks da UI.
+    
+    Deve ser chamado uma vez após criar a janela principal, antes do mainloop.
+    """
+    global _QUEUE_POLL_ID
+    if _QUEUE_POLL_ID is None:
+        _processar_fila_ui(root)
+
+
+def _agendar_na_ui(root, callback, *args, **kwargs):
+    """Agenda callback para executar na thread da UI de forma segura."""
+    try:
+        if root is not None and root.winfo_exists():
+            _UI_QUEUE.put((callback, args, kwargs))
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def carregar_em_fundo(root, fn_coleta, callback):
-    """Executa fn_coleta numa daemon thread e chama callback(dados, erro).
+    """Executa fn_coleta numa daemon thread e chama callback(dados, erro) na thread da UI.
 
     Args:
         root: janela tkinter usada para agendar o retorno na thread da UI.
@@ -61,16 +105,17 @@ def carregar_em_fundo(root, fn_coleta, callback):
             try:
                 callback(dados, erro)
             except Exception as e:  # noqa: BLE001
-                print(f"[db_async] erro no callback: {e}")
+                print(f"[db_async] erro no callback: {e}", file=sys.stderr)
 
-        try:
-            if root is not None and root.winfo_exists():
-                root.after(0, _aplicar)
-            else:
+        print(f"[db_async] _rodar: agendando callback principal, root={root}, winfo_exists={root.winfo_exists() if root else None}", file=sys.stderr)
+        if not _agendar_na_ui(root, _aplicar):
+            # Fallback: se não conseguir agendar na UI, executa direto (pode falhar se tocar widgets)
+            try:
                 _aplicar()
-        except Exception:
-            _aplicar()
+            except Exception as e:  # noqa: BLE001
+                print(f"[db_async] erro no callback (fallback): {e}", file=sys.stderr)
 
+        print(f"[db_async] _rodar: chamando _notificar_banner, erro={erro}, CALLBACK_BANNER={_CALLBACK_BANNER}", file=sys.stderr)
         _notificar_banner(root, erro)
 
     threading.Thread(target=_rodar, daemon=True).start()
@@ -89,10 +134,4 @@ def _notificar_banner(root, erro):
         except Exception:  # noqa: BLE001
             pass
 
-    try:
-        if root is not None and root.winfo_exists():
-            root.after(0, _aplicar)
-        else:
-            _aplicar()
-    except Exception:
-        _aplicar()
+    _agendar_na_ui(root, _aplicar)

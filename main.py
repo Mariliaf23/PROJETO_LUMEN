@@ -1,6 +1,7 @@
 from services.conector import init_db
 from services.app_controller import AppController
 from services.styles import cores
+from services.db_async import iniciar_processamento_fila
 import customtkinter as ctk
 import tkinter.messagebox as mb
 from PIL import Image
@@ -106,6 +107,8 @@ def _configurar_tela_cheia(root):
 if __name__ == "__main__":                            # Só executa se for o arquivo principal
     root = ctk.CTk()                                 # Cria a janela principal do aplicativo
     root.withdraw()                                  # Esconde a janela principal até terminar de carregar
+
+    iniciar_processamento_fila(root)                 # Inicia processamento da fila de callbacks UI
 
     splash, lbl_status = _criar_splash(root)          # Mostra o splash de carregamento
 
